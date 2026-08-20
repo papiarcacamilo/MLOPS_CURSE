@@ -22,15 +22,12 @@ comprensión y limpieza de los datos hasta el despliegue y monitoreo de un model
 8. [Tratamiento y limpieza de datos](#tratamiento-y-limpieza-de-datos)
 9. [Análisis exploratorio](#análisis-exploratorio)
 10. [Reglas de validación](#reglas-de-validación)
-11. [Ingeniería de características](#ingeniería-de-características)
-12. [Modelamiento](#modelamiento)
-13. [Resultados](#resultados)
-14. [Conclusiones](#conclusiones)
-15. [Limitaciones](#limitaciones)
-16. [Estructura del repositorio](#estructura-del-repositorio)
-17. [Tecnologías utilizadas](#tecnologías-utilizadas)
-18. [Instrucciones de ejecución](#instrucciones-de-ejecución)
-19. [Referencias](#referencias)
+11. [Resultados](#resultados)
+12. [Conclusiones](#conclusiones)
+13. [Estructura del repositorio](#estructura-del-repositorio)
+14. [Tecnologías utilizadas](#tecnologías-utilizadas)
+15. [Instrucciones de ejecución](#instrucciones-de-ejecución)
+16. [Referencias](#referencias)
 
 ---
 
@@ -240,7 +237,6 @@ permanece intacto para garantizar reproducibilidad desde cero.
   diccionario) + detección automática de multicolinealidad.
 - **Pairplot** con `hue` en la variable objetivo (muestra de 1.500 registros).
 - **Tablas de contingencia** cruzadas entre variables categóricas.
-- **PCA** sobre 17 variables estandarizadas.
 
 **Correlación con la variable objetivo (top 5):**
 
@@ -254,10 +250,6 @@ permanece intacto para garantizar reproducibilidad desde cero.
 
 **Multicolinealidad:** `capital_prestado` ↔ `cuota_pactada` (r = 0.764).
 
-**PCA:** se requieren **10 de 17 componentes** para explicar el 80% de la varianza; PC1 explica
-solo 20.14%. La proyección no muestra separación entre clases. **Conclusión: no se recomienda
-PCA como preprocesamiento** para el modelado — reduciría la interpretabilidad, crítica en riesgo
-crediticio, sin aportar separabilidad.
 
 ## Reglas de validación
 
@@ -271,8 +263,8 @@ fuente. Corregida a `[150, 950]` (rango oficial DataCrédito Experian). La regla
 
 ## Ingeniería de características
 
-> **Estado: identificada y evaluada, no implementada.** Corresponde a la Fase 2
-> (`src/ft_engineering.py`, actualmente vacío).
+>  Corresponde a la Fase 2
+> (`src/ft_engineering.py`).
 
 Se propusieron y evaluaron 9 atributos derivados dentro del notebook, midiendo su correlación
 real con la variable objetivo:
@@ -285,30 +277,15 @@ real con la variable objetivo:
 | `ratio_cuota_ingreso` | 0.003 | Descartable: señal casi nula |
 | `ratio_capital_ingreso` | 0.0002 | Descartable: señal casi nula |
 
-Los ratios clásicos de capacidad de pago **no funcionaron en este dataset**, probablemente
+Los ratios clásicos de capacidad de pago no funcionaron en este dataset, probablemente
 porque 250 salarios fueron imputados con la mediana durante la limpieza, distorsionando
 cualquier cociente calculado sobre esa base.
 
-**Transformaciones planificadas** (documentadas en la sección 6 del notebook): One-Hot Encoding
+Transformaciones planificadas: One-Hot Encoding
 para categóricas, transformación logarítmica para variables monetarias asimétricas, `log1p` para
 variables con ceros, escalado robusto, y extracción de componentes temporales.
 
-## Modelamiento
 
-> **Estado: no implementado.** Corresponde a la Fase 3
-> (`src/model_training_evaluation.py`, actualmente vacío).
-
-Requisitos ya definidos a partir del análisis:
-
-- **Problema:** clasificación binaria supervisada.
-- **Desbalance 20:1** → obligatorio usar `class_weight='balanced'`, submuestreo o SMOTE,
-  aplicado **solo sobre el conjunto de entrenamiento**.
-- **Métricas:** precisión, recall, F1 y AUC-PR sobre la clase minoritaria. **La exactitud
-  (accuracy) queda descartada**: un modelo trivial alcanzaría 95.25% sin aprender nada.
-- **Advertencia de split:** sin identificador de cliente no es posible un `GroupShuffleSplit`;
-  debe declararse como limitación al reportar métricas.
-- **Interpretabilidad:** requisito de negocio en riesgo crediticio (hay que poder explicar por
-  qué se niega un crédito) — se descarta PCA como preprocesamiento.
 
 ## Resultados
 
@@ -356,6 +333,19 @@ Requisitos ya definidos a partir del análisis:
 | **27% de nulos sin causa estructural** | En `promedio_ingresos_datacredito`, sin patrón que justifique imputación |
 | **Códigos de `tipo_credito` sin confirmar** | No corresponden a ninguna clasificación oficial de la SFC |
 | **Sin diccionario de datos original** | La interpretación de varias variables se basa en investigación e inferencia documentada |
+
+
+proximos pasos: requisitos ya definidos a partir del análisis
+
+- **Problema:** clasificación binaria supervisada.
+- **Desbalance 20:1** →  usar `class_weight='balanced'`, submuestreo o SMOTE,
+  aplicado **solo sobre el conjunto de entrenamiento**.
+- **Métricas:** precisión, recall, F1 y AUC-PR sobre la clase minoritaria. **La exactitud
+  (accuracy) queda descartada ya que un modelo trivial alcanzaría 95.25% sin aprender nada.
+- **Advertencia de split:** sin identificador de cliente no es posible un `GroupShuffleSplit`;
+  debe declararse como limitación al reportar métricas.
+- **Interpretabilidad:** requisito de negocio en riesgo crediticio (hay que poder explicar por
+  qué se niega un crédito) 
 
 ## Estructura del repositorio
 
