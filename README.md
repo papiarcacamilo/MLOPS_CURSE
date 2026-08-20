@@ -22,12 +22,15 @@ comprensión y limpieza de los datos hasta el despliegue y monitoreo de un model
 8. [Tratamiento y limpieza de datos](#tratamiento-y-limpieza-de-datos)
 9. [Análisis exploratorio](#análisis-exploratorio)
 10. [Reglas de validación](#reglas-de-validación)
-11. [Resultados](#resultados)
-12. [Conclusiones](#conclusiones)
-13. [Estructura del repositorio](#estructura-del-repositorio)
-14. [Tecnologías utilizadas](#tecnologías-utilizadas)
-15. [Instrucciones de ejecución](#instrucciones-de-ejecución)
-16. [Referencias](#referencias)
+11. [Ingeniería de características](#ingeniería-de-características)
+12. [Modelamiento](#modelamiento)
+13. [Resultados](#resultados)
+14. [Conclusiones](#conclusiones)
+15. [Limitaciones](#limitaciones)
+16. [Estructura del repositorio](#estructura-del-repositorio)
+17. [Tecnologías utilizadas](#tecnologías-utilizadas)
+18. [Instrucciones de ejecución](#instrucciones-de-ejecución)
+19. [Referencias](#referencias)
 
 ---
 
@@ -204,6 +207,8 @@ permanece intacto para garantizar reproducibilidad desde cero.
   de edad y salario.
 - **Cualitativas:** tablas de frecuencia absoluta y relativa, countplots de las 4 variables
   nominales.
+- **Tablas pivote:** resumen de variables numéricas agregadas por `tipo_credito` y por
+  `tipo_laboral`.
 
 **Hallazgos de forma de distribución:**
 
@@ -236,6 +241,8 @@ permanece intacto para garantizar reproducibilidad desde cero.
 - **Matriz de correlación** sobre variables cuantitativas (excluye nominales por definición del
   diccionario) + detección automática de multicolinealidad.
 - **Pairplot** con `hue` en la variable objetivo (muestra de 1.500 registros).
+- **Gráficos de dispersión** entre pares de variables numéricas, coloreados por la variable
+  objetivo.
 - **Tablas de contingencia** cruzadas entre variables categóricas.
 
 **Correlación con la variable objetivo (top 5):**
@@ -250,6 +257,9 @@ permanece intacto para garantizar reproducibilidad desde cero.
 
 **Multicolinealidad:** `capital_prestado` ↔ `cuota_pactada` (r = 0.764).
 
+**Separabilidad:** ni el pairplot ni los gráficos de dispersión muestran fronteras que separen a
+los clientes en mora de los que pagan a tiempo. Las nubes de puntos se superponen ampliamente,
+lo que refuerza la necesidad de un modelo multivariado en la Fase 3.
 
 ## Reglas de validación
 
@@ -263,8 +273,11 @@ fuente. Corregida a `[150, 950]` (rango oficial DataCrédito Experian). La regla
 
 ## Ingeniería de características
 
->  Corresponde a la Fase 2
-> (`src/ft_engineering.py`).
+> **Estado: identificada y evaluada, NO implementada.** El requerimiento del curso pide
+> *identificar* atributos derivados durante el EDA (marcado como "MUY IMPORTANTE Y DE GRAN
+> VALOR"), no construirlos. Se calculan en un DataFrame independiente (`derivadas = df.copy()`)
+> solo para medir su poder predictivo; **ninguno se incorpora a `Base_de_datos_limpia.csv`**.
+> Su implementación definitiva corresponde a la Fase 2 (`src/ft_engineering.py`, hoy vacío).
 
 Se propusieron y evaluaron 9 atributos derivados dentro del notebook, midiendo su correlación
 real con la variable objetivo:
@@ -277,15 +290,30 @@ real con la variable objetivo:
 | `ratio_cuota_ingreso` | 0.003 | Descartable: señal casi nula |
 | `ratio_capital_ingreso` | 0.0002 | Descartable: señal casi nula |
 
-Los ratios clásicos de capacidad de pago no funcionaron en este dataset, probablemente
+Los ratios clásicos de capacidad de pago **no funcionaron en este dataset**, probablemente
 porque 250 salarios fueron imputados con la mediana durante la limpieza, distorsionando
 cualquier cociente calculado sobre esa base.
 
-Transformaciones planificadas: One-Hot Encoding
+**Transformaciones planificadas** (documentadas en la sección 6 del notebook): One-Hot Encoding
 para categóricas, transformación logarítmica para variables monetarias asimétricas, `log1p` para
 variables con ceros, escalado robusto, y extracción de componentes temporales.
 
+## Modelamiento
 
+> **Estado: no implementado.** Corresponde a la Fase 3
+> (`src/model_training_evaluation.py`, actualmente vacío).
+
+Requisitos ya definidos a partir del análisis:
+
+- **Problema:** clasificación binaria supervisada.
+- **Desbalance 20:1** → obligatorio usar `class_weight='balanced'`, submuestreo o SMOTE,
+  aplicado **solo sobre el conjunto de entrenamiento**.
+- **Métricas:** precisión, recall, F1 y AUC-PR sobre la clase minoritaria. **La exactitud
+  (accuracy) queda descartada**: un modelo trivial alcanzaría 95.25% sin aprender nada.
+- **Advertencia de split:** sin identificador de cliente no es posible un `GroupShuffleSplit`;
+  debe declararse como limitación al reportar métricas.
+- **Interpretabilidad:** requisito de negocio en riesgo crediticio: hay que poder explicar por
+  qué se niega un crédito, lo que condiciona la elección del algoritmo.
 
 ## Resultados
 
@@ -334,19 +362,6 @@ variables con ceros, escalado robusto, y extracción de componentes temporales.
 | **Códigos de `tipo_credito` sin confirmar** | No corresponden a ninguna clasificación oficial de la SFC |
 | **Sin diccionario de datos original** | La interpretación de varias variables se basa en investigación e inferencia documentada |
 
-
-proximos pasos: requisitos ya definidos a partir del análisis
-
-- **Problema:** clasificación binaria supervisada.
-- **Desbalance 20:1** →  usar `class_weight='balanced'`, submuestreo o SMOTE,
-  aplicado **solo sobre el conjunto de entrenamiento**.
-- **Métricas:** precisión, recall, F1 y AUC-PR sobre la clase minoritaria. **La exactitud
-  (accuracy) queda descartada ya que un modelo trivial alcanzaría 95.25% sin aprender nada.
-- **Advertencia de split:** sin identificador de cliente no es posible un `GroupShuffleSplit`;
-  debe declararse como limitación al reportar métricas.
-- **Interpretabilidad:** requisito de negocio en riesgo crediticio (hay que poder explicar por
-  qué se niega un crédito) 
-
 ## Estructura del repositorio
 
 ```
@@ -383,7 +398,6 @@ MLOPS_CURSE/
 | pandas, numpy | Manipulación y análisis de datos |
 | matplotlib, seaborn | Visualización |
 | scipy | Estadística (skewness, kurtosis, chi-cuadrado) |
-| scikit-learn | PCA y estandarización |
 | Jupyter | Notebooks de análisis |
 | Git / GitHub | Control de versiones (3 ramas) |
 
