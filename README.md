@@ -236,6 +236,11 @@ permanece intacto para garantizar reproducibilidad desde cero.
 | `tendencia_ingresos` | 21.48 | 3 | 8.38e−05 | 0.0447 | Sí |
 | `tipo_laboral` | 8.00 | 1 | 0.0047 | 0.0273 | Sí |
 
+**Cada gráfica del notebook incluye una celda de observaciones escritas debajo**, con la lectura
+concreta de lo que muestra, las cifras que la sustentan y su implicación para las fases
+siguientes. Son 7 bloques de interpretación: boxplots de atípicos, histogramas, countplots,
+gráficos bivariados, matriz de correlación, pairplot y gráficos de dispersión.
+
 ### Análisis multivariado
 
 - **Matriz de correlación** sobre variables cuantitativas (excluye nominales por definición del
@@ -255,7 +260,13 @@ permanece intacto para garantizar reproducibilidad desde cero.
 | `plazo_meses` | 0.0631 |
 | `edad_cliente` | 0.0524 |
 
-**Multicolinealidad:** `capital_prestado` ↔ `cuota_pactada` (r = 0.764).
+**Multicolinealidad detectada (|r| > 0,7):**
+
+| Par | r | Causa |
+|---|---|---|
+| `cant_creditosvigentes` ↔ `creditos_sectorFinanciero` | +0,791 | El sector financiero concentra la mayoría de los créditos del cliente |
+| `capital_prestado` ↔ `cuota_pactada` | +0,764 | Relación mecánica: a mayor monto, mayor cuota |
+| `saldo_total` ↔ `saldo_principal` | +0,737 | El principal es un componente del total |
 
 **Separabilidad:** ni el pairplot ni los gráficos de dispersión muestran fronteras que separen a
 los clientes en mora de los que pagan a tiempo. Las nubes de puntos se superponen ampliamente,
@@ -290,9 +301,12 @@ real con la variable objetivo:
 | `ratio_cuota_ingreso` | 0.003 | Descartable: señal casi nula |
 | `ratio_capital_ingreso` | 0.0002 | Descartable: señal casi nula |
 
-Los ratios clásicos de capacidad de pago **no funcionaron en este dataset**, probablemente
-porque 250 salarios fueron imputados con la mediana durante la limpieza, distorsionando
-cualquier cociente calculado sobre esa base.
+**Sobre los ratios de capacidad de pago:** los tres dividen por `salario_cliente`, variable que
+recibió 250 valores imputados con la mediana durante la limpieza (2,3% de los registros). Al
+sustituir esos salarios por un mismo número, el denominador deja de reflejar el ingreso real y el
+cociente pierde significado para esos casos. No se concluye que la capacidad de pago sea
+irrelevante, sino que **estos datos no permiten medirla de forma confiable**. Recomendación para
+la Fase 2: recalcularlos excluyendo los registros con salario imputado.
 
 **Transformaciones planificadas** (documentadas en la sección 6 del notebook): One-Hot Encoding
 para categóricas, transformación logarítmica para variables monetarias asimétricas, `log1p` para
@@ -319,12 +333,15 @@ Requisitos ya definidos a partir del análisis:
 
 ### Insights principales
 
-1. **La mora previa multiplica el riesgo por 8.** Clientes con saldo en mora registrado: 36.36%
-   de incumplimiento vs. 4.59% sin ella (n = 55).
-2. **La ausencia de historial crediticio también es señal de riesgo.** Los 153 clientes sin score
-   válido presentan 6.54% de mora vs. 4.72% de quienes sí lo tienen.
-3. **El tipo de crédito 6 concentra riesgo desproporcionado:** 42.86% de mora vs. 4.75% promedio
-   (n = 21). Asociación confirmada por chi-cuadrado (p = 1.77e−13).
+1. **La mora previa multiplica el riesgo por 8.** De los 55 clientes con saldo en mora previo,
+   incumplió el 36,36%; de los 10.708 sin mora previa, incumplió el 4,59%. Son dos tasas
+   calculadas por separado dentro de cada grupo (no partes de un total, por eso no suman 100%);
+   su cociente da aproximadamente 8.
+2. **La ausencia de historial crediticio también es señal de riesgo.** De los 153 clientes sin
+   score válido incumplió el 6,54%; de los 10.610 con score válido, el 4,72%.
+3. **El tipo de crédito 6 concentra riesgo desproporcionado:** de sus 21 créditos, 9 cayeron en
+   mora (42,86% dentro de ese grupo), frente al 4,75% del total de la cartera. Asociación
+   confirmada por chi-cuadrado (p = 1,77e−13).
 4. **Depurar el score mejoró su poder predictivo un 78%:** de |r| = 0.068 a |r| = 0.1212, pasando
    a ser el predictor cuantitativo más fuerte.
 5. **Los independientes presentan mayor riesgo** que los empleados: 5.51% vs. 4.29%.
