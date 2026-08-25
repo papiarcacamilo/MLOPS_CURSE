@@ -146,8 +146,14 @@ El proceso de limpieza añade columnas booleanas que documentan qué registros f
 permitiendo auditar cada intervención:
 
 `edad_cliente_corregida`, `salario_cliente_corregido`, `tendencia_ingresos_reconstruida`,
-`sin_historial_crediticio`, `saldo_principal_era_nulo`, `saldo_mora_era_nulo`,
-`saldo_total_era_nulo`, `saldo_mora_codeudor_era_nulo`, `promedio_ingresos_datacredito_era_nulo`.
+`sin_historial_crediticio`, `total_otros_prestamos_sospechoso`, `saldo_principal_era_nulo`,
+`saldo_mora_era_nulo`, `saldo_total_era_nulo`, `saldo_mora_codeudor_era_nulo`,
+`promedio_ingresos_datacredito_era_nulo`.
+
+> **Estas columnas dejaron de ser solo auditoría.** Al cruzarlas con la variable objetivo
+> (sección 3.2.3 del notebook), **tres resultan predictores estadísticamente significativos**:
+> `promedio_ingresos_datacredito_era_nulo`, `saldo_mora_codeudor_era_nulo` y
+> `saldo_principal_era_nulo`. Deben conservarse como variables del modelo en la Fase 2.
 
 ## Categorización de variables
 
@@ -195,16 +201,17 @@ limpieza se investigó empíricamente antes de aplicarse, y quedó documentada c
 | Nulos en `promedio_ingresos_datacredito` | 2.930 | **No imputados** (NaN + bandera) | 27% sin causa estructural: imputar fabricaría el dato |
 | Nulos en `tendencia_ingresos` | 2.932 | Categoría explícita `Sin_dato` | Preserva la información de ausencia |
 
-**Salida:** `Base_de_datos_limpia.csv` (10.763 × 31). El archivo crudo `Base_de_datos.csv`
+**Salida:** `Base_de_datos_limpia.csv` (10.763 × 35: 22 originales + 9 de trazabilidad + 4 derivadas del análisis temporal). El archivo crudo `Base_de_datos.csv`
 permanece intacto para garantizar reproducibilidad desde cero.
 
 ## Análisis exploratorio
 
 ### Análisis univariado
 
-- **Cuantitativas:** `describe()` completo, medidas de dispersión (rango, IQR, varianza,
-  desviación estándar, **skewness**, **kurtosis**), histogramas de 11 variables clave y boxplots
-  de edad y salario.
+- **Cuantitativas:** `describe()` completo, medidas de **tendencia central** (media, mediana,
+  **moda** con su frecuencia, mínimo y máximo) y de **dispersión** (rango, IQR, cuartiles Q1/Q2/Q3,
+  varianza, desviación estándar, **skewness**, **kurtosis**), histogramas de 11 variables clave y
+  boxplots comparativos de edad y salario **antes y después de la limpieza**.
 - **Cualitativas:** tablas de frecuencia absoluta y relativa, countplots de las 4 variables
   nominales.
 - **Tablas pivote:** resumen de variables numéricas agregadas por `tipo_credito` y por
@@ -217,8 +224,14 @@ permanece intacto para garantizar reproducibilidad desde cero.
 | `edad_cliente` | 0.27 | −0.83 | Aproximadamente simétrica / cuasi-gaussiana |
 | `capital_prestado` | 3.72 | 35.3 | Fuertemente sesgada a la derecha (log-normal) |
 | `salario_cliente` | 2.20 | 6.34 | Sesgada a la derecha (log-normal) |
-| `puntaje_datacredito` | −5.65 | 39.4 | Sesgada a la izquierda y **bimodal** |
+| `puntaje_datacredito` | −0.71 | 5.25 | Unimodal, moderadamente sesgada a la izquierda |
 | `saldo_mora_codeudor` | 97.7 | 9.813 | Extremadamente sesgada (mayoría en 0) |
+
+> **Nota sobre `puntaje_datacredito`.** Antes de la depuración esta variable presentaba una forma
+> bimodal, con un grupo artificial de 145 registros en el valor 0. Ese grupo no eran scores bajos
+> sino ausencia de score, y fue convertido a NaN en la sección 2.4 del notebook. Tras la corrección
+> la distribución es unimodal (mínimo 287, máximo 947). **La bimodalidad era un artefacto del dato
+> sucio, no una característica de la variable.**
 
 ### Análisis bivariado
 
@@ -236,10 +249,53 @@ permanece intacto para garantizar reproducibilidad desde cero.
 | `tendencia_ingresos` | 21.48 | 3 | 8.38e−05 | 0.0447 | Sí |
 | `tipo_laboral` | 8.00 | 1 | 0.0047 | 0.0273 | Sí |
 
+#### Análisis complementarios del bivariado
+
+Tres subsecciones adicionales cubren aspectos que la comparación de medianas y la correlación de
+Pearson no detectan:
+
+**3.2.1 — Tasa de mora por tramos.** Con un target binario al 4,75%, la correlación lineal
+subestima sistemáticamente el poder discriminante de una variable. Segmentar en tramos lo revela:
+
+| Variable | Rango de tasa de mora por tramo | Correlación de Pearson |
+|---|---|---|
+| `puntaje_datacredito` | **64,00%** (<600 pts) → **2,91%** (>850 pts) | 0,1212 |
+| `plazo_meses` | 3,91% (6–12 m) → **12,66%** (24–36 m) | 0,0631 |
+
+En ambos casos la conclusión inicial basada en medianas o correlación era incorrecta. `plazo_meses`
+llegó a describirse como "sin diferencia" porque las medianas de ambos grupos empatan en 10 meses:
+la señal está en la cola, no en el centro.
+
+**3.2.2 — Comportamiento temporal de la variable objetivo.** La tasa de mora varía entre 1,72% y
+9,09% según el mes de desembolso, y el **19,9% de los créditos tiene un plazo pactado que vence
+después de la última fecha del dataset** (tasa de mora 6,40% vs 4,34%, p = 0,0001). Para esos
+registros, `Pago_atiempo` refleja el estado al corte y no el desenlace final. Consecuencias: debe
+evaluarse un split temporal en la Fase 3 y esta serie es la línea base de monitoreo de la Fase 5.
+
+**3.2.3 — Las banderas de trazabilidad como predictores.** Las columnas de auditoría creadas
+durante la limpieza se cruzaron con la variable objetivo. Tres resultan significativas:
+
+| Bandera | n | Tasa de mora | vs. resto | p (Fisher) |
+|---|---|---|---|---|
+| `promedio_ingresos_datacredito_era_nulo` | 2.930 | 5,73% | 4,38% | **0,0037** |
+| `saldo_mora_codeudor_era_nulo` | 590 | 6,78% | 4,63% | **0,0216** |
+| `saldo_principal_era_nulo` | 405 | 7,16% | 4,65% | **0,0308** |
+
+Las tres describen el mismo perfil: clientes con menor huella en el sistema financiero formal.
+**Deben conservarse como variables del modelo en la Fase 2, no descartarse como metadatos.**
+
+#### Rigor estadístico aplicado
+
+Todo hallazgo apoyado en un grupo pequeño se acompaña de su **prueba exacta de Fisher** y su
+**intervalo de confianza de Wilson al 95%** (función `contraste_tasas()`, reutilizada en todo el
+notebook). Los que no alcanzan significancia se presentan explícitamente como hipótesis. El
+criterio es preferir menos hallazgos y que sean sólidos.
+
 **Cada gráfica del notebook incluye una celda de observaciones escritas debajo**, con la lectura
 concreta de lo que muestra, las cifras que la sustentan y su implicación para las fases
-siguientes. Son 7 bloques de interpretación: boxplots de atípicos, histogramas, countplots,
-gráficos bivariados, matriz de correlación, pairplot y gráficos de dispersión.
+siguientes. Son 10 bloques de interpretación: boxplots antes/después, histogramas, countplots,
+gráficos bivariados, tasas por tramo, evolución temporal, banderas de trazabilidad, matriz de
+correlación, pairplot y gráficos de dispersión.
 
 ### Análisis multivariado
 
@@ -268,9 +324,16 @@ gráficos bivariados, matriz de correlación, pairplot y gráficos de dispersió
 | `capital_prestado` ↔ `cuota_pactada` | +0,764 | Relación mecánica: a mayor monto, mayor cuota |
 | `saldo_total` ↔ `saldo_principal` | +0,737 | El principal es un componente del total |
 
-**Separabilidad:** ni el pairplot ni los gráficos de dispersión muestran fronteras que separen a
-los clientes en mora de los que pagan a tiempo. Las nubes de puntos se superponen ampliamente,
-lo que refuerza la necesidad de un modelo multivariado en la Fase 3.
+**Separabilidad:** el pairplot sobre variables de perfil y monto no muestra ninguna región donde
+se concentre la mora; las nubes se superponen ampliamente. **La excepción está en los gráficos de
+dispersión:** la banda de `puntaje_datacredito` por debajo de 600 puntos concentra un 64% de mora
+(25 créditos, 16 en mora). Es la única región del EDA con separación visual clara. Fuera de ella,
+el riesgo depende de la combinación de varios factores, lo que justifica un modelo multivariado en
+la Fase 3.
+
+> **Advertencia sobre la lectura de la tabla de correlaciones.** Los valores por debajo de 0,13
+> significan que **ninguna relación es lineal**, no que no exista relación. Las secciones 3.2.1 y
+> 3.2.2 demuestran que las mismas variables sí discriminan riesgo cuando se analizan por tramos.
 
 ## Reglas de validación
 
@@ -278,9 +341,23 @@ Implementadas como diccionario `REGLAS_VALIDACION` y función `validar_dataframe
 en fases posteriores del pipeline y para validar datos nuevos en producción. Cada regla incluye
 su campo `fuente`.
 
+**Cobertura: las 22 variables del dataset.** Una versión anterior dejaba fuera 6 variables
+(`fecha_prestamo`, `total_otros_prestamos`, los tres conteos por sector y
+`promedio_ingresos_datacredito`), que pasaban la validación sin ser revisadas. La ausencia de regla
+temporal era especialmente relevante: en producción, una fecha de desembolso futura es el error de
+captura más común y no habría sido detectado.
+
 **Corrección relevante:** la regla de `puntaje_datacredito` era `[0, 1000]` — un rango sin
 fuente. Corregida a `[150, 950]` (rango oficial DataCrédito Experian). La regla anterior detectaba
 **1** registro inválido; la corregida detecta **153**.
+
+**Diagnóstico añadido — `total_otros_prestamos` (sección 4.1 del notebook).** Es la única variable
+monetaria que no pasó por la limpieza de la sección 2. Alcanza un máximo de $6.787 millones, con 13
+registros por encima de mil millones y 30 donde el endeudamiento supera 100 veces el salario
+mensual. **No se imputan:** a diferencia del salario, aquí no existe una regla de negocio que
+permita distinguir un endeudamiento corporativo legítimo de un error de digitación. Se marcan con
+la bandera `total_otros_prestamos_sospechoso` y se define una regla con techo para que en
+producción queden señalados en lugar de pasar silenciosamente.
 
 ## Ingeniería de características
 
@@ -290,27 +367,50 @@ fuente. Corregida a `[150, 950]` (rango oficial DataCrédito Experian). La regla
 > solo para medir su poder predictivo; **ninguno se incorpora a `Base_de_datos_limpia.csv`**.
 > Su implementación definitiva corresponde a la Fase 2 (`src/ft_engineering.py`, hoy vacío).
 
-Se propusieron y evaluaron 9 atributos derivados dentro del notebook, midiendo su correlación
-real con la variable objetivo:
+Se propusieron y evaluaron 9 atributos derivados dentro del notebook, midiendo su relación con la
+variable objetivo mediante **dos medidas complementarias**: correlación de Pearson (relación
+lineal) e **Information Value** (capacidad de discriminación por tramos, sin asumir linealidad —
+la medida estándar en construcción de *scorecards* crediticios).
 
-| Atributo derivado | \|r\| | Evaluación |
-|---|---|---|
-| `tiene_mora_previa` | 0.107 | **Mejor predictor derivado** (36.36% vs 4.59% de mora) |
-| `consultas_por_credito` | 0.077 | Supera a `huella_consulta` original (0.074) |
-| `ratio_deuda_ingreso` | 0.007 | Descartable: señal casi nula |
-| `ratio_cuota_ingreso` | 0.003 | Descartable: señal casi nula |
-| `ratio_capital_ingreso` | 0.0002 | Descartable: señal casi nula |
+| Atributo derivado | IV | \|r\| | Evaluación |
+|---|---|---|---|
+| `consultas_por_credito` | **0,1637** | 0,077 | **Poder medio — el derivado más valioso.** Supera a `huella_consulta` original (IV 0,1455). Tasa de mora de 2,78% a 7,82% por quintil |
+| `discrepancia_ingresos` | 0,0930 | 0,038 | Débil-alto, cerca del umbral medio. Calculable solo en el 73% de los registros |
+| `tiene_mora_previa` | 0,0884 | **0,107** | 36,36% vs 4,59% de mora (OR ≈ 12, p < 0,0001). Ver matiz abajo |
+| `ratio_deuda_ingreso` | 0,0726 | 0,007 | Débil, pero **no nulo**: evaluar por tramos |
+| `mes_prestamo` | 0,0430 | 0,009 | Débil; conservar por el hallazgo temporal de 3.2.2 |
+| `ratio_capital_ingreso` | 0,0353 | 0,0002 | Débil |
+| `ratio_cuota_ingreso` | 0,0350 | 0,003 | Débil |
 
-**Sobre los ratios de capacidad de pago:** los tres dividen por `salario_cliente`, variable que
-recibió 250 valores imputados con la mediana durante la limpieza (2,3% de los registros). Al
-sustituir esos salarios por un mismo número, el denominador deja de reflejar el ingreso real y el
-cociente pierde significado para esos casos. No se concluye que la capacidad de pago sea
-irrelevante, sino que **estos datos no permiten medirla de forma confiable**. Recomendación para
-la Fase 2: recalcularlos excluyendo los registros con salario imputado.
+Como referencia, `puntaje_datacredito` (variable original) alcanza IV = 0,2136 y sigue siendo el
+predictor individual más fuerte del dataset.
+
+> **Matiz sobre `tiene_mora_previa` que la correlación oculta.** Es el derivado con mayor
+> correlación (0,107) y una diferencia de tasas enorme, pero su Information Value es **débil**
+> porque **solo toca 55 registros, el 0,5% de la cartera**. Su aporte a la capacidad global de
+> discriminación de un modelo es marginal aunque el riesgo individual sea altísimo.
+> **Es una regla de alerta de originación, no un predictor de volumen.** Debe incorporarse por su
+> valor de negocio e interpretabilidad, sin esperar que mejore las métricas globales.
+
+**Sobre los ratios de capacidad de pago.** Una versión anterior de este análisis atribuía su
+correlación casi nula a los 250 salarios imputados con la mediana durante la limpieza. **Esa
+hipótesis se contrastó directamente y resultó falsa:** al recalcular las correlaciones excluyendo
+esos registros, los valores no se mueven (de 0,0028 a 0,0027 en `ratio_cuota_ingreso`). Con 250
+registros sobre 10.763 —el 2,3%— era matemáticamente improbable que fuera el factor determinante.
+
+La explicación real es metodológica: son cocientes fuertemente asimétricos (máximos de 126, 2.439
+y 840) evaluados contra un target binario al 4,75%, condiciones en las que Pearson no detecta nada
+aunque exista estructura. El IV lo confirma: `ratio_deuda_ingreso` pasa de |r| = 0,007 a IV =
+0,073. Sigue siendo débil, pero **no es cero**.
+*Recomendación corregida para la Fase 2:* no recalcularlos excluyendo salarios imputados —está
+demostrado que no cambia nada— sino **evaluarlos por tramos** y revisar el efecto de los extremos
+de `total_otros_prestamos` documentados en la sección 4.1.
 
 **Transformaciones planificadas** (documentadas en la sección 6 del notebook): One-Hot Encoding
 para categóricas, transformación logarítmica para variables monetarias asimétricas, `log1p` para
-variables con ceros, escalado robusto, y extracción de componentes temporales.
+variables con ceros, escalado robusto, extracción de componentes temporales y —añadido a partir de
+los hallazgos de 3.2.1— **binning por tramos de `puntaje_datacredito` y `plazo_meses`**, cuya
+relación con la mora no es lineal.
 
 ## Modelamiento
 
@@ -337,15 +437,37 @@ Requisitos ya definidos a partir del análisis:
    incumplió el 36,36%; de los 10.708 sin mora previa, incumplió el 4,59%. Son dos tasas
    calculadas por separado dentro de cada grupo (no partes de un total, por eso no suman 100%);
    su cociente da aproximadamente 8.
-2. **La ausencia de historial crediticio también es señal de riesgo.** De los 153 clientes sin
-   score válido incumplió el 6,54%; de los 10.610 con score válido, el 4,72%.
+2. **La ausencia de información del buró es señal de riesgo.** Los 2.930 clientes sobre los que
+   la central de riesgo no reporta ingresos incumplen al 5,73%, frente al 4,38% de aquellos con el
+   dato disponible (p = 0,0037). El patrón se repite en los clientes sin saldo registrado (7,16%,
+   p = 0,031) y sin codeudor registrado (6,78%, p = 0,022).
 3. **El tipo de crédito 6 concentra riesgo desproporcionado:** de sus 21 créditos, 9 cayeron en
    mora (42,86% dentro de ese grupo), frente al 4,75% del total de la cartera. Asociación
    confirmada por chi-cuadrado (p = 1,77e−13).
 4. **Depurar el score mejoró su poder predictivo un 78%:** de |r| = 0.068 a |r| = 0.1212, pasando
    a ser el predictor cuantitativo más fuerte.
-5. **Los independientes presentan mayor riesgo** que los empleados: 5.51% vs. 4.29%.
-6. **Los atributos derivados superan a la mayoría de variables originales** en poder predictivo.
+5. **Los independientes presentan mayor riesgo** que los empleados: 5,51% vs 4,29% (p = 0,0047).
+6. **El score discrimina con fuerza, pero no linealmente:** de 64,00% de mora por debajo de 600
+   puntos a 2,91% por encima de 850. Su Information Value (0,2136) es el más alto del dataset,
+   mientras su correlación de Pearson (0,1212) se leería aisladamente como "relación muy débil".
+7. **El plazo del crédito discrimina riesgo:** de 3,91% en créditos de 6–12 meses a 12,66% en los
+   de 24–36 meses. El análisis inicial lo había descartado por comparar medianas.
+8. **La tasa de mora no es estable en el tiempo:** varía entre 1,72% y 9,09% según el mes de
+   desembolso, y el 19,9% de la cartera tiene madurez incompleta.
+
+### Hallazgos que NO resistieron el contraste estadístico
+
+Se registran explícitamente como hipótesis, no como conclusiones:
+
+| Hipótesis | n | Tasa vs. resto | p (Fisher) |
+|---|---|---|---|
+| Los clientes sin score válido incumplen más | 153 | 6,54% vs 4,72% | 0,3332 |
+| Los registros con edad corregida incumplen más | 150 | 7,33% vs 4,71% | 0,1701 |
+| Los registros con salario corregido incumplen más | 250 | 6,00% vs 4,72% | 0,3637 |
+
+En los tres casos el intervalo de confianza al 95% contiene la tasa base de comparación. Se
+conserva la bandera `sin_historial_crediticio` porque separar esa población **sí** fue necesario
+para depurar el score (insight 4), pero su tasa de mora no constituye un hallazgo.
 
 ## Conclusiones
 
@@ -356,13 +478,18 @@ Requisitos ya definidos a partir del análisis:
   falsos tratados como scores) y produjo dos hallazgos nuevos.
 - No existe un predictor individual suficiente. El valor está en la combinación de variables y en
   los atributos derivados, lo que justifica un modelo multivariado en la siguiente fase.
+- **La elección de la medida de asociación cambia las conclusiones.** Con un target binario y
+  desbalanceado, la correlación de Pearson subestima sistemáticamente el poder discriminante:
+  variables descartadas por tener |r| < 0,07 resultan tener poder medio al medirse por tramos. Es
+  el aprendizaje metodológico central de esta fase.
 - El desbalance de clases (20:1) condiciona el diseño completo del modelado y la elección de
   métricas.
 
 ### Recomendaciones de negocio
 
-1. Incorporar tres criterios de alerta temprana en la originación: **mora previa**, **ausencia de
-   historial crediticio** y **tipo de crédito 6**.
+1. Incorporar tres criterios de alerta temprana en la originación: **mora previa**, **score por
+   debajo de 600 puntos** y **tipo de crédito 6**. Los tres tienen efectos grandes, están
+   respaldados estadísticamente y son fácilmente explicables ante un cliente o un regulador.
 2. Auditar el origen de los datos: los errores hallados apuntan a fallas de captura o exportación
    que conviene corregir en la fuente, no solo en el análisis.
 3. Investigar con el área de producto qué representa el tipo de crédito 6.
@@ -375,7 +502,9 @@ Requisitos ya definidos a partir del análisis:
 | **Sin identificador de cliente** | La unidad de observación es el crédito, no la persona. El 67.9% de las filas comparte perfil demográfico con otra. Impide split agrupado por cliente → riesgo de fuga entre train y test |
 | **Posible fuga de información** | `saldo_mora` y `saldo_mora_codeudor` podrían registrarse después del desembolso |
 | **Muestras pequeñas** | Tipo de crédito 6 (21 registros) y mora previa (55 registros): señales indicativas, no concluyentes |
-| **27% de nulos sin causa estructural** | En `promedio_ingresos_datacredito`, sin patrón que justifique imputación |
+| **Etiqueta no homogénea en el tiempo** | El 19,9% de los créditos vence después del corte de datos: su `Pago_atiempo` refleja el estado observado, no el desenlace final (6,40% vs 4,34%, p = 0,0001) |
+| **27% de nulos sin causa estructural** | En `promedio_ingresos_datacredito`, sin patrón que justifique imputación. La bandera de ausencia sí resultó predictor significativo |
+| **13 registros de `total_otros_prestamos` > $1.000M** | Sin posibilidad de verificar si son legítimos o errores de captura. Marcados, no imputados (sección 4.1) |
 | **Códigos de `tipo_credito` sin confirmar** | No corresponden a ninguna clasificación oficial de la SFC |
 | **Sin diccionario de datos original** | La interpretación de varias variables se basa en investigación e inferencia documentada |
 
@@ -399,6 +528,11 @@ MLOPS_CURSE/
 └── README.md
 ```
 
+> ⚠️ **Nota sobre la estructura solicitada.** El enunciado del Entregable 2 pide la ruta
+> `etl_scripts/src/desarrollo/transformacion_eda.ipynb` con `config.json` en `etl_scripts/src/`.
+> La estructura actual usa `src/` plano. Ver la sección "Instrucciones de ejecución" si se aplica
+> la reorganización.
+
 ### Ramas
 
 | Rama | Propósito |
@@ -414,7 +548,7 @@ MLOPS_CURSE/
 | Python 3.11 | Lenguaje base |
 | pandas, numpy | Manipulación y análisis de datos |
 | matplotlib, seaborn | Visualización |
-| scipy | Estadística (skewness, kurtosis, chi-cuadrado) |
+| scipy | Estadística (skewness, kurtosis, chi-cuadrado, prueba exacta de Fisher) |
 | Jupyter | Notebooks de análisis |
 | Git / GitHub | Control de versiones (3 ramas) |
 
