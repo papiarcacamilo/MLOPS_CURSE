@@ -1,0 +1,12 @@
+{
+  "project_name": "MLOPS_CURSE",
+  "_nota_rutas": "Las rutas de datos son relativas a la RAIZ del repositorio, no a la ubicacion de este archivo. El notebook localiza la raiz con la funcion encontrar_raiz(); los scripts de las fases 2 a 5 deben resolverla de la misma forma para no depender del directorio de trabajo.",
+  "data": {
+    "raw_path": "Base_de_datos.csv",
+    "clean_path": "Base_de_datos_limpia.csv",
+    "separator": ";",
+    "encoding": "utf-8-sig"
+  },
+  "target_variable": "Pago_atiempo",
+  "random_state": 42
+}

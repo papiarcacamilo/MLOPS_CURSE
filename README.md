@@ -100,7 +100,8 @@ cliente** (ver [Limitaciones](#limitaciones)).
 
 ## Diccionario de datos
 
-El diccionario está implementado como estructura de código en `src/transformacion_eda.ipynb`
+El diccionario está implementado como estructura de código en
+`etl_scripts/src/desarrollo/transformacion_eda.ipynb`
 (constante `DICCIONARIO_DATOS`), de la cual el resto del análisis deriva sus listas de variables.
 Esto evita inferir el tipo estadístico desde el tipo de dato técnico.
 
@@ -365,7 +366,8 @@ producción queden señalados en lugar de pasar silenciosamente.
 > *identificar* atributos derivados durante el EDA (marcado como "MUY IMPORTANTE Y DE GRAN
 > VALOR"), no construirlos. Se calculan en un DataFrame independiente (`derivadas = df.copy()`)
 > solo para medir su poder predictivo; **ninguno se incorpora a `Base_de_datos_limpia.csv`**.
-> Su implementación definitiva corresponde a la Fase 2 (`src/ft_engineering.py`, hoy vacío).
+> Su implementación definitiva corresponde a la Fase 2
+> (`etl_scripts/src/desarrollo/ft_engineering.py`, hoy vacío).
 
 Se propusieron y evaluaron 9 atributos derivados dentro del notebook, midiendo su relación con la
 variable objetivo mediante **dos medidas complementarias**: correlación de Pearson (relación
@@ -415,7 +417,7 @@ relación con la mora no es lineal.
 ## Modelamiento
 
 > **Estado: no implementado.** Corresponde a la Fase 3
-> (`src/model_training_evaluation.py`, actualmente vacío).
+> (`etl_scripts/src/desarrollo/model_training_evaluation.py`, actualmente vacío).
 
 Requisitos ya definidos a partir del análisis:
 
@@ -512,13 +514,15 @@ para depurar el score (insight 4), pero su tasa de mora no constituye un hallazg
 
 ```
 MLOPS_CURSE/
-├── src/
-│   ├── transformacion_eda.ipynb      # Fase 1: diccionario, limpieza, EDA completo (COMPLETADO)
-│   ├── config.json                   # Configuración del proyecto
-│   ├── ft_engineering.py             # Fase 2: Feature Engineering (pendiente)
-│   ├── model_training_evaluation.py  # Fase 3: Entrenamiento y evaluación (pendiente)
-│   ├── model_deploy.py               # Fase 4: Despliegue (pendiente)
-│   └── model_monitoring.py           # Fase 5: Monitoreo (pendiente)
+├── etl_scripts/
+│   └── src/
+│       ├── desarrollo/
+│       │   ├── transformacion_eda.ipynb      # Fase 1: diccionario, limpieza, EDA (COMPLETADO)
+│       │   ├── ft_engineering.py             # Fase 2: Feature Engineering (pendiente)
+│       │   ├── model_training_evaluation.py  # Fase 3: Entrenamiento y evaluación (pendiente)
+│       │   ├── model_deploy.py               # Fase 4: Despliegue (pendiente)
+│       │   └── model_monitoring.py           # Fase 5: Monitoreo (pendiente)
+│       └── config.json                       # Configuración del proyecto
 ├── Base_de_datos.csv                 # Datos crudos originales (no modificar)
 ├── Base_de_datos_limpia.csv          # Salida de la Fase 1 (generado por el notebook)
 ├── PRESENTACION.pptx                 # Presentación de insights
@@ -528,10 +532,9 @@ MLOPS_CURSE/
 └── README.md
 ```
 
-> ⚠️ **Nota sobre la estructura solicitada.** El enunciado del Entregable 2 pide la ruta
-> `etl_scripts/src/desarrollo/transformacion_eda.ipynb` con `config.json` en `etl_scripts/src/`.
-> La estructura actual usa `src/` plano. Ver la sección "Instrucciones de ejecución" si se aplica
-> la reorganización.
+Esta estructura corresponde a la solicitada en el enunciado del Entregable 2. Los scripts de las
+fases 2 a 5 se ubican junto al notebook en `desarrollo/`, que es donde reside el código de
+desarrollo del pipeline.
 
 ### Ramas
 
@@ -566,13 +569,22 @@ set_up.bat
 pip install -r requirements.txt
 
 # 3. Ejecutar el análisis
-jupyter notebook src/transformacion_eda.ipynb
-#    (o abrir la carpeta en VS Code y usar "Run All")
+jupyter notebook etl_scripts/src/desarrollo/transformacion_eda.ipynb
+#    (o abrir la carpeta MLOPS_CURSE en VS Code y usar "Run All")
 ```
 
-**Reproducibilidad:** el notebook se ejecuta de principio a fin sin errores. Todas las rutas son
-relativas (`../Base_de_datos.csv` desde `src/`). El archivo crudo nunca se modifica; la salida
-`Base_de_datos_limpia.csv` se regenera en cada ejecución completa.
+**Reproducibilidad:** el notebook se ejecuta de principio a fin sin errores.
+
+**Resolución de rutas.** El notebook está tres niveles por debajo de la raíz del repositorio,
+mientras que los CSV viven en la raíz. En lugar de fijar `'../../../'` a mano —frágil ante
+cambios de ubicación o de directorio de trabajo del kernel— el notebook localiza la raíz del
+proyecto con la función `encontrar_raiz()`, que sube por el árbol de directorios hasta encontrar
+`Base_de_datos.csv`. Verificado: funciona desde la raíz del repo, desde `etl_scripts/`, desde
+`etl_scripts/src/` y desde `etl_scripts/src/desarrollo/`. Los scripts de las fases 2 a 5 deben
+resolver las rutas de la misma forma.
+
+El archivo crudo nunca se modifica; la salida `Base_de_datos_limpia.csv` se regenera en cada
+ejecución completa.
 
 ## Referencias
 
