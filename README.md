@@ -138,8 +138,11 @@ Esto evita inferir el tipo estadístico desde el tipo de dato técnico.
 - **`puntaje_datacredito`**: el valor `0` **no es un score**. DataCrédito confirma que no existen
   puntajes nulos ni negativos. Los 145 registros con `0` se interpretan como **ausencia de
   historial crediticio** y reciben tratamiento separado.
-- **`saldo_mora` y `saldo_mora_codeudor`**: marcadas con riesgo de **fuga de información**. Debe
-  confirmarse con el negocio si se registran antes del desembolso.
+- **`saldo_mora` y `saldo_mora_codeudor`**: **fuga de información CONFIRMADA por el negocio** — se
+  registran *después* del desembolso, por lo que son consecuencia y no causa del impago. Se excluyen
+  del modelado desde la Fase 2, junto con `tiene_mora_previa` y las banderas derivadas de ellas. Por
+  precaución se excluyen también `saldo_total` y `saldo_principal`, del mismo corte del buró (IV de
+  0,018 a 0,021: sin coste apreciable). Las cinco variables de mayor IV están libres de fuga.
 
 ### Columnas de trazabilidad generadas
 
@@ -502,7 +505,7 @@ para depurar el score (insight 4), pero su tasa de mora no constituye un hallazg
 | Limitación | Implicación |
 |---|---|
 | **Sin identificador de cliente** | La unidad de observación es el crédito, no la persona. El 67.9% de las filas comparte perfil demográfico con otra. Impide split agrupado por cliente → riesgo de fuga entre train y test |
-| **Posible fuga de información** | `saldo_mora` y `saldo_mora_codeudor` podrían registrarse después del desembolso |
+| **Fuga de información (confirmada)** | El negocio confirmó que `saldo_mora` y `saldo_mora_codeudor` se registran después del desembolso. Excluidas del modelado desde la Fase 2 |
 | **Muestras pequeñas** | Tipo de crédito 6 (21 registros) y mora previa (55 registros): señales indicativas, no concluyentes |
 | **Etiqueta no homogénea en el tiempo** | El 19,9% de los créditos vence después del corte de datos: su `Pago_atiempo` refleja el estado observado, no el desenlace final (6,40% vs 4,34%, p = 0,0001) |
 | **27% de nulos sin causa estructural** | En `promedio_ingresos_datacredito`, sin patrón que justifique imputación. La bandera de ausencia sí resultó predictor significativo |
