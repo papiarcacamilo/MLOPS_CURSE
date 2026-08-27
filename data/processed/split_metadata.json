@@ -1,0 +1,53 @@
+{
+  "generado_por": "ft_engineering.py (Fase 2, pasos 1-3)",
+  "dataset_origen": "Base_de_datos_limpia.csv",
+  "n_registros_origen": 10763,
+  "variable_objetivo": "Pago_atiempo",
+  "semilla": 42,
+  "proporcion_test": 0.2,
+  "variables_excluidas": {
+    "fuga_confirmada": [
+      "saldo_mora",
+      "saldo_mora_codeudor",
+      "saldo_mora_era_nulo",
+      "saldo_mora_codeudor_era_nulo"
+    ],
+    "fuga_precaucion": [
+      "saldo_total",
+      "saldo_principal",
+      "saldo_total_era_nulo",
+      "saldo_principal_era_nulo"
+    ],
+    "atributo_no_construido": "tiene_mora_previa (deriva de saldo_mora)"
+  },
+  "columnas_auxiliares_no_predictoras": [
+    "fecha_prestamo",
+    "anio_mes_prestamo",
+    "vencimiento_teorico",
+    "madurez_incompleta"
+  ],
+  "particion_estratificada": {
+    "n_train": 8610,
+    "n_test": 2153,
+    "pct_test": 20.0,
+    "mora_train_n": 409,
+    "mora_test_n": 102,
+    "mora_train_pct": 4.75,
+    "mora_test_pct": 4.74,
+    "madurez_incompleta_train_pct": 19.8,
+    "madurez_incompleta_test_pct": 20.2
+  },
+  "particion_temporal": {
+    "n_train": 8609,
+    "n_test": 2154,
+    "pct_test": 20.01,
+    "mora_train_n": 442,
+    "mora_test_n": 69,
+    "mora_train_pct": 5.13,
+    "mora_test_pct": 3.2,
+    "madurez_incompleta_train_pct": 11.5,
+    "madurez_incompleta_test_pct": 53.4,
+    "fecha_corte": "2025-07-12"
+  },
+  "advertencia_madurez": "En la particion temporal, el conjunto de prueba concentra creditos recientes cuyo plazo aun no ha vencido. Su tasa de mora observada subestima la real. Evaluar en la Fase 3 con y sin esos registros."
+}
