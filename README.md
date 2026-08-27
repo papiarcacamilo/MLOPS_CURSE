@@ -521,11 +521,18 @@ MLOPS_CURSE/
 │   └── src/
 │       ├── desarrollo/
 │       │   ├── transformacion_eda.ipynb      # Fase 1: diccionario, limpieza, EDA (COMPLETADO)
-│       │   ├── ft_engineering.py             # Fase 2: Feature Engineering (pendiente)
+│       │   ├── ft_engineering.py             # Fase 2: Feature Engineering (pasos 1-3 hechos)
 │       │   ├── model_training_evaluation.py  # Fase 3: Entrenamiento y evaluación (pendiente)
 │       │   ├── model_deploy.py               # Fase 4: Despliegue (pendiente)
 │       │   └── model_monitoring.py           # Fase 5: Monitoreo (pendiente)
 │       └── config.json                       # Configuración del proyecto
+├── data/
+│   └── processed/                    # Salida de la Fase 2: particiones de datos
+│       ├── estratificado_train.csv   # 8.610 registros
+│       ├── estratificado_test.csv    # 2.153 registros
+│       ├── temporal_train.csv        # 8.609 registros (hasta 2025-07-11)
+│       ├── temporal_test.csv         # 2.154 registros (desde 2025-07-12)
+│       └── split_metadata.json       # Semilla, tamaños, tasas y exclusiones
 ├── Base_de_datos.csv                 # Datos crudos originales (no modificar)
 ├── Base_de_datos_limpia.csv          # Salida de la Fase 1 (generado por el notebook)
 ├── PRESENTACION.pptx                 # Presentación de insights
@@ -588,6 +595,75 @@ resolver las rutas de la misma forma.
 
 El archivo crudo nunca se modifica; la salida `Base_de_datos_limpia.csv` se regenera en cada
 ejecución completa.
+
+## Fase 2 — Feature Engineering (en curso)
+
+Implementada en `etl_scripts/src/desarrollo/ft_engineering.py`. **Pasos 1 a 3 completados.**
+
+### Exclusión de variables con fuga de información
+
+El negocio confirmó que `saldo_mora` y `saldo_mora_codeudor` se registran **después** del
+desembolso. Son consecuencia y no causa del impago, y el dato no existe al originar el crédito.
+
+| Grupo | Variables | Motivo |
+|---|---|---|
+| Fuga confirmada | `saldo_mora`, `saldo_mora_codeudor`, `saldo_mora_era_nulo`, `saldo_mora_codeudor_era_nulo` | Registradas tras el desembolso |
+| Fuga por precaución | `saldo_total`, `saldo_principal`, `saldo_total_era_nulo`, `saldo_principal_era_nulo` | Mismo corte del buró; IV entre 0,018 y 0,021 (sin coste) |
+| No construido | `tiene_mora_previa` | Derivaría de `saldo_mora` |
+
+**El impacto es bajo:** las cinco variables de mayor Information Value están libres de fuga
+(`puntaje_datacredito` 0,2136 · `consultas_por_credito` 0,1637 · `huella_consulta` 0,1455 ·
+`plazo_meses` 0,1278 · `promedio_ingresos_datacredito` 0,1069). La excluida de mayor peso,
+`tiene_mora_previa`, ocupaba el sexto lugar con IV débil (0,0884).
+
+Dataset resultante: **10.763 × 27** (de 35 columnas originales).
+
+### Partición de datos
+
+Se generan **dos particiones** sobre el mismo conjunto, para poder comparar en la Fase 3:
+
+| Partición | Train | Test | Mora train | Mora test | Criterio |
+|---|---|---|---|---|---|
+| Estratificada | 8.610 | 2.153 | 4,75% | 4,74% | Aleatoria, preservando la proporción de clases |
+| Temporal | 8.609 | 2.154 | 5,13% | 3,20% | Corte en 2025-07-12: entrena con el pasado, valida con el futuro |
+
+**Por qué la partición va antes que cualquier transformación.** Si los cortes de binning, los
+valores WoE o los parámetros de escalado se calculan sobre el dataset completo, el conjunto de
+prueba influye en la transformación y deja de medir el desempeño de forma independiente. Es una
+forma silenciosa de fuga que infla las métricas.
+
+**Por qué dos particiones.** La estratificada es el estándar con clases desbalanceadas (20:1) y
+evita que el azar deje el test con una proporción de positivos irreal. La temporal reproduce la
+situación de despliegue y es necesaria porque la Fase 1 documentó que la tasa de mora **no es
+estable entre cohortes** (de 1,72% a 9,09% según el mes).
+
+> ⚠️ **Advertencia sobre la partición temporal.** El conjunto de prueba concentra créditos
+> recientes: la madurez incompleta pasa de **11,5% en train a 53,4% en test**. Esa es la razón de
+> que su tasa de mora observada (3,20%) sea inferior a la de train (5,13%): no es que el riesgo
+> haya bajado, es que no ha transcurrido tiempo suficiente para observar el impago. En la Fase 3
+> debe evaluarse con y sin los registros de madurez incompleta.
+
+**Detalle de implementación.** `fecha_prestamo` incluye hora, por lo que el cuantil caía a mitad de
+una jornada y partía el 12 de julio entre ambos conjuntos (1 registro en train, 26 en test). El
+corte se normaliza al inicio del día, y una validación explícita rechaza la partición si alguna
+fecha calendario aparece en los dos lados.
+
+### Validaciones automáticas
+
+El script aborta con error si alguna falla: suma de particiones distinta al total · índices
+compartidos entre train y test · alguna clase ausente · menos de 30 casos de mora en test ·
+fechas calendario compartidas en la partición temporal.
+
+### Reproducibilidad
+
+Semilla fija (`random_state: 42` en `config.json`). Ejecuciones sucesivas producen archivos
+idénticos, verificado por hash MD5. `split_metadata.json` registra semilla, tamaños, tasas,
+fecha de corte y variables excluidas.
+
+### Pendiente en la Fase 2
+
+Paso 4 — atributos derivados · Paso 5 — binning y WoE (ajustados solo en train) ·
+Paso 6 — codificación y escalado · Paso 7 — validación por IV y baseline AUC-PR.
 
 ## Referencias
 
