@@ -1,0 +1,298 @@
+{
+  "estratificado": {
+    "ranking_iv": [
+      {
+        "variable": "puntaje_datacredito",
+        "iv_bruto_10tramos": 0.1979,
+        "iv_comparable": 0.1748,
+        "iv_transformada": 0.1898,
+        "vs_comparable": 0.015,
+        "retencion_vs_bruto": 0.959,
+        "n_tramos": 6,
+        "woe_monotono": false
+      },
+      {
+        "variable": "consultas_por_credito",
+        "iv_bruto_10tramos": 0.1344,
+        "iv_comparable": 0.1148,
+        "iv_transformada": 0.1148,
+        "vs_comparable": 0.0,
+        "retencion_vs_bruto": 0.854,
+        "n_tramos": 5,
+        "woe_monotono": true
+      },
+      {
+        "variable": "huella_consulta",
+        "iv_bruto_10tramos": 0.147,
+        "iv_comparable": 0.1129,
+        "iv_transformada": 0.1129,
+        "vs_comparable": 0.0,
+        "retencion_vs_bruto": 0.768,
+        "n_tramos": 5,
+        "woe_monotono": true
+      },
+      {
+        "variable": "promedio_ingresos_datacredito",
+        "iv_bruto_10tramos": 0.1133,
+        "iv_comparable": 0.0998,
+        "iv_transformada": 0.1044,
+        "vs_comparable": 0.0046,
+        "retencion_vs_bruto": 0.921,
+        "n_tramos": 6,
+        "woe_monotono": false
+      },
+      {
+        "variable": "plazo_meses",
+        "iv_bruto_10tramos": 0.1279,
+        "iv_comparable": 0.1069,
+        "iv_transformada": 0.0904,
+        "vs_comparable": -0.0165,
+        "retencion_vs_bruto": 0.707,
+        "n_tramos": 4,
+        "woe_monotono": false
+      },
+      {
+        "variable": "discrepancia_ingresos",
+        "iv_bruto_10tramos": 0.0862,
+        "iv_comparable": 0.0684,
+        "iv_transformada": 0.0788,
+        "vs_comparable": 0.0104,
+        "retencion_vs_bruto": 0.914,
+        "n_tramos": 6,
+        "woe_monotono": true
+      },
+      {
+        "variable": "edad_cliente",
+        "iv_bruto_10tramos": 0.0741,
+        "iv_comparable": 0.0717,
+        "iv_transformada": 0.0717,
+        "vs_comparable": 0.0,
+        "retencion_vs_bruto": 0.968,
+        "n_tramos": 5,
+        "woe_monotono": false
+      },
+      {
+        "variable": "tipo_credito_grp",
+        "iv_bruto_10tramos": 0.058,
+        "iv_comparable": 0.058,
+        "iv_transformada": 0.058,
+        "vs_comparable": 0.0,
+        "retencion_vs_bruto": 1.0,
+        "n_tramos": 5,
+        "woe_monotono": null
+      },
+      {
+        "variable": "tendencia_ingresos",
+        "iv_bruto_10tramos": 0.0486,
+        "iv_comparable": 0.0486,
+        "iv_transformada": 0.0486,
+        "vs_comparable": 0.0,
+        "retencion_vs_bruto": 1.0,
+        "n_tramos": 4,
+        "woe_monotono": null
+      },
+      {
+        "variable": "cant_creditosvigentes",
+        "iv_bruto_10tramos": 0.0294,
+        "iv_comparable": 0.0191,
+        "iv_transformada": 0.0191,
+        "vs_comparable": 0.0,
+        "retencion_vs_bruto": 0.65,
+        "n_tramos": 5,
+        "woe_monotono": false
+      },
+      {
+        "variable": "tipo_laboral",
+        "iv_bruto_10tramos": 0.0157,
+        "iv_comparable": 0.0157,
+        "iv_transformada": 0.0157,
+        "vs_comparable": 0.0,
+        "retencion_vs_bruto": 1.0,
+        "n_tramos": 2,
+        "woe_monotono": null
+      }
+    ],
+    "alertas": [
+      "cant_creditosvigentes: IV=0.0191 < 0.02, sin poder predictivo",
+      "tipo_laboral: IV=0.0157 < 0.02, sin poder predictivo"
+    ],
+    "baseline": {
+      "transformadas": {
+        "auc_pr_media": 0.1462,
+        "auc_pr_desv": 0.0198,
+        "folds": [
+          0.1688,
+          0.1712,
+          0.1366,
+          0.1303,
+          0.1243
+        ]
+      },
+      "tasa_base": 0.0475,
+      "lift_vs_azar": 3.08,
+      "originales": {
+        "auc_pr_media": 0.1197,
+        "auc_pr_desv": 0.0137,
+        "folds": [
+          0.1294,
+          0.1152,
+          0.1339,
+          0.1244,
+          0.0953
+        ],
+        "n_features": 21
+      },
+      "ganancia_abs": 0.0265,
+      "ganancia_rel": 0.221
+    },
+    "n_features": 25
+  },
+  "temporal": {
+    "ranking_iv": [
+      {
+        "variable": "puntaje_datacredito",
+        "iv_bruto_10tramos": 0.2357,
+        "iv_comparable": 0.226,
+        "iv_transformada": 0.2294,
+        "vs_comparable": 0.0034,
+        "retencion_vs_bruto": 0.973,
+        "n_tramos": 6,
+        "woe_monotono": true
+      },
+      {
+        "variable": "consultas_por_credito",
+        "iv_bruto_10tramos": 0.2056,
+        "iv_comparable": 0.1684,
+        "iv_transformada": 0.1684,
+        "vs_comparable": 0.0,
+        "retencion_vs_bruto": 0.819,
+        "n_tramos": 5,
+        "woe_monotono": true
+      },
+      {
+        "variable": "plazo_meses",
+        "iv_bruto_10tramos": 0.1527,
+        "iv_comparable": 0.1532,
+        "iv_transformada": 0.1681,
+        "vs_comparable": 0.0149,
+        "retencion_vs_bruto": 1.101,
+        "n_tramos": 4,
+        "woe_monotono": false
+      },
+      {
+        "variable": "huella_consulta",
+        "iv_bruto_10tramos": 0.1831,
+        "iv_comparable": 0.1632,
+        "iv_transformada": 0.1632,
+        "vs_comparable": 0.0,
+        "retencion_vs_bruto": 0.891,
+        "n_tramos": 5,
+        "woe_monotono": true
+      },
+      {
+        "variable": "edad_cliente",
+        "iv_bruto_10tramos": 0.1109,
+        "iv_comparable": 0.1051,
+        "iv_transformada": 0.1051,
+        "vs_comparable": 0.0,
+        "retencion_vs_bruto": 0.948,
+        "n_tramos": 5,
+        "woe_monotono": false
+      },
+      {
+        "variable": "promedio_ingresos_datacredito",
+        "iv_bruto_10tramos": 0.0893,
+        "iv_comparable": 0.0664,
+        "iv_transformada": 0.0741,
+        "vs_comparable": 0.0077,
+        "retencion_vs_bruto": 0.83,
+        "n_tramos": 6,
+        "woe_monotono": false
+      },
+      {
+        "variable": "tipo_credito_grp",
+        "iv_bruto_10tramos": 0.0673,
+        "iv_comparable": 0.0673,
+        "iv_transformada": 0.0673,
+        "vs_comparable": 0.0,
+        "retencion_vs_bruto": 1.0,
+        "n_tramos": 5,
+        "woe_monotono": null
+      },
+      {
+        "variable": "discrepancia_ingresos",
+        "iv_bruto_10tramos": 0.052,
+        "iv_comparable": 0.0373,
+        "iv_transformada": 0.0418,
+        "vs_comparable": 0.0045,
+        "retencion_vs_bruto": 0.804,
+        "n_tramos": 6,
+        "woe_monotono": false
+      },
+      {
+        "variable": "tendencia_ingresos",
+        "iv_bruto_10tramos": 0.0348,
+        "iv_comparable": 0.0348,
+        "iv_transformada": 0.0348,
+        "vs_comparable": 0.0,
+        "retencion_vs_bruto": 1.0,
+        "n_tramos": 4,
+        "woe_monotono": null
+      },
+      {
+        "variable": "tipo_laboral",
+        "iv_bruto_10tramos": 0.0142,
+        "iv_comparable": 0.0142,
+        "iv_transformada": 0.0142,
+        "vs_comparable": 0.0,
+        "retencion_vs_bruto": 1.0,
+        "n_tramos": 2,
+        "woe_monotono": null
+      },
+      {
+        "variable": "cant_creditosvigentes",
+        "iv_bruto_10tramos": 0.023,
+        "iv_comparable": 0.0093,
+        "iv_transformada": 0.0093,
+        "vs_comparable": 0.0,
+        "retencion_vs_bruto": 0.404,
+        "n_tramos": 5,
+        "woe_monotono": false
+      }
+    ],
+    "alertas": [
+      "cant_creditosvigentes: IV=0.0093 < 0.02, sin poder predictivo",
+      "tipo_laboral: IV=0.0142 < 0.02, sin poder predictivo"
+    ],
+    "baseline": {
+      "transformadas": {
+        "auc_pr_media": 0.1617,
+        "auc_pr_desv": 0.0225,
+        "folds": [
+          0.1703,
+          0.1349,
+          0.1656,
+          0.1404,
+          0.1972
+        ]
+      },
+      "tasa_base": 0.0513,
+      "lift_vs_azar": 3.15,
+      "originales": {
+        "auc_pr_media": 0.1336,
+        "auc_pr_desv": 0.0306,
+        "folds": [
+          0.1348,
+          0.1132,
+          0.1922,
+          0.1183,
+          0.1093
+        ],
+        "n_features": 21
+      },
+      "ganancia_abs": 0.0281,
+      "ganancia_rel": 0.21
+    },
+    "n_features": 25
+  }
+}

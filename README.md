@@ -521,18 +521,22 @@ MLOPS_CURSE/
 │   └── src/
 │       ├── desarrollo/
 │       │   ├── transformacion_eda.ipynb      # Fase 1: diccionario, limpieza, EDA (COMPLETADO)
-│       │   ├── ft_engineering.py             # Fase 2: Feature Engineering (pasos 1-3 hechos)
+│       │   ├── ft_engineering.py             # Fase 2: Feature Engineering (COMPLETADO)
 │       │   ├── model_training_evaluation.py  # Fase 3: Entrenamiento y evaluación (pendiente)
 │       │   ├── model_deploy.py               # Fase 4: Despliegue (pendiente)
 │       │   └── model_monitoring.py           # Fase 5: Monitoreo (pendiente)
 │       └── config.json                       # Configuración del proyecto
 ├── data/
-│   └── processed/                    # Salida de la Fase 2: particiones de datos
-│       ├── estratificado_train.csv   # 8.610 registros
-│       ├── estratificado_test.csv    # 2.153 registros
-│       ├── temporal_train.csv        # 8.609 registros (hasta 2025-07-11)
-│       ├── temporal_test.csv         # 2.154 registros (desde 2025-07-12)
-│       └── split_metadata.json       # Semilla, tamaños, tasas y exclusiones
+│   └── processed/                    # Salida de la Fase 2
+│       ├── estratificado_train.csv        # 8.610 registros (datos particionados)
+│       ├── estratificado_test.csv         # 2.153 registros
+│       ├── temporal_train.csv             # 8.609 registros (hasta 2025-07-11)
+│       ├── temporal_test.csv              # 2.154 registros (desde 2025-07-12)
+│       ├── *_features.csv                 # Matrices transformadas (25 features)
+│       ├── receta_estratificado.json      # Cortes y WoE (reutilizable en Fase 4)
+│       ├── receta_temporal.json
+│       ├── reporte_features.json          # Ranking IV, alertas y baseline
+│       └── split_metadata.json            # Semilla, tamaños, tasas y exclusiones
 ├── Base_de_datos.csv                 # Datos crudos originales (no modificar)
 ├── Base_de_datos_limpia.csv          # Salida de la Fase 1 (generado por el notebook)
 ├── PRESENTACION.pptx                 # Presentación de insights
@@ -596,9 +600,20 @@ resolver las rutas de la misma forma.
 El archivo crudo nunca se modifica; la salida `Base_de_datos_limpia.csv` se regenera en cada
 ejecución completa.
 
-## Fase 2 — Feature Engineering (en curso)
+## Fase 2 — Feature Engineering (completada)
 
-Implementada en `etl_scripts/src/desarrollo/ft_engineering.py`. **Pasos 1 a 3 completados.**
+Implementada en dos archivos complementarios:
+
+| Archivo | Rol |
+|---|---|
+| `ft_engineering.py` | **Lógica y única fuente de verdad.** Es el que se ejecutará en producción (Fase 4) |
+| `feature_engineering.ipynb` | **Documentación y validación.** Importa el script; no duplica código |
+
+El notebook importa el módulo en lugar de copiar sus funciones: si tuviera su propia copia,
+cualquier corrección en el script dejaría de reflejarse y acabaríamos con dos versiones divergentes
+de la misma transformación.
+
+**Pasos 1 a 7 completados.**
 
 ### Exclusión de variables con fuga de información
 
@@ -660,10 +675,109 @@ Semilla fija (`random_state: 42` en `config.json`). Ejecuciones sucesivas produc
 idénticos, verificado por hash MD5. `split_metadata.json` registra semilla, tamaños, tasas,
 fecha de corte y variables excluidas.
 
-### Pendiente en la Fase 2
+### Atributos derivados (paso 4)
 
-Paso 4 — atributos derivados · Paso 5 — binning y WoE (ajustados solo en train) ·
-Paso 6 — codificación y escalado · Paso 7 — validación por IV y baseline AUC-PR.
+Operaciones fila a fila: no dependen de ningún estadístico agregado, por lo que se aplican
+idénticamente a train y test sin riesgo de fuga.
+
+`consultas_por_credito` (IV 0,1637 en Fase 1) · `discrepancia_ingresos` (IV 0,0930) ·
+`antiguedad_dias` · `mes_prestamo` · `trimestre_prestamo` · `tipo_credito_grp` (tipos 7 y 68,
+con 2 y 1 registro, agrupados en "Otros"; el tipo 6 se conserva separado por su tasa del 42,86%).
+
+`tiene_mora_previa` **no se construye**: derivaría de `saldo_mora`, variable con fuga confirmada.
+
+### Binning y Weight of Evidence (paso 5)
+
+Se eligió **WoE sobre One-Hot** porque el dominio es riesgo crediticio, donde la interpretabilidad
+es un requisito regulatorio: hay que justificar la negación de un crédito ante el cliente y ante el
+supervisor. Además resuelve los nulos sin imputar — la ausencia de dato se trata como categoría
+propia con su WoE estimado a partir de su tasa observada.
+
+**Cortes y valores WoE se ajustan únicamente sobre train.**
+
+**Criterio de fusión de tramos.** Un tramo con pocos registros produce un WoE inestable que el
+modelo memoriza como ruido. Caso concreto: la banda de score por debajo de 600 puntos tiene 25
+registros y una tasa del 64%, lo que generaría un WoE de +3,57 sobre 16 eventos. El script fusiona
+automáticamente los tramos que no alcanzan **5% de la población o 20 eventos de mora**. La categoría
+`SIN_DATO` nunca se fusiona: la ausencia de dato no es un valor alto ni bajo.
+
+| `puntaje_datacredito` | WoE | | `plazo_meses` | WoE |
+|---|---|---|---|---|
+| (280, 700] | **+1,190** | | (0, 6] | −0,019 |
+| (700, 750] | +0,544 | | (6, 12] | −0,180 |
+| (750, 800] | −0,090 | | (12, 24] | +0,379 |
+| (800, 850] | −0,453 | | (24, 90] | **+1,016** |
+| (850, 950] | −0,331 | | | |
+| **SIN_DATO** | +0,416 | | | |
+
+WoE positivo = más riesgo que el promedio de la cartera. Los 153 clientes sin score se ubican solos
+entre las bandas de 700–750 y 750–800, **sin que nadie decida por ellos**: es la validación
+retroactiva de la decisión de la Fase 1 de no imputar esos valores.
+
+**No monotonía documentada.** `plazo_meses` no es monótono (0–6 meses tiene más mora que 6–12) y
+`puntaje_datacredito` tampoco lo es en el extremo superior. Ambos son hallazgos reales del EDA, no
+defectos del binning: no se fuerzan los cortes para producir monotonía artificial.
+
+### Codificación y escalado (paso 6)
+
+Monetarias (`capital_prestado`, `cuota_pactada`, `salario_cliente`, `total_otros_prestamos`):
+`log1p` + **escalado robusto** (mediana e IQR) ajustado en train. Se descarta la estandarización
+porque la Fase 1 midió asimetrías de 2,2 a 38,5: media y desviación estándar quedan dominadas por
+la cola derecha.
+
+Categóricas: WoE sobre sus niveles. Binarias: pasan sin transformar.
+**Matriz final: 25 características + target.**
+
+### Validación (paso 7)
+
+**Comparación de IV justa.** El IV crece mecánicamente con el número de tramos, así que comparar la
+versión final (4–6 tramos) contra una de 10 la penalizaría sin motivo. Se comparan ambas cosas:
+
+| Variable | IV bruto (10 tramos) | IV final | Retención | Tramos |
+|---|---|---|---|---|
+| `puntaje_datacredito` | 0,1979 | **0,1898** | 96% | 6 |
+| `consultas_por_credito` | 0,1344 | **0,1148** | 85% | 5 |
+| `huella_consulta` | 0,1470 | 0,1129 | 77% | 5 |
+| `promedio_ingresos_datacredito` | 0,1133 | **0,1044** | 92% | 6 |
+| `plazo_meses` | 0,1279 | 0,0904 | 71% | 4 |
+| `discrepancia_ingresos` | 0,0862 | 0,0788 | 91% | 6 |
+
+**Retención media del 89% usando menos de la mitad de los tramos.** El IV que se pierde es
+precisamente el sobreajuste que la fusión elimina.
+
+**Baseline comparativo.** Regresión logística con validación cruzada estratificada de 5 pliegues,
+medida en **AUC-PR** sobre la clase minoritaria (con 4,75% de eventos, el AUC-ROC es demasiado
+optimista y la exactitud inservible). El escalado va dentro del pipeline para ajustarse en cada
+pliegue de entrenamiento y no en el de validación.
+
+| Partición | Originales | Transformadas | Ganancia | Lift vs azar |
+|---|---|---|---|---|
+| Estratificada | 0,1197 | **0,1462** | +22,1% | 3,08x |
+| Temporal | 0,1336 | **0,1617** | +21,0% | 3,15x |
+
+Las características transformadas superan a las originales en ambas particiones, lo que confirma
+que el trabajo de esta fase aporta información y no solo reordena la existente.
+
+**Alertas registradas.** `cant_creditosvigentes` (IV 0,019) y `tipo_laboral` (IV 0,016) quedan por
+debajo del umbral de 0,02. Se conservan porque una variable débil puede aportar en combinación
+dentro de un modelo multivariado, pero son las primeras candidatas a descarte en la Fase 3.
+Ninguna variable supera IV 0,5, umbral que habría obligado a investigar fuga.
+
+### Verificación de ausencia de fuga
+
+Prueba específica: se alteró radicalmente el conjunto de prueba y se comprobó que **la receta
+aprendida no cambia**, y que todos los valores WoE aplicados a test provienen del mapa de train.
+Los niveles no vistos en entrenamiento reciben WoE = 0 (riesgo promedio), la decisión conservadora.
+
+### Artefactos generados
+
+`receta_estratificado.json` y `receta_temporal.json` contienen cortes, fusiones y valores WoE.
+Son el artefacto reutilizable: en la Fase 4 el modelo en producción debe aplicar **exactamente**
+estas transformaciones, sin recalcularlas sobre datos nuevos.
+
+### Estado
+
+**Fase 2 completada.** Pendiente: Fase 3 — modelado.
 
 ## Referencias
 

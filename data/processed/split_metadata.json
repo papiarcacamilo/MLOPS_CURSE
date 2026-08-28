@@ -1,5 +1,5 @@
 {
-  "generado_por": "ft_engineering.py (Fase 2, pasos 1-3)",
+  "generado_por": "ft_engineering.py (Fase 2, pasos 1-7)",
   "dataset_origen": "Base_de_datos_limpia.csv",
   "n_registros_origen": 10763,
   "variable_objetivo": "Pago_atiempo",
@@ -19,6 +19,20 @@
       "saldo_principal_era_nulo"
     ],
     "atributo_no_construido": "tiene_mora_previa (deriva de saldo_mora)"
+  },
+  "atributos_derivados": [
+    "consultas_por_credito",
+    "discrepancia_ingresos",
+    "antiguedad_dias",
+    "mes_prestamo",
+    "trimestre_prestamo",
+    "tipo_credito_grp"
+  ],
+  "criterio_binning": {
+    "min_poblacion_bin": 0.05,
+    "min_eventos_bin": 20,
+    "suavizado_laplace": 0.5,
+    "nota": "Los tramos que no alcanzan el minimo se fusionan con el contiguo. La categoria SIN_DATO nunca se fusiona: la ausencia de dato no es un valor alto ni bajo."
   },
   "columnas_auxiliares_no_predictoras": [
     "fecha_prestamo",
