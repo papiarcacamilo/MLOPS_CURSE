@@ -34,12 +34,18 @@
     "suavizado_laplace": 0.5,
     "nota": "Los tramos que no alcanzan el minimo se fusionan con el contiguo. La categoria SIN_DATO nunca se fusiona: la ausencia de dato no es un valor alto ni bajo."
   },
+  "modo_uso": "originacion",
+  "variables_monotonas_forzadas": {
+    "puntaje_datacredito": "descendente"
+  },
   "columnas_auxiliares_no_predictoras": [
     "fecha_prestamo",
     "anio_mes_prestamo",
     "vencimiento_teorico",
-    "madurez_incompleta"
+    "madurez_incompleta",
+    "antiguedad_dias"
   ],
+  "nota_P1": "antiguedad_dias y madurez_incompleta se excluyen de la matriz de caracteristicas: dependen de la ventana de observacion del dataset y no del cliente. En originacion serian constantes.",
   "particion_estratificada": {
     "n_train": 8610,
     "n_test": 2153,

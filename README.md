@@ -775,9 +775,112 @@ Los niveles no vistos en entrenamiento reciben WoE = 0 (riesgo promedio), la dec
 Son el artefacto reutilizable: en la Fase 4 el modelo en producción debe aplicar **exactamente**
 estas transformaciones, sin recalcularlas sobre datos nuevos.
 
+### Correcciones P1–P4 (auditoría de cierre)
+
+Antes de dar la fase por cerrada se auditó el pipeline completo y se corrigieron cuatro problemas.
+
+#### P1 — Variables de la ventana de observación
+
+`antiguedad_dias` y `madurez_incompleta` **no describen al cliente sino cuánto tiempo lleva vivo el
+crédito**. Tres problemas medidos:
+
+1. En la partición temporal sus rangos **no se solapan** entre train y test (train [288, 516] días,
+   test [0, 288]): la variable reproduce el propio criterio de partición.
+2. Correlacionan con el target a través del sesgo de madurez, no del perfil del cliente.
+3. En originación valdrían ~0 y 1 para todos los créditos — fuera del rango de entrenamiento
+   (*train-serving skew*).
+
+**Corrección:** salen de la matriz y quedan como columnas auxiliares. Se añade la constante
+`MODO_USO = "originacion"` que documenta el supuesto. `trimestre_prestamo` se elimina por redundancia
+y `mes_prestamo` pasa a tratarse como categoría con WoE (como entero, un modelo lineal asumiría que
+diciembre "vale" doce veces enero).
+
+#### P2 — Colinealidad
+
+`sin_historial_crediticio` y `promedio_ingresos_datacredito_era_nulo` marcaban **exactamente las
+mismas filas** que el tramo `SIN_DATO` del WoE de su variable de origen (correlación medida
+**1,0000**). No aportaban información nueva y creaban colinealidad perfecta, que en una regresión
+logística vuelve inestables los coeficientes y puede invertir signos.
+
+**Corrección:** se retiran; la versión WoE es preferible porque conserva la magnitud del riesgo
+(+0,4174 y +0,2742) en lugar de un 0/1. Se añade la función `detectar_colinealidad()`, que combina
+correlación por pares y **VIF** (detecta que una columna sea combinación lineal de varias, cosa que
+la correlación por pares no ve).
+
+**Resultado:** 0 pares con |r| ≥ 0,80 y VIF máximo 3,01 (umbral de alerta: 10).
+
+#### P3 — Binning de `plazo_meses`
+
+Con los cortes anteriores el tramo (12,18] tenía 275 registros y 12 eventos, por debajo de ambos
+mínimos, y la fusión lo unía con (18,24] — justo donde empieza la señal (8,16% de mora). El IV de la
+variable **bajaba** al transformarla (0,1069 → 0,0904).
+
+**Corrección:** cortes revisados a `[0, 6, 18, 24, 90]`. La Fase 1 muestra que (12,18] (4,36%) se
+parece mucho más a (6,12] (3,91%) que a (18,24] (8,16%), así que se agrupan desde el corte inicial.
+
+**Resultado:** IV 0,0904 → **0,0981**. El gradiente del tramo largo queda preservado:
+
+| Tramo | WoE |
+|---|---|
+| (0, 6] | −0,0185 |
+| (6, 18] | −0,1747 |
+| (18, 24] | +0,5791 |
+| (24, 90] | +1,0157 |
+
+*Honestidad sobre el alcance:* `vs_comparable` sigue siendo ligeramente negativo (−0,0088). La
+mejora es parcial: se prefieren cortes con significado de negocio sobre cuantiles ciegos.
+
+#### P4 — Monotonía
+
+El WoE de `puntaje_datacredito` no era monótono en el extremo alto: (800,850] daba −0,4526 y
+(850,950] daba −0,3305. Eso obliga a decirle a un supervisor que un cliente con mejor score es más
+riesgoso que otro con peor score.
+
+**Corrección:** se declara `VARS_MONOTONAS = {"puntaje_datacredito": "descendente"}` y se aplica
+`_forzar_monotonia()`, que fusiona tramos contiguos que violan la dirección esperada (idea del
+algoritmo PAVA). `SIN_DATO` no participa: no ocupa posición en la escala de riesgo.
+
+**No se aplica a `plazo_meses`** (la Fase 1 mostró que 0–6 meses tiene más mora que 6–12: la
+relación no es monótona y forzarla destruiría información real) **ni a `edad_cliente`** (no hay
+razón de negocio para exigirlo).
+
+**Resultado:** monotonía restaurada con **IV prácticamente idéntico** (0,1898 → 0,1899), lo que
+confirma que la inversión era ruido muestral y no señal.
+
+| Tramo | WoE |
+|---|---|
+| (280, 700] | +1,1914 |
+| (700, 750] | +0,5455 |
+| (750, 800] | −0,0890 |
+| (800, 950] | −0,4191 |
+| SIN_DATO | +0,4174 |
+
+#### Efecto conjunto de las correcciones
+
+| | Antes | Después |
+|---|---|---|
+| Características | 25 | **19** |
+| AUC-PR estratificada | 0,1462 | 0,1424 (−2,6%) |
+| Ganancia vs. originales (estratificada) | +22,1% | +18,5% |
+| AUC-PR temporal | 0,1617 | **0,1748 (+8,1%)** |
+| Ganancia vs. originales (temporal) | +21,0% | **+29,9%** |
+| Lift temporal sobre el azar | 3,15× | **3,41×** |
+| VIF máximo | no medido | 3,01 |
+
+La caída de 2,6% en la partición estratificada es el **coste honesto** de retirar variables que no
+estarán disponibles en producción. La mejora del 8,1% en la temporal indica que esas variables
+estaban perjudicando la generalización justo donde importa: al predecir sobre créditos nuevos.
+
 ### Estado
 
-**Fase 2 completada.** Pendiente: Fase 3 — modelado.
+**Fase 2 completada y auditada.** Dataset final: 19 características, sin fuga, sin colinealidad,
+con monotonía verificada.
+
+**Siguiente: Fase 3 — Modelado.** Baseline heurístico como piso de referencia, regresión logística
+sobre WoE como modelo de referencia por interpretabilidad regulatoria, y modelos de árboles como
+contraste. Métrica principal AUC-PR (la exactitud es inservible con 4,75% de eventos), con KS y
+Gini por ser el lenguaje del sector. La partición estratificada se usa como referencia y la temporal
+como prueba de estrés. Quedan por evaluar calibración y fairness.
 
 ## Referencias
 

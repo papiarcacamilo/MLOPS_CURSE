@@ -121,8 +121,37 @@ COLUMNAS_AUXILIARES = [
     COLUMNA_FECHA,          # necesaria para el split temporal y la Fase 5
     "anio_mes_prestamo",    # cohorte de desembolso
     "vencimiento_teorico",  # base del calculo de madurez
-    "madurez_incompleta",   # decision pendiente para la Fase 3
+    "madurez_incompleta",   # ver P1: auxiliar de analisis, NO predictora
+    "antiguedad_dias",      # ver P1: auxiliar de analisis, NO predictora
 ]
+
+# ------------------------------------------------------------------------------
+# P1 | Momento en que el modelo hara la prediccion
+# ------------------------------------------------------------------------------
+# Todo el tratamiento de fuga de este proyecto asume ORIGINACION: el modelo
+# decide si otorgar un credito que aun no se ha desembolsado. Bajo ese supuesto,
+# cualquier variable que dependa de la ventana de observacion del dataset queda
+# fuera de la matriz de caracteristicas:
+#
+#   antiguedad_dias    = fecha_corte_observacion - fecha_prestamo
+#   madurez_incompleta = vencimiento_teorico > fecha_corte_observacion
+#
+# Ambas describen "cuanto tiempo lleva vivo el credito", no el riesgo del
+# cliente. Tres problemas concretos medidos sobre estos datos:
+#
+#   1. En la particion temporal sus rangos NO se solapan entre train y test
+#      (train [288, 516] dias, test [0, 288]). La variable reproduce el propio
+#      criterio de particion: el modelo puede separar train de test con ella.
+#   2. Correlacionan con el target a traves del sesgo de madurez documentado en
+#      la Fase 1 (mas tiempo expuesto = mas oportunidad de caer en mora), no a
+#      traves del perfil del cliente.
+#   3. En originacion valdrian ~0 y 1 respectivamente para TODOS los creditos,
+#      es decir, fuera del rango de entrenamiento. Es train-serving skew.
+#
+# Se siguen calculando porque son necesarias para el analisis de cohortes de la
+# Fase 3 y para la linea base de monitoreo de la Fase 5, pero viajan como
+# columnas auxiliares.
+MODO_USO = "originacion"
 
 PROPORCION_TEST = 0.20
 
@@ -337,7 +366,9 @@ def construir_derivadas(df: pd.DataFrame, fecha_corte_obs: pd.Timestamp) -> pd.D
     # Componentes temporales: la Fase 1 mostro que la tasa de mora varia entre
     # 1.72% y 9.09% segun el mes de desembolso.
     df["antiguedad_dias"] = (fecha_corte_obs - df[COLUMNA_FECHA]).dt.days
-    df["mes_prestamo"] = df[COLUMNA_FECHA].dt.month
+    # Se guarda como texto para que el binning lo trate como categoria y no
+    # como una escala ordinal (P1).
+    df["mes_prestamo"] = df[COLUMNA_FECHA].dt.month.astype(str)
     df["trimestre_prestamo"] = df[COLUMNA_FECHA].dt.quarter
 
     # Los tipos 7 y 68 tienen 2 y 1 registro en el dataset completo: como
@@ -363,7 +394,15 @@ def construir_derivadas(df: pd.DataFrame, fecha_corte_obs: pd.Timestamp) -> pd.D
 # posterior los ajusta si algun tramo resulta demasiado pequenio.
 CORTES_INICIALES = {
     "puntaje_datacredito": [280, 600, 700, 750, 800, 850, 950],
-    "plazo_meses": [0, 6, 12, 18, 24, 36, 90],
+    # P3 | Cortes revisados. Con los anteriores ([0,6,12,18,24,36,90]) el tramo
+    # (12,18] tenia 275 registros y 12 eventos, por debajo de ambos minimos, y
+    # la fusion lo unia con (18,24] -- que es justo donde empieza la senal
+    # (8.16% de mora). El resultado diluia el gradiente y el IV de la variable
+    # BAJABA al transformarla (0.1069 -> 0.0904 en la particion estratificada).
+    # La Fase 1 muestra que (12,18] (4.36%) se parece mucho mas a (6,12] (3.91%)
+    # que a (18,24] (8.16%), asi que se agrupan desde el corte inicial y se deja
+    # (18,24] aislado.
+    "plazo_meses": [0, 6, 18, 24, 90],
 }
 
 # Variables numericas que se discretizan por cuantiles (sin cortes de negocio).
@@ -388,9 +427,13 @@ VARS_MONETARIAS = [
 ]
 
 # Binarias que ya estan en 0/1 y pasan sin transformar.
+# P2 | `promedio_ingresos_datacredito_era_nulo` y `sin_historial_crediticio` se
+# retiran de esta lista. Marcan exactamente las mismas filas que el tramo
+# SIN_DATO del WoE de su variable de origen (correlacion medida = 1.0000), de
+# modo que no aportan informacion nueva y crean colinealidad perfecta. La
+# version WoE es preferible porque conserva la magnitud del riesgo (+0.4162 y
+# +0.2742) en lugar de un simple 0/1.
 VARS_BINARIAS = [
-    "promedio_ingresos_datacredito_era_nulo",
-    "sin_historial_crediticio",
     "edad_cliente_corregida",
     "salario_cliente_corregido",
     "tendencia_ingresos_reconstruida",
@@ -398,6 +441,19 @@ VARS_BINARIAS = [
 ]
 
 ETIQUETA_NULO = "SIN_DATO"
+
+# ------------------------------------------------------------------------------
+# P4 | Variables con direccion de riesgo conocida por negocio
+# ------------------------------------------------------------------------------
+# Solo se listan aquellas cuya direccion se puede defender ante un supervisor.
+# `puntaje_datacredito`: a mayor score, menor riesgo. Es la definicion misma de
+# un score crediticio, y la Fase 1 lo confirmo con un gradiente de 64% a 2.9%.
+# NO se incluye `plazo_meses` (la Fase 1 mostro que 0-6 meses tiene mas mora que
+# 6-12, la relacion no es monotona) ni `edad_cliente` (no hay razon de negocio
+# para exigir que el riesgo caiga siempre con la edad).
+VARS_MONOTONAS = {
+    "puntaje_datacredito": "descendente",
+}
 
 
 def _discretizar(serie: pd.Series, cortes: list | None,
@@ -460,6 +516,67 @@ def _fusionar_bins_pequenos(tramos: pd.Series, objetivo: pd.Series,
     return mapa
 
 
+def _ordenar_tramos(etiquetas) -> list:
+    """Ordena etiquetas de intervalo por su limite inferior. SIN_DATO queda fuera."""
+    numericos = [t for t in etiquetas if t != ETIQUETA_NULO]
+    numericos.sort(key=lambda s: float(s.split(",")[0].strip("([ ")))
+    return numericos
+
+
+def _forzar_monotonia(tramos: pd.Series, objetivo: pd.Series,
+                      direccion: str) -> dict:
+    """Fusiona tramos contiguos que rompen la direccion de riesgo esperada.
+
+    Es la idea del algoritmo PAVA (pool adjacent violators): mientras exista un
+    par de tramos vecinos cuyo WoE contradiga la direccion de negocio, se unen
+    en uno solo y se recalcula. El proceso termina cuando la secuencia es
+    monotona o cuando queda un unico tramo.
+
+    Por que se hace: una inversion en el WoE obliga a decirle al supervisor que
+    un cliente con mejor score es mas riesgoso que otro con peor score. Si la
+    inversion es pequenia y esta en un extremo, casi siempre es ruido muestral,
+    no una relacion real. Fusionar es preferible a explicar una anomalia que no
+    se sostiene.
+
+    SIN_DATO no participa: no ocupa una posicion en la escala de riesgo.
+    """
+    grupos = [[t] for t in _ordenar_tramos(tramos.unique())]
+
+    def woe_de(grupo):
+        mascara = tramos.isin(grupo)
+        n_ev = objetivo[mascara].sum()
+        n_no = (~objetivo.astype(bool))[mascara].sum()
+        tot_ev, tot_no = objetivo.sum(), (~objetivo.astype(bool)).sum()
+        p_ev = (n_ev + SUAVIZADO) / (tot_ev + SUAVIZADO)
+        p_no = (n_no + SUAVIZADO) / (tot_no + SUAVIZADO)
+        return float(np.log(p_ev / p_no))
+
+    while len(grupos) > 1:
+        valores = [woe_de(g) for g in grupos]
+        violacion = None
+        for i in range(len(valores) - 1):
+            baja = direccion == "descendente" and valores[i + 1] > valores[i]
+            sube = direccion == "ascendente" and valores[i + 1] < valores[i]
+            if baja or sube:
+                violacion = i
+                break
+        if violacion is None:
+            break
+        grupos[violacion] = grupos[violacion] + grupos[violacion + 1]
+        del grupos[violacion + 1]
+
+    mapa = {}
+    for grupo in grupos:
+        etiqueta = grupo[0] if len(grupo) == 1 else (
+            grupo[0].split(",")[0] + ", " + grupo[-1].split(",")[1]
+        )
+        for tramo in grupo:
+            mapa[tramo] = etiqueta
+    if ETIQUETA_NULO in tramos.unique():
+        mapa[ETIQUETA_NULO] = ETIQUETA_NULO
+    return mapa
+
+
 def ajustar_woe(tramos: pd.Series, objetivo: pd.Series) -> tuple[dict, float]:
     """Calcula el WoE de cada tramo y el Information Value de la variable.
 
@@ -486,11 +603,26 @@ def ajustar_binning(train: pd.DataFrame, objetivo: pd.Series) -> dict:
     for col in list(CORTES_INICIALES) + VARS_CUANTILES:
         cortes = CORTES_INICIALES.get(col)
         tramos, cortes = _discretizar(train[col], cortes)
+
+        # Paso 1: fusionar los tramos demasiado pequenios para un WoE estable.
         mapa = _fusionar_bins_pequenos(tramos, objetivo, n)
         tramos = tramos.map(mapa)
+
+        # Paso 2 (P4): si la variable tiene direccion de riesgo conocida, imponerla.
+        # El mapa final es la composicion de ambas fusiones, para que
+        # `aplicar_binning` reproduzca el mismo resultado en test.
+        monotonia_forzada = False
+        if col in VARS_MONOTONAS:
+            mapa_mono = _forzar_monotonia(tramos, objetivo, VARS_MONOTONAS[col])
+            if len(set(mapa_mono.values())) < len(set(mapa.values())):
+                monotonia_forzada = True
+                tramos = tramos.map(mapa_mono)
+                mapa = {origen: mapa_mono[destino] for origen, destino in mapa.items()}
+
         woe, iv = ajustar_woe(tramos, objetivo)
         receta[col] = {"tipo": "numerica", "cortes": cortes,
-                       "fusion": mapa, "woe": woe, "iv": iv}
+                       "fusion": mapa, "woe": woe, "iv": iv,
+                       "monotonia_forzada": monotonia_forzada}
 
     for col in VARS_CATEGORICAS_WOE:
         tramos = train[col].astype(str)
@@ -553,10 +685,12 @@ def ensamblar_matriz(df: pd.DataFrame, receta: dict, parametros: dict) -> pd.Dat
         aplicar_binning(df, receta),
         aplicar_escalado(df, parametros),
         df[[c for c in VARS_BINARIAS if c in df.columns]].astype(int),
-        df[["mes_prestamo", "trimestre_prestamo", "antiguedad_dias"]],
-        # `madurez_incompleta` entra como caracteristica: la Fase 1 la valido
-        # como significativa (6.40% vs 4.34%, p = 0.0001).
-        df[["madurez_incompleta"]].astype(int),
+        # P1 | `antiguedad_dias` y `madurez_incompleta` NO entran: dependen de
+        # la ventana de observacion, no del cliente (ver bloque MODO_USO).
+        # `mes_prestamo` si entra, pero via WoE: es estacionalidad de calendario,
+        # conocida en el momento de originar. Como entero 1-12 un modelo lineal
+        # asumiria que diciembre "vale" 12 veces enero, que no tiene sentido.
+        # `trimestre_prestamo` se elimina por redundancia con el mes.
     ]
     matriz = pd.concat(partes, axis=1)
     matriz[TARGET] = df[TARGET].values
@@ -627,6 +761,58 @@ def validar_features(train: pd.DataFrame, receta: dict, objetivo: pd.Series) -> 
     return {"ranking": ranking, "alertas": alertas}
 
 
+def detectar_colinealidad(matriz: pd.DataFrame, umbral_r: float = 0.80,
+                          umbral_vif: float = 10.0) -> dict:
+    """Busca redundancia entre las caracteristicas finales.
+
+    Se aplican dos medidas complementarias:
+
+      - Correlacion por pares: detecta duplicacion directa entre dos columnas.
+      - VIF (factor de inflacion de la varianza): detecta que una columna sea
+        combinacion lineal de VARIAS otras, cosa que la correlacion por pares
+        no ve. VIF = 1/(1-R2) de regresar cada columna contra el resto.
+
+    Por que importa en este proyecto: el modelo de referencia es una regresion
+    logistica sobre WoE, y con columnas redundantes sus coeficientes se vuelven
+    inestables y pueden invertir de signo. En un modelo de credito eso significa
+    no poder justificar por que se nego una solicitud.
+    """
+    X = matriz.drop(columns=[TARGET], errors="ignore").astype(float)
+    X = X.loc[:, X.std() > 0]                      # descarta constantes
+
+    pares = []
+    corr = X.corr().abs()
+    for i, a in enumerate(corr.columns):
+        for b in corr.columns[i + 1:]:
+            if corr.loc[a, b] >= umbral_r:
+                pares.append({"var_a": a, "var_b": b,
+                              "r": round(float(corr.loc[a, b]), 4)})
+
+    # VIF por regresion de cada columna contra el resto
+    vifs = {}
+    Xc = (X - X.mean()) / X.std()
+    matriz_np = Xc.to_numpy()
+    for j, col in enumerate(Xc.columns):
+        otras = np.delete(matriz_np, j, axis=1)
+        objetivo_col = matriz_np[:, j]
+        try:
+            coef, *_ = np.linalg.lstsq(otras, objetivo_col, rcond=None)
+            residuo = objetivo_col - otras @ coef
+            r2 = 1 - float(residuo.var() / objetivo_col.var())
+            vifs[col] = round(1 / (1 - r2), 2) if r2 < 0.9999 else float("inf")
+        except np.linalg.LinAlgError:
+            vifs[col] = float("inf")
+
+    altos = {c: v for c, v in vifs.items() if v >= umbral_vif}
+    return {
+        "pares_correlacionados": sorted(pares, key=lambda d: -d["r"]),
+        "vif_altos": dict(sorted(altos.items(), key=lambda kv: -kv[1])),
+        "vif_maximo": round(max(vifs.values()), 2) if vifs else None,
+        "n_constantes_descartadas": int(
+            matriz.drop(columns=[TARGET], errors="ignore").shape[1] - X.shape[1]),
+    }
+
+
 def baseline_comparativo(matriz_train: pd.DataFrame,
                          crudo_train: pd.DataFrame | None = None) -> dict:
     """Compara features transformadas vs originales con regresion logistica.
@@ -695,7 +881,8 @@ def guardar_recetas(reportes: dict) -> None:
         log.info("Guardado: data/processed/receta_%s.json", nombre)
 
     resumen = {n: {"ranking_iv": r["ranking_iv"], "alertas": r["alertas"],
-                   "baseline": r["baseline"], "n_features": r["n_features"]}
+                   "baseline": r["baseline"], "n_features": r["n_features"],
+                   "colinealidad": r.get("colinealidad")}
                for n, r in reportes.items()}
     with open(RUTA_SALIDA / "reporte_features.json", "w", encoding="utf-8") as f:
         json.dump(resumen, f, indent=2, ensure_ascii=False)
@@ -759,6 +946,13 @@ def main() -> dict:
 
         log.info("PASO 7 | Validacion del aporte de las caracteristicas")
         val = validar_features(tr, receta, y_train)
+        colinealidad = detectar_colinealidad(m_tr)
+        if colinealidad["pares_correlacionados"]:
+            for p in colinealidad["pares_correlacionados"]:
+                log.warning("COLINEALIDAD %s ~ %s (r=%.3f)", p["var_a"], p["var_b"], p["r"])
+        else:
+            log.info("Colinealidad: ningun par supera r=0.80 | VIF maximo = %s",
+                     colinealidad["vif_maximo"])
         for a in val["alertas"]:
             log.warning("ALERTA %s", a)
         rk = val["ranking"]
@@ -794,6 +988,7 @@ def main() -> dict:
             "ranking_iv": val["ranking"].to_dict(orient="records"),
             "alertas": val["alertas"],
             "baseline": base,
+            "colinealidad": colinealidad,
             "n_features": m_tr.shape[1] - 1,
         }
 
@@ -824,7 +1019,14 @@ def main() -> dict:
                      "contiguo. La categoria SIN_DATO nunca se fusiona: la "
                      "ausencia de dato no es un valor alto ni bajo."),
         },
+        "modo_uso": MODO_USO,
+        "variables_monotonas_forzadas": VARS_MONOTONAS,
         "columnas_auxiliares_no_predictoras": COLUMNAS_AUXILIARES,
+        "nota_P1": (
+            "antiguedad_dias y madurez_incompleta se excluyen de la matriz de "
+            "caracteristicas: dependen de la ventana de observacion del dataset "
+            "y no del cliente. En originacion serian constantes."
+        ),
         "particion_estratificada": metricas["estratificada"],
         "particion_temporal": {**metricas["temporal"], "fecha_corte": str(corte.date())},
         "advertencia_madurez": (
