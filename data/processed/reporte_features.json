@@ -4,12 +4,12 @@
       {
         "variable": "puntaje_datacredito",
         "iv_bruto_10tramos": 0.1979,
-        "iv_comparable": 0.1748,
-        "iv_transformada": 0.1898,
-        "vs_comparable": 0.015,
-        "retencion_vs_bruto": 0.959,
-        "n_tramos": 6,
-        "woe_monotono": false
+        "iv_comparable": 0.1889,
+        "iv_transformada": 0.1899,
+        "vs_comparable": 0.001,
+        "retencion_vs_bruto": 0.96,
+        "n_tramos": 5,
+        "woe_monotono": true
       },
       {
         "variable": "consultas_por_credito",
@@ -45,9 +45,9 @@
         "variable": "plazo_meses",
         "iv_bruto_10tramos": 0.1279,
         "iv_comparable": 0.1069,
-        "iv_transformada": 0.0904,
-        "vs_comparable": -0.0165,
-        "retencion_vs_bruto": 0.707,
+        "iv_transformada": 0.0981,
+        "vs_comparable": -0.0088,
+        "retencion_vs_bruto": 0.767,
         "n_tramos": 4,
         "woe_monotono": false
       },
@@ -118,34 +118,40 @@
     ],
     "baseline": {
       "transformadas": {
-        "auc_pr_media": 0.1462,
-        "auc_pr_desv": 0.0198,
+        "auc_pr_media": 0.1424,
+        "auc_pr_desv": 0.0163,
         "folds": [
-          0.1688,
-          0.1712,
-          0.1366,
-          0.1303,
-          0.1243
+          0.1687,
+          0.1533,
+          0.1318,
+          0.1342,
+          0.1242
         ]
       },
       "tasa_base": 0.0475,
-      "lift_vs_azar": 3.08,
+      "lift_vs_azar": 3.0,
       "originales": {
-        "auc_pr_media": 0.1197,
-        "auc_pr_desv": 0.0137,
+        "auc_pr_media": 0.1202,
+        "auc_pr_desv": 0.0135,
         "folds": [
-          0.1294,
-          0.1152,
+          0.1293,
+          0.1134,
           0.1339,
-          0.1244,
-          0.0953
+          0.1276,
+          0.0969
         ],
-        "n_features": 21
+        "n_features": 20
       },
-      "ganancia_abs": 0.0265,
-      "ganancia_rel": 0.221
+      "ganancia_abs": 0.0222,
+      "ganancia_rel": 0.185
     },
-    "n_features": 25
+    "n_features": 19,
+    "colinealidad": {
+      "pares_correlacionados": [],
+      "vif_altos": {},
+      "vif_maximo": 3.01,
+      "n_constantes_descartadas": 0
+    }
   },
   "temporal": {
     "ranking_iv": [
@@ -160,6 +166,16 @@
         "woe_monotono": true
       },
       {
+        "variable": "plazo_meses",
+        "iv_bruto_10tramos": 0.1527,
+        "iv_comparable": 0.1532,
+        "iv_transformada": 0.1758,
+        "vs_comparable": 0.0226,
+        "retencion_vs_bruto": 1.151,
+        "n_tramos": 4,
+        "woe_monotono": false
+      },
+      {
         "variable": "consultas_por_credito",
         "iv_bruto_10tramos": 0.2056,
         "iv_comparable": 0.1684,
@@ -168,16 +184,6 @@
         "retencion_vs_bruto": 0.819,
         "n_tramos": 5,
         "woe_monotono": true
-      },
-      {
-        "variable": "plazo_meses",
-        "iv_bruto_10tramos": 0.1527,
-        "iv_comparable": 0.1532,
-        "iv_transformada": 0.1681,
-        "vs_comparable": 0.0149,
-        "retencion_vs_bruto": 1.101,
-        "n_tramos": 4,
-        "woe_monotono": false
       },
       {
         "variable": "huella_consulta",
@@ -266,33 +272,39 @@
     ],
     "baseline": {
       "transformadas": {
-        "auc_pr_media": 0.1617,
-        "auc_pr_desv": 0.0225,
+        "auc_pr_media": 0.1748,
+        "auc_pr_desv": 0.0293,
         "folds": [
-          0.1703,
-          0.1349,
-          0.1656,
-          0.1404,
-          0.1972
+          0.184,
+          0.1425,
+          0.1704,
+          0.1512,
+          0.2258
         ]
       },
       "tasa_base": 0.0513,
-      "lift_vs_azar": 3.15,
+      "lift_vs_azar": 3.41,
       "originales": {
-        "auc_pr_media": 0.1336,
-        "auc_pr_desv": 0.0306,
+        "auc_pr_media": 0.1346,
+        "auc_pr_desv": 0.0298,
         "folds": [
-          0.1348,
-          0.1132,
-          0.1922,
-          0.1183,
-          0.1093
+          0.1367,
+          0.1142,
+          0.1913,
+          0.1215,
+          0.1094
         ],
-        "n_features": 21
+        "n_features": 20
       },
-      "ganancia_abs": 0.0281,
-      "ganancia_rel": 0.21
+      "ganancia_abs": 0.0402,
+      "ganancia_rel": 0.299
     },
-    "n_features": 25
+    "n_features": 19,
+    "colinealidad": {
+      "pares_correlacionados": [],
+      "vif_altos": {},
+      "vif_maximo": 2.84,
+      "n_constantes_descartadas": 0
+    }
   }
 }
