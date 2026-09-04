@@ -90,46 +90,23 @@
         "retencion_vs_bruto": 1.0,
         "n_tramos": 4,
         "woe_monotono": null
-      },
-      {
-        "variable": "cant_creditosvigentes",
-        "iv_bruto_10tramos": 0.0294,
-        "iv_comparable": 0.0191,
-        "iv_transformada": 0.0191,
-        "vs_comparable": 0.0,
-        "retencion_vs_bruto": 0.65,
-        "n_tramos": 5,
-        "woe_monotono": false
-      },
-      {
-        "variable": "tipo_laboral",
-        "iv_bruto_10tramos": 0.0157,
-        "iv_comparable": 0.0157,
-        "iv_transformada": 0.0157,
-        "vs_comparable": 0.0,
-        "retencion_vs_bruto": 1.0,
-        "n_tramos": 2,
-        "woe_monotono": null
       }
     ],
-    "alertas": [
-      "cant_creditosvigentes: IV=0.0191 < 0.02, sin poder predictivo",
-      "tipo_laboral: IV=0.0157 < 0.02, sin poder predictivo"
-    ],
+    "alertas": [],
     "baseline": {
       "transformadas": {
-        "auc_pr_media": 0.1424,
-        "auc_pr_desv": 0.0163,
+        "auc_pr_media": 0.1468,
+        "auc_pr_desv": 0.0165,
         "folds": [
-          0.1687,
-          0.1533,
-          0.1318,
-          0.1342,
-          0.1242
+          0.1744,
+          0.1565,
+          0.1393,
+          0.133,
+          0.131
         ]
       },
       "tasa_base": 0.0475,
-      "lift_vs_azar": 3.0,
+      "lift_vs_azar": 3.09,
       "originales": {
         "auc_pr_media": 0.1202,
         "auc_pr_desv": 0.0135,
@@ -142,14 +119,14 @@
         ],
         "n_features": 20
       },
-      "ganancia_abs": 0.0222,
-      "ganancia_rel": 0.185
+      "ganancia_abs": 0.0266,
+      "ganancia_rel": 0.221
     },
-    "n_features": 19,
+    "n_features": 17,
     "colinealidad": {
       "pares_correlacionados": [],
       "vif_altos": {},
-      "vif_maximo": 3.01,
+      "vif_maximo": 2.95,
       "n_constantes_descartadas": 0
     }
   },
@@ -244,46 +221,23 @@
         "retencion_vs_bruto": 1.0,
         "n_tramos": 4,
         "woe_monotono": null
-      },
-      {
-        "variable": "tipo_laboral",
-        "iv_bruto_10tramos": 0.0142,
-        "iv_comparable": 0.0142,
-        "iv_transformada": 0.0142,
-        "vs_comparable": 0.0,
-        "retencion_vs_bruto": 1.0,
-        "n_tramos": 2,
-        "woe_monotono": null
-      },
-      {
-        "variable": "cant_creditosvigentes",
-        "iv_bruto_10tramos": 0.023,
-        "iv_comparable": 0.0093,
-        "iv_transformada": 0.0093,
-        "vs_comparable": 0.0,
-        "retencion_vs_bruto": 0.404,
-        "n_tramos": 5,
-        "woe_monotono": false
       }
     ],
-    "alertas": [
-      "cant_creditosvigentes: IV=0.0093 < 0.02, sin poder predictivo",
-      "tipo_laboral: IV=0.0142 < 0.02, sin poder predictivo"
-    ],
+    "alertas": [],
     "baseline": {
       "transformadas": {
-        "auc_pr_media": 0.1748,
-        "auc_pr_desv": 0.0293,
+        "auc_pr_media": 0.1718,
+        "auc_pr_desv": 0.026,
         "folds": [
-          0.184,
-          0.1425,
-          0.1704,
-          0.1512,
-          0.2258
+          0.1695,
+          0.1458,
+          0.1719,
+          0.1519,
+          0.2197
         ]
       },
       "tasa_base": 0.0513,
-      "lift_vs_azar": 3.41,
+      "lift_vs_azar": 3.35,
       "originales": {
         "auc_pr_media": 0.1346,
         "auc_pr_desv": 0.0298,
@@ -296,14 +250,14 @@
         ],
         "n_features": 20
       },
-      "ganancia_abs": 0.0402,
-      "ganancia_rel": 0.299
+      "ganancia_abs": 0.0372,
+      "ganancia_rel": 0.276
     },
-    "n_features": 19,
+    "n_features": 17,
     "colinealidad": {
       "pares_correlacionados": [],
       "vif_altos": {},
-      "vif_maximo": 2.84,
+      "vif_maximo": 2.79,
       "n_constantes_descartadas": 0
     }
   }

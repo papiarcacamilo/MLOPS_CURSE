@@ -3,57 +3,59 @@
     "puntaje_datacredito": {
       "tipo": "numerica",
       "cortes": [
-        280,
-        600,
-        700,
-        750,
-        800,
-        850,
-        950
+        -Infinity,
+        600.0,
+        700.0,
+        750.0,
+        800.0,
+        850.0,
+        Infinity
       ],
       "fusion": {
-        "(280.0, 600.0]": "(280.0,  700.0]",
-        "(600.0, 700.0]": "(280.0,  700.0]",
+        "(-inf, 600.0]": "(-inf,  700.0]",
+        "(600.0, 700.0]": "(-inf,  700.0]",
         "(700.0, 750.0]": "(700.0, 750.0]",
         "(750.0, 800.0]": "(750.0, 800.0]",
         "(800.0, 850.0]": "(800.0, 850.0]",
-        "(850.0, 950.0]": "(850.0, 950.0]",
+        "(850.0, inf]": "(850.0, inf]",
         "SIN_DATO": "SIN_DATO"
       },
       "woe": {
-        "(280.0,  700.0]": 1.407958,
+        "(-inf,  700.0]": 1.407958,
         "(700.0, 750.0]": 0.564898,
         "(750.0, 800.0]": -0.077017,
         "(800.0, 850.0]": -0.42941,
-        "(850.0, 950.0]": -0.590324,
+        "(850.0, inf]": -0.590324,
         "SIN_DATO": 0.429639
       },
       "iv": 0.2294,
-      "monotonia_forzada": false
+      "monotonia_forzada": false,
+      "etiqueta_nulo": "SIN_DATO"
     },
     "plazo_meses": {
       "tipo": "numerica",
       "cortes": [
-        0,
-        6,
-        18,
-        24,
-        90
+        -Infinity,
+        6.0,
+        18.0,
+        24.0,
+        Infinity
       ],
       "fusion": {
-        "(0, 6]": "(0, 6]",
-        "(6, 18]": "(6, 18]",
-        "(18, 24]": "(18, 24]",
-        "(24, 90]": "(24, 90]"
+        "(-inf, 6.0]": "(-inf, 6.0]",
+        "(6.0, 18.0]": "(6.0, 18.0]",
+        "(18.0, 24.0]": "(18.0, 24.0]",
+        "(24.0, inf]": "(24.0, inf]"
       },
       "woe": {
-        "(0, 6]": 0.112724,
-        "(18, 24]": 0.655333,
-        "(24, 90]": 1.43015,
-        "(6, 18]": -0.28024
+        "(-inf, 6.0]": 0.112724,
+        "(18.0, 24.0]": 0.655333,
+        "(24.0, inf]": 1.43015,
+        "(6.0, 18.0]": -0.28024
       },
       "iv": 0.1758,
-      "monotonia_forzada": false
+      "monotonia_forzada": false,
+      "etiqueta_nulo": "SIN_DATO"
     },
     "huella_consulta": {
       "tipo": "numerica",
@@ -80,7 +82,8 @@
         "(6.0, inf]": 0.524962
       },
       "iv": 0.1632,
-      "monotonia_forzada": false
+      "monotonia_forzada": false,
+      "etiqueta_nulo": "SIN_DATO"
     },
     "consultas_por_credito": {
       "tipo": "numerica",
@@ -107,7 +110,8 @@
         "(1.0, inf]": 0.571936
       },
       "iv": 0.1684,
-      "monotonia_forzada": false
+      "monotonia_forzada": false,
+      "etiqueta_nulo": "SIN_DATO"
     },
     "promedio_ingresos_datacredito": {
       "tipo": "numerica",
@@ -136,7 +140,8 @@
         "SIN_DATO": 0.142277
       },
       "iv": 0.0741,
-      "monotonia_forzada": false
+      "monotonia_forzada": false,
+      "etiqueta_nulo": "SIN_DATO"
     },
     "discrepancia_ingresos": {
       "tipo": "numerica",
@@ -165,7 +170,8 @@
         "SIN_DATO": 0.142277
       },
       "iv": 0.0418,
-      "monotonia_forzada": false
+      "monotonia_forzada": false,
+      "etiqueta_nulo": "SIN_DATO"
     },
     "edad_cliente": {
       "tipo": "numerica",
@@ -192,42 +198,8 @@
         "(55.0, inf]": -0.237673
       },
       "iv": 0.1051,
-      "monotonia_forzada": false
-    },
-    "cant_creditosvigentes": {
-      "tipo": "numerica",
-      "cortes": [
-        -Infinity,
-        3.0,
-        4.0,
-        6.0,
-        8.0,
-        Infinity
-      ],
-      "fusion": {
-        "(-inf, 3.0]": "(-inf, 3.0]",
-        "(3.0, 4.0]": "(3.0, 4.0]",
-        "(4.0, 6.0]": "(4.0, 6.0]",
-        "(6.0, 8.0]": "(6.0, 8.0]",
-        "(8.0, inf]": "(8.0, inf]"
-      },
-      "woe": {
-        "(-inf, 3.0]": 0.112191,
-        "(3.0, 4.0]": -0.010477,
-        "(4.0, 6.0]": -0.128343,
-        "(6.0, 8.0]": -0.103755,
-        "(8.0, inf]": 0.035703
-      },
-      "iv": 0.0093,
-      "monotonia_forzada": false
-    },
-    "tipo_laboral": {
-      "tipo": "categorica",
-      "woe": {
-        "Empleado": -0.098245,
-        "Independiente": 0.144259
-      },
-      "iv": 0.0142
+      "monotonia_forzada": false,
+      "etiqueta_nulo": "SIN_DATO"
     },
     "tendencia_ingresos": {
       "tipo": "categorica",
@@ -269,5 +241,5 @@
       "iqr": 1.3862928611217669
     }
   },
-  "n_features": 19
+  "n_features": 17
 }
