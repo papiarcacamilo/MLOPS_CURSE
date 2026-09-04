@@ -87,7 +87,7 @@ RUTA_RAIZ = encontrar_raiz()
 RUTA_DATOS = RUTA_RAIZ / "data" / "processed"
 RUTA_MODELOS = RUTA_RAIZ / "data" / "models"
 
-CONFIG = json.load(open(RUTA_RAIZ / "etl_scripts" / "src" / "config.json", encoding="utf-8"))
+CONFIG = json.load(open(RUTA_RAIZ / "config.json", encoding="utf-8"))
 TARGET = CONFIG["target_variable"]
 SEPARADOR = CONFIG["data"]["separator"]
 ENCODING = CONFIG["data"]["encoding"]
