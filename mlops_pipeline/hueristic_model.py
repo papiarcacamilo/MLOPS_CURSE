@@ -1,29 +1,37 @@
 """
-Fase 3 - Modelado
+Modelo heuristico - el piso de referencia
 ================================================================================
 Proyecto : Modelo de riesgo crediticio (MLOPS_CURSE)
-Entrada  : data/processed/*_train.csv (Fase 2)
+Contrato : reglas_negocio.py (bandas y criterio derivados del EDA)
+Entrada  : data/processed/*_train.csv
+Salida   : data/models/baseline_heuristico.json
 
-    Etapa 1  Baseline heuristico           IMPLEMENTADA
-    Etapa 2  Seleccion de variables        (pendiente)
-    Etapa 3  Regresion logistica sobre WoE (pendiente)
-    Etapa 4  Modelos de arboles            (pendiente)
-    Etapa 5  Tratamiento del desbalance    (pendiente)
-    Etapa 6  Prueba de estres temporal     (pendiente)
-    Etapa 7  Calibracion                   (pendiente)
-    Etapa 8  Fairness                      (pendiente)
-    Etapa 9  Evaluacion final en test      (pendiente)
-    Etapa 10 Scorecard                     (pendiente)
+POR QUE ESTE ARCHIVO VA ANTES QUE CUALQUIER MODELO
 
-Por que el baseline va primero
-Antes de entrenar cualquier modelo hay que responder una pregunta de negocio:
-que tan bien se puede decidir SIN modelo. Si un algoritmo no supera una regla
-simple que un analista podria aplicar a mano, no hay caso para desplegarlo. El
-coste de mantener un modelo en produccion monitoreo, reentrenamiento,
-validacion, gobierno olo se justifica si aporta sobre la alternativa barata.
+Antes de entrenar nada hay que responder una pregunta de negocio: que tan bien
+se puede decidir SIN modelo. Si un algoritmo no supera una regla simple que un
+analista podria aplicar a mano, no hay caso para desplegarlo. El coste de
+mantener un modelo en produccion -- monitoreo, reentrenamiento, validacion,
+gobierno -- solo se justifica si aporta sobre la alternativa barata.
 
-el punto de corte se deriva EXCLUSIVAMENTE de train. El conjunto
-de prueba no se toca hasta la etapa 9.
+DE QUE DEPENDE Y DE QUE NO
+
+Depende de las PARTICIONES (data/processed/*_train.csv), porque el piso debe
+medirse sobre exactamente los mismos datos que veran los modelos posteriores;
+comparar sobre muestras distintas no significaria nada.
+
+NO depende de la ingenieria de caracteristicas. No usa WoE, ni escalado, ni la
+matriz de features: solo el puntaje crudo y el contrato. Que antes lo hiciera
+fue un accidente de implementacion, no una necesidad.
+
+QUE NO HACE ESTE ARCHIVO
+
+No optimiza. El corte se deriva de un principio de negocio (PRINCIPIO_CORTE en
+el contrato), no de maximizar una metrica: ajustar el umbral sobre train
+convertiria la regla en un modelo entrenado y dejaria de ser un piso honesto.
+
+El punto de corte se deriva EXCLUSIVAMENTE de train. El conjunto de prueba no
+se toca hasta la evaluacion final, en model_evaluation.py.
 ================================================================================
 """
 
