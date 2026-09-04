@@ -114,7 +114,11 @@ ENCODING = CONFIG["data"]["encoding"]
 # EDA -> reglas -> features queda restaurada.
 
 # Resultados de la sonda de features de la Fase 2. Son el numero a superar.
-AUC_PR_FASE2 = {"estratificado": 0.1424, "temporal": 0.1748}
+# Medidos sobre la matriz de 17 caracteristicas, tras la seleccion de variables
+# de la etapa 2. Con las 19 anteriores eran 0.1424 y 0.1748: la diferencia esta
+# por debajo de la variabilidad entre folds, como registra
+# data/models/seleccion_variables.json.
+AUC_PR_FASE2 = {"estratificado": 0.1468, "temporal": 0.1718}
 
 
 
@@ -262,7 +266,7 @@ def main() -> dict:
                  r["tasa_mora_aprobados_pct"], r["tasa_mora_rechazados_pct"])
         log.info("B) Score como ordenador: AUC-PR = %.4f (lift %.2fx sobre el azar)",
                  k["auc_pr"], k["lift_vs_azar"])
-        log.info("   Referencia Fase 2 (19 features): AUC-PR = %.4f "
+        log.info("   Referencia Fase 2 (17 features): AUC-PR = %.4f "
                  "-> %.2fx el score solo",
                  AUC_PR_FASE2[particion], AUC_PR_FASE2[particion] / k["auc_pr"])
 

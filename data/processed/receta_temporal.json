@@ -194,41 +194,6 @@
       "iv": 0.1051,
       "monotonia_forzada": false
     },
-    "cant_creditosvigentes": {
-      "tipo": "numerica",
-      "cortes": [
-        -Infinity,
-        3.0,
-        4.0,
-        6.0,
-        8.0,
-        Infinity
-      ],
-      "fusion": {
-        "(-inf, 3.0]": "(-inf, 3.0]",
-        "(3.0, 4.0]": "(3.0, 4.0]",
-        "(4.0, 6.0]": "(4.0, 6.0]",
-        "(6.0, 8.0]": "(6.0, 8.0]",
-        "(8.0, inf]": "(8.0, inf]"
-      },
-      "woe": {
-        "(-inf, 3.0]": 0.112191,
-        "(3.0, 4.0]": -0.010477,
-        "(4.0, 6.0]": -0.128343,
-        "(6.0, 8.0]": -0.103755,
-        "(8.0, inf]": 0.035703
-      },
-      "iv": 0.0093,
-      "monotonia_forzada": false
-    },
-    "tipo_laboral": {
-      "tipo": "categorica",
-      "woe": {
-        "Empleado": -0.098245,
-        "Independiente": 0.144259
-      },
-      "iv": 0.0142
-    },
     "tendencia_ingresos": {
       "tipo": "categorica",
       "woe": {
@@ -269,5 +234,5 @@
       "iqr": 1.3862928611217669
     }
   },
-  "n_features": 19
+  "n_features": 17
 }
