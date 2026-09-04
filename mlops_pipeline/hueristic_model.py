@@ -113,12 +113,16 @@ ENCODING = CONFIG["data"]["encoding"]
 # corte ignora las bandas por debajo del 1% de la cartera, pero la cadena
 # EDA -> reglas -> features queda restaurada.
 
-# Resultados de la sonda de features de la Fase 2. Son el numero a superar.
-# Medidos sobre la matriz de 17 caracteristicas, tras la seleccion de variables
-# de la etapa 2. Con las 19 anteriores eran 0.1424 y 0.1748: la diferencia esta
-# por debajo de la variabilidad entre folds, como registra
-# data/models/seleccion_variables.json.
-AUC_PR_FASE2 = {"estratificado": 0.1468, "temporal": 0.1718}
+# Lo que aportan las 17 caracteristicas. Es el numero a superar.
+#
+# Antes figuraban aqui 0.1468 y 0.1718, medidos por la sonda de la Fase 2. Esa
+# sonda ajustaba el WoE sobre TODO train y validaba con folds que son
+# subconjuntos de ese mismo train, de modo que la transformacion habia visto el
+# fold de validacion. La etapa 3 repitio la medicion con la ingenieria DENTRO de
+# la validacion cruzada y cuantifico ese optimismo en +0.0145 y +0.0072.
+#
+# Se usan las cifras sin fuga. Detalle en data/models/etapa3_logistica.json.
+AUC_PR_FASE2 = {"estratificado": 0.1323, "temporal": 0.1646}
 
 
 
