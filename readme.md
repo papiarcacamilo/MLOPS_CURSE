@@ -542,6 +542,10 @@ MLOPS_CURSE/
 │       ├── receta_temporal.json
 │       ├── reporte_features.json          # Ranking IV, alertas y baseline
 │       └── split_metadata.json            # Semilla, tamaños, tasas y exclusiones
+│   └── models/
+│       ├── pipeline_features_*.joblib     # Pipeline sklearn ajustado (Fase 4 lo carga)
+│       ├── baseline_heuristico.json       # Piso de referencia
+│       └── seleccion_variables.json       # Medición de la etapa 2
 ├── Base_de_datos.csv                 # Datos crudos originales (no modificar)
 ├── Base_de_datos_limpia.csv          # Salida de la Fase 1 (generado por el notebook)
 ├── PRESENTACION.pptx                 # Presentación de insights

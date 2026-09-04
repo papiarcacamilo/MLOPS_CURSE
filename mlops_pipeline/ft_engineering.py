@@ -28,6 +28,7 @@ import logging
 import sys
 from pathlib import Path
 
+import joblib
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
@@ -82,6 +83,7 @@ def encontrar_raiz(marcador: str = "Base_de_datos.csv", max_niveles: int = 6) ->
 RUTA_RAIZ = encontrar_raiz()
 RUTA_CONFIG = RUTA_RAIZ / "config.json"
 RUTA_SALIDA = RUTA_RAIZ / "data" / "processed"
+RUTA_MODELOS = RUTA_RAIZ / "data" / "models"
 
 
 def cargar_config(ruta: Path = RUTA_CONFIG) -> dict:
@@ -506,7 +508,23 @@ def _discretizar(serie: pd.Series, cortes: list | None,
         _, cortes = pd.qcut(serie, n_cuantiles, duplicates="drop", retbins=True)
         cortes = [float(c) for c in cortes]
         cortes[0], cortes[-1] = -np.inf, np.inf
-    tramos = pd.cut(serie, cortes).astype(str)
+
+    # Los cortes se pasan a pd.cut SIEMPRE como float. La etiqueta del tramo es
+    # una cadena y es la clave con la que `aplicar_binning` busca el WoE, de modo
+    # que su formato tiene que ser identico al aprendido en train. Con cortes
+    # enteros pandas elige la precision segun los datos del lote: sobre el
+    # dataset completo escribe "(750.0, 800.0]" y sobre menos de unas diez filas
+    # escribe "(750, 800]". La clave deja de coincidir, la busqueda cae al valor
+    # por defecto y la variable entra al modelo con WoE = 0, es decir riesgo
+    # promedio, sin lanzar ningun error.
+    #
+    # El fallo no se notaba porque el pipeline siempre transforma miles de filas
+    # a la vez. Aparece al puntuar lotes pequenios, que es justo lo que hara
+    # model_deploy.py: es el train-serving skew que ese modulo advierte.
+    #
+    # Forzar float hace la etiqueta estable en cualquier tamanio de lote, y
+    # produce exactamente la misma cadena que ya guardan las recetas.
+    tramos = pd.cut(serie, [float(c) for c in cortes]).astype(str)
     return tramos.where(serie.notna(), ETIQUETA_NULO), cortes
 
 
@@ -738,6 +756,210 @@ def ensamblar_matriz(df: pd.DataFrame, receta: dict, parametros: dict) -> pd.Dat
     matriz = pd.concat(partes, axis=1)
     matriz[TARGET] = df[TARGET].values
     return matriz
+
+
+# ==============================================================================
+# PIPELINE DE SCIKIT-LEARN
+# ==============================================================================
+# La Entrega 3 pide construir pipelines, y su diagrama muestra un
+# ColumnTransformer de tres ramas: numericas con SimpleImputer, categoricas con
+# SimpleImputer + OneHotEncoder, y categoricas ordinales con SimpleImputer +
+# OrdinalEncoder.
+#
+# POR QUE NO SE COPIA ESE DIAGRAMA TAL CUAL
+#
+# Se adopta la forma, no el contenido, por dos razones medidas en este proyecto:
+#
+#   1. OneHotEncoder es inferior a WoE en riesgo crediticio. WoE conserva la
+#      MAGNITUD del riesgo de cada tramo en una sola columna, que es lo que
+#      permite construir un scorecard y justificar una negacion ante el cliente
+#      y ante el supervisor. One-Hot entrega columnas indicadoras sin orden ni
+#      magnitud, y multiplica la dimensionalidad.
+#
+#   2. SimpleImputer contradice el hallazgo central de la Fase 1: la ausencia de
+#      dato ES senial. Los clientes sin ingresos reportados por el buro incumplen
+#      al 5.73% frente al 4.38% de quienes si tienen el dato (p = 0.0037).
+#      Imputar esa ausencia con la mediana borra un predictor. El binning la
+#      trata como categoria propia (SIN_DATO) con su WoE estimado.
+#
+# QUE SE GANA ADEMAS DE CUMPLIR EL REQUISITO
+#
+#   - un objeto serializable con joblib, que es lo que model_deploy.py necesita
+#     para garantizar que un cliente nuevo atraviese EXACTAMENTE las mismas
+#     transformaciones que el entrenamiento. Aplicar las recetas a mano en el
+#     endpoint es justo donde aparece el train-serving skew
+#   - la semantica fit/transform impide la fuga por construccion, no por
+#     disciplina: lo aprendido sale solo de los datos que ve fit()
+#
+# Los transformadores son adaptadores delgados sobre las funciones ya probadas
+# de este modulo. No reimplementan la logica: la envuelven.
+
+from sklearn.base import BaseEstimator, TransformerMixin  # noqa: E402
+from sklearn.compose import ColumnTransformer  # noqa: E402
+from sklearn.pipeline import Pipeline  # noqa: E402
+from sklearn.preprocessing import FunctionTransformer  # noqa: E402
+
+# Columnas que consume cada rama del ColumnTransformer.
+COLUMNAS_WOE = list(CORTES_NEGOCIO) + VARS_CUANTILES + VARS_CATEGORICAS_WOE
+
+
+class TransformadorWoE(BaseEstimator, TransformerMixin):
+    """Binning y Weight of Evidence, con la interfaz de scikit-learn.
+
+    `fit` aprende cortes, fusiones y valores WoE SOLO de los datos que recibe;
+    `transform` los aplica sin recalcular nada. La receta aprendida queda
+    accesible en `receta_`, de modo que sigue siendo el artefacto legible que
+    guarda la Fase 2.
+
+    El objetivo `y` es obligatorio en fit: el WoE se estima a partir de la tasa
+    de evento observada por tramo. Debe ser el indicador de MORA (1 = incumple),
+    igual que en el resto del modulo.
+    """
+
+    def fit(self, X, y=None):
+        if y is None:
+            raise ValueError(
+                "TransformadorWoE necesita el objetivo: el WoE se estima a "
+                "partir de la tasa de mora observada en cada tramo.")
+        # Se reindexa el objetivo sobre X para que las operaciones de pandas no
+        # se desalineen cuando los indices no coinciden.
+        objetivo = pd.Series(np.asarray(y), index=X.index)
+        self.receta_ = ajustar_binning(X, objetivo)
+        self.feature_names_in_ = list(X.columns)
+        return self
+
+    def transform(self, X):
+        return aplicar_binning(X, self.receta_)
+
+    def get_feature_names_out(self, input_features=None):
+        return np.asarray([f"woe_{c}" for c in self.receta_], dtype=object)
+
+
+class EscaladoRobusto(BaseEstimator, TransformerMixin):
+    """log1p y escalado robusto (mediana e IQR), con la interfaz de sklearn.
+
+    No se usa StandardScaler porque la Fase 1 midio asimetrias de 2.2 a 38.5 en
+    estas variables: la media y la desviacion estandar quedan dominadas por la
+    cola derecha.
+    """
+
+    def fit(self, X, y=None):
+        self.parametros_ = ajustar_escalado(X)
+        self.feature_names_in_ = list(X.columns)
+        return self
+
+    def transform(self, X):
+        return aplicar_escalado(X, self.parametros_)
+
+    def get_feature_names_out(self, input_features=None):
+        return np.asarray([f"esc_{c}" for c in self.parametros_], dtype=object)
+
+
+def _a_entero(X):
+    """Castea las banderas a int. Definida a nivel de modulo para que el
+    pipeline se pueda serializar: una lambda no es picklable."""
+    return X.astype(int)
+
+
+class ConstructorDerivadas(BaseEstimator, TransformerMixin):
+    """Atributos derivados, fila a fila. No aprende nada en fit.
+
+    Va delante del ColumnTransformer porque la rama WoE consume columnas que
+    esta etapa crea (consultas_por_credito, discrepancia_ingresos,
+    tipo_credito_grp). Al ser operaciones fila a fila no dependen de ningun
+    estadistico agregado, de modo que aplicarlas antes de separar no introduce
+    fuga.
+    """
+
+    def __init__(self, fecha_corte_obs=None):
+        self.fecha_corte_obs = fecha_corte_obs
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        return construir_derivadas(X, self.fecha_corte_obs)
+
+
+def construir_pipeline(fecha_corte_obs=None, con_derivadas: bool = False) -> Pipeline:
+    """Devuelve el pipeline de caracteristicas de la Fase 2.
+
+    Produce las 17 columnas de la matriz, en el mismo orden que
+    `ensamblar_matriz`, y SIN la columna objetivo: en scikit-learn el target
+    viaja aparte, en `y`.
+
+    `con_derivadas=True` antepone la construccion de atributos derivados, para
+    partir de un registro crudo. Con `False` (por defecto) asume que ya vienen
+    construidos, que es el caso de las particiones guardadas en
+    data/processed/.
+    """
+    caracteristicas = ColumnTransformer(
+        transformers=[
+            ("woe", TransformadorWoE(), COLUMNAS_WOE),
+            ("monetarias", EscaladoRobusto(), VARS_MONETARIAS),
+            ("banderas", FunctionTransformer(_a_entero, feature_names_out="one-to-one"),
+             VARS_BINARIAS),
+        ],
+        remainder="drop",
+        verbose_feature_names_out=False,
+    )
+
+    # La salida en pandas se configura en el ColumnTransformer, no en el
+    # Pipeline. Hacerlo en el Pipeline obligaria a que TODAS sus etapas
+    # implementen get_feature_names_out, y ConstructorDerivadas solo pasa un
+    # DataFrame de largo con columnas que dependen de la entrada. Como el
+    # ColumnTransformer es la ultima etapa, la salida del pipeline es pandas
+    # igualmente.
+    caracteristicas.set_output(transform="pandas")
+
+    pasos = []
+    if con_derivadas:
+        pasos.append(("derivadas", ConstructorDerivadas(fecha_corte_obs)))
+    pasos.append(("caracteristicas", caracteristicas))
+
+    return Pipeline(pasos)
+
+
+def verificar_pipeline(train: pd.DataFrame, test: pd.DataFrame) -> dict:
+    """Comprueba que el pipeline reproduce exactamente la matriz de referencia.
+
+    Es el criterio de aceptacion del envoltorio: si el pipeline y
+    `ensamblar_matriz` difieren en un solo valor, el refactor cambio algo.
+    """
+    y_train = 1 - train[TARGET]
+
+    pipe = construir_pipeline()
+    m_tr_pipe = pipe.fit_transform(train, y_train)
+    m_te_pipe = pipe.transform(test)
+
+    receta = pipe.named_steps["caracteristicas"].named_transformers_["woe"].receta_
+    parametros = pipe.named_steps["caracteristicas"].named_transformers_["monetarias"].parametros_
+
+    resultado = {}
+    for etiqueta, datos, obtenida in [("train", train, m_tr_pipe),
+                                      ("test", test, m_te_pipe)]:
+        esperada = ensamblar_matriz(datos, receta, parametros).drop(columns=[TARGET])
+        mismas_columnas = list(obtenida.columns) == list(esperada.columns)
+        # check_exact evita que una diferencia real se oculte tras la tolerancia
+        # por defecto de pandas.
+        try:
+            pd.testing.assert_frame_equal(obtenida, esperada, check_exact=True)
+            identica = True
+            detalle = ""
+        except AssertionError as e:
+            identica = False
+            detalle = str(e).split("\n")[0]
+
+        resultado[etiqueta] = {
+            "filas": int(obtenida.shape[0]),
+            "columnas": int(obtenida.shape[1]),
+            "mismas_columnas": mismas_columnas,
+            "identica": identica,
+            "detalle": detalle,
+        }
+
+    resultado["pipeline"] = pipe
+    return resultado
 
 
 #
@@ -1114,6 +1336,22 @@ def main() -> dict:
         if base.get("ganancia_abs", 0) < 0:
             log.warning("Las features transformadas NO superan a las originales")
 
+        # El mismo ajuste, esta vez como pipeline de scikit-learn. Se verifica
+        # que reproduzca la matriz exactamente y se serializa: es el artefacto
+        # que model_deploy.py cargara para transformar clientes nuevos sin
+        # reajustar nada.
+        chequeo = verificar_pipeline(tr, te)
+        if not (chequeo["train"]["identica"] and chequeo["test"]["identica"]):
+            raise RuntimeError(
+                f"[{nombre}] el pipeline no reproduce la matriz de referencia: "
+                f"{chequeo['train']['detalle'] or chequeo['test']['detalle']}")
+        log.info("Pipeline sklearn: reproduce la matriz exactamente en train y test")
+
+        RUTA_MODELOS.mkdir(parents=True, exist_ok=True)
+        destino_pipe = RUTA_MODELOS / f"pipeline_features_{nombre}.joblib"
+        joblib.dump(chequeo["pipeline"], destino_pipe)
+        log.info("Guardado: %s", destino_pipe.relative_to(RUTA_RAIZ))
+
         particiones[f"{nombre}_train_features"] = m_tr
         particiones[f"{nombre}_test_features"] = m_te
         reportes[nombre] = {
@@ -1180,4 +1418,21 @@ def main() -> dict:
 
 
 if __name__ == "__main__":
+    # Al ejecutar este archivo como script, Python lo registra en sys.modules
+    # bajo el nombre "__main__". joblib guarda las clases del pipeline POR
+    # REFERENCIA, es decir modulo mas nombre, de modo que quedarian anotadas como
+    # __main__.TransformadorWoE. Cualquier otro proceso que intente cargarlas
+    # falla con AttributeError, porque en ese proceso __main__ es otro archivo.
+    # Es justo lo que le pasaria a model_deploy.py al levantar el endpoint.
+    #
+    # Se registra el modulo tambien bajo su nombre importable y se corrige el
+    # atributo __module__ de lo que se serializa. joblib comprueba que el objeto
+    # exista realmente en el modulo declarado, y aqui se cumple porque ambos
+    # nombres apuntan al mismo modulo. Al cargar, `import ft_engineering`
+    # resuelve las clases con normalidad.
+    sys.modules.setdefault("ft_engineering", sys.modules["__main__"])
+    for _serializable in (TransformadorWoE, EscaladoRobusto,
+                          ConstructorDerivadas, _a_entero):
+        _serializable.__module__ = "ft_engineering"
+
     main()
