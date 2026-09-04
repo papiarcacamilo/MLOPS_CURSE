@@ -1,0 +1,62 @@
+{
+  "etapa": "Fase 3 - Etapa 1: baseline heuristico",
+  "variable_regla": "puntaje_datacredito",
+  "bandas_evaluadas": [
+    280,
+    600,
+    650,
+    700,
+    750,
+    800,
+    850,
+    950
+  ],
+  "criterio_corte": "Banda donde la tasa de mora cruza la tasa base de la cartera. No se optimiza ninguna metrica: hacerlo ajustaria la regla a train y dejaria de ser un baseline honesto.",
+  "nota_test": "El conjunto de prueba NO se ha utilizado en esta etapa.",
+  "resultados": {
+    "estratificado": {
+      "tasa_base": 0.0475,
+      "regla": {
+        "corte": 750,
+        "pct_rechazado": 20.91,
+        "mora_capturada": 152,
+        "mora_total": 409,
+        "recall": 0.3716,
+        "precision": 0.0844,
+        "f1": 0.1376,
+        "lift_precision": 1.78,
+        "tasa_mora_aprobados_pct": 3.77,
+        "tasa_mora_rechazados_pct": 8.44
+      },
+      "score_como_ranker": {
+        "auc_pr": 0.0753,
+        "lift_vs_azar": 1.59
+      },
+      "justificacion_corte": "Todas las bandas por debajo de 750 puntos presentan una tasa de mora superior a la tasa base de la cartera (4.75%), y todas las bandas por encima quedan por debajo de ella. El corte separa a los solicitantes cuyo riesgo observado excede el promedio de la cartera.",
+      "auc_pr_fase2_referencia": 0.1424,
+      "mejora_features_sobre_score": 1.89
+    },
+    "temporal": {
+      "tasa_base": 0.0513,
+      "regla": {
+        "corte": 750,
+        "pct_rechazado": 20.83,
+        "mora_capturada": 169,
+        "mora_total": 442,
+        "recall": 0.3824,
+        "precision": 0.0943,
+        "f1": 0.1512,
+        "lift_precision": 1.84,
+        "tasa_mora_aprobados_pct": 4.01,
+        "tasa_mora_rechazados_pct": 9.43
+      },
+      "score_como_ranker": {
+        "auc_pr": 0.0862,
+        "lift_vs_azar": 1.68
+      },
+      "justificacion_corte": "Todas las bandas por debajo de 750 puntos presentan una tasa de mora superior a la tasa base de la cartera (5.13%), y todas las bandas por encima quedan por debajo de ella. El corte separa a los solicitantes cuyo riesgo observado excede el promedio de la cartera.",
+      "auc_pr_fase2_referencia": 0.1748,
+      "mejora_features_sobre_score": 2.03
+    }
+  }
+}
