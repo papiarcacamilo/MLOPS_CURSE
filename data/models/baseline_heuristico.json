@@ -4,14 +4,14 @@
   "bandas_evaluadas": [
     280,
     600,
-    650,
     700,
     750,
     800,
     850,
     950
   ],
-  "criterio_corte": "Banda donde la tasa de mora cruza la tasa base de la cartera. No se optimiza ninguna metrica: hacerlo ajustaria la regla a train y dejaria de ser un baseline honesto.",
+  "criterio_corte": "Rechazar donde el riesgo observado supera el promedio de la cartera. Recorriendo las bandas de score de mayor a menor, el corte es el limite superior de la primera banda cuya tasa de mora ya excede la tasa base.",
+  "origen_bandas": "reglas_negocio.py (contrato derivado del EDA, celda 63)",
   "nota_test": "El conjunto de prueba NO se ha utilizado en esta etapa.",
   "resultados": {
     "estratificado": {
