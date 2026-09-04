@@ -4,9 +4,10 @@ Proyecto transversal de **Ciencia de Datos en Producción**. Construye un pipeli
 sobre una base de datos real de créditos de una empresa financiera colombiana, desde la
 comprensión y limpieza de los datos hasta el despliegue y monitoreo de un modelo predictivo.
 
-> **Estado actual: Fase 1 completada** (EDA, limpieza y diccionario de datos).
-> Las fases de Feature Engineering, Modelado, Despliegue y Monitoreo están pendientes.
-> Este README describe únicamente lo que el código implementa hoy.
+> **Estado actual:** Fase 1 (EDA) y Fase 2 (Feature Engineering) completadas. El **modelo
+> heurístico** que fija el piso de referencia está implementado y evaluado. El entrenamiento de
+> modelos, la evaluación final, el despliegue y el monitoreo están pendientes.
+> Este readme describe únicamente lo que el código implementa hoy.
 
 ---
 
@@ -85,7 +86,7 @@ categoría.
 | Archivo fuente | `Base_de_datos.csv` |
 | Registros | 10.763 créditos |
 | Variables originales | 23 |
-| Variables tras limpieza | 31 (incluye columnas de trazabilidad) |
+| Variables tras limpieza | 35 (incluye columnas de trazabilidad) |
 | Separador | `;` |
 | Codificación | UTF-8 con BOM |
 | Rango temporal | 2024-11-26 a 2026-04-26 |
@@ -101,7 +102,7 @@ cliente** (ver [Limitaciones](#limitaciones)).
 ## Diccionario de datos
 
 El diccionario está implementado como estructura de código en
-`etl_scripts/src/desarrollo/transformacion_eda.ipynb`
+`mlops_pipeline/comprension_eda.ipynb`
 (constante `DICCIONARIO_DATOS`), de la cual el resto del análisis deriva sus listas de variables.
 Esto evita inferir el tipo estadístico desde el tipo de dato técnico.
 
@@ -370,7 +371,7 @@ producción queden señalados en lugar de pasar silenciosamente.
 > VALOR"), no construirlos. Se calculan en un DataFrame independiente (`derivadas = df.copy()`)
 > solo para medir su poder predictivo; **ninguno se incorpora a `Base_de_datos_limpia.csv`**.
 > Su implementación definitiva corresponde a la Fase 2
-> (`etl_scripts/src/desarrollo/ft_engineering.py`, hoy vacío).
+> (`mlops_pipeline/ft_engineering.py`, hoy vacío).
 
 Se propusieron y evaluaron 9 atributos derivados dentro del notebook, midiendo su relación con la
 variable objetivo mediante **dos medidas complementarias**: correlación de Pearson (relación
@@ -420,7 +421,7 @@ relación con la mora no es lineal.
 ## Modelamiento
 
 > **Estado: no implementado.** Corresponde a la Fase 3
-> (`etl_scripts/src/desarrollo/model_training_evaluation.py`, actualmente vacío).
+> (`mlops_pipeline/hueristic_model.py`, actualmente vacío).
 
 Requisitos ya definidos a partir del análisis:
 
@@ -517,15 +518,19 @@ para depurar el score (insight 4), pero su tasa de mora no constituye un hallazg
 
 ```
 MLOPS_CURSE/
-├── etl_scripts/
-│   └── src/
-│       ├── desarrollo/
-│       │   ├── transformacion_eda.ipynb      # Fase 1: diccionario, limpieza, EDA (COMPLETADO)
-│       │   ├── ft_engineering.py             # Fase 2: Feature Engineering (COMPLETADO)
-│       │   ├── model_training_evaluation.py  # Fase 3: Entrenamiento y evaluación (pendiente)
-│       │   ├── model_deploy.py               # Fase 4: Despliegue (pendiente)
-│       │   └── model_monitoring.py           # Fase 5: Monitoreo (pendiente)
-│       └── config.json                       # Configuración del proyecto
+├── mlops_pipeline/
+│   ├── Cargar_datos.ipynb            # Ingesta y compuerta de calidad (COMPLETADO)
+│   ├── comprension_eda.ipynb         # Fase 1: diccionario, limpieza, EDA (COMPLETADO)
+│   ├── ft_engineering.py             # Fase 2: Feature Engineering (COMPLETADO)
+│   ├── hueristic_model.py            # Piso de referencia sin modelo (COMPLETADO)
+│   ├── model_training.py             # Entrenamiento y selección (pendiente)
+│   ├── model_evaluation.py           # Evaluación y test final (pendiente)
+│   ├── model_deploy.py               # Despliegue en endpoint (pendiente)
+│   ├── model_monitoring.py           # Monitoreo y data drift (pendiente)
+│   ├── reglas_negocio.py             # Contrato derivado del EDA (añadido)
+│   ├── feature_engineering.ipynb     # Narrativa de la Fase 2 (añadido)
+│   └── hueristic_model.ipynb         # Narrativa del heurístico (añadido)
+├── config.json                       # Configuración del proyecto
 ├── data/
 │   └── processed/                    # Salida de la Fase 2
 │       ├── estratificado_train.csv        # 8.610 registros (datos particionados)
@@ -543,20 +548,30 @@ MLOPS_CURSE/
 ├── requirements.txt                  # Dependencias
 ├── set_up.bat                        # Script de instalación de dependencias
 ├── .gitignore
-└── README.md
+└── readme.md
 ```
 
-Esta estructura corresponde a la solicitada en el enunciado del Entregable 2. Los scripts de las
-fases 2 a 5 se ubican junto al notebook en `desarrollo/`, que es donde reside el código de
-desarrollo del pipeline.
+Esta estructura es la solicitada en el **Entregable 3**, cuyo enunciado advierte que la estructura de
+carpetas **no es modificable** porque el paso a producción se valida con Jenkins. Por eso
+`hueristic_model.py` reproduce la errata del enunciado de forma deliberada: corregir la ortografía
+sería el error.
+
+Los tres archivos marcados como *añadidos* no alteran la estructura exigida, porque añadir no es
+modificar. `reglas_negocio.py` publica el contrato del EDA que el resto del pipeline aplica; los dos
+notebooks aportan la narrativa de su `.py` correspondiente sin duplicar su lógica.
 
 ### Ramas
 
+Se sigue el flujo Gitflow que exige el Stage 1 del Entregable 3:
+
 | Rama | Propósito |
 |---|---|
-| `developer` | Trabajo activo y experimentación |
-| `master` | Versión estable (merge al cerrar cada fase validada) |
-| `certification` | Entregable final |
+| `master` | Versiones entregadas, con etiqueta de versión |
+| `develop` | Integración de las ramas de trabajo |
+| `feature1` · `feature2` | Trabajo activo en paralelo |
+
+Los merges hacia `develop` y `master` se hacen con `--no-ff`, de modo que el grafo conserve la forma
+del diagrama del enunciado en lugar de aplanarse por *fast-forward*.
 
 ## Tecnologías utilizadas
 
@@ -583,7 +598,7 @@ set_up.bat
 pip install -r requirements.txt
 
 # 3. Ejecutar el análisis
-jupyter notebook etl_scripts/src/desarrollo/transformacion_eda.ipynb
+jupyter notebook mlops_pipeline/comprension_eda.ipynb
 #    (o abrir la carpeta MLOPS_CURSE en VS Code y usar "Run All")
 ```
 
@@ -593,8 +608,7 @@ jupyter notebook etl_scripts/src/desarrollo/transformacion_eda.ipynb
 mientras que los CSV viven en la raíz. En lugar de fijar `'../../../'` a mano —frágil ante
 cambios de ubicación o de directorio de trabajo del kernel— el notebook localiza la raíz del
 proyecto con la función `encontrar_raiz()`, que sube por el árbol de directorios hasta encontrar
-`Base_de_datos.csv`. Verificado: funciona desde la raíz del repo, desde `etl_scripts/`, desde
-`etl_scripts/src/` y desde `etl_scripts/src/desarrollo/`. Los scripts de las fases 2 a 5 deben
+`Base_de_datos.csv`. Verificado: funciona desde la raíz del repo, y desde `mlops_pipeline/`. Los scripts de las fases 2 a 5 deben
 resolver las rutas de la misma forma.
 
 El archivo crudo nunca se modifica; la salida `Base_de_datos_limpia.csv` se regenera en cada

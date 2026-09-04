@@ -32,6 +32,18 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
+# El contrato del EDA vive en un modulo hermano. Se garantiza que el directorio
+# de este archivo esta en sys.path para que la importacion funcione tanto al
+# ejecutar el script directamente como al importarlo desde el notebook.
+try:
+    _DIR_MODULO = str(Path(__file__).resolve().parent)
+except NameError:
+    _DIR_MODULO = str(Path.cwd().resolve())
+if _DIR_MODULO not in sys.path:
+    sys.path.insert(0, _DIR_MODULO)
+
+from reglas_negocio import CORTES_NEGOCIO, REGLAS_VALIDACION, validar_dataframe  # noqa: E402
+
 
 # CONFIGURACION
 
@@ -48,8 +60,8 @@ log = logging.getLogger("ft_engineering")
 def encontrar_raiz(marcador: str = "Base_de_datos.csv", max_niveles: int = 6) -> Path:
     """Sube por el arbol de directorios hasta encontrar el archivo marcador.
 
-    Se replica la estrategia usada en `transformacion_eda.ipynb`: el script vive
-    en etl_scripts/src/desarrollo/ y los datos en la raiz del repositorio.
+    Se replica la estrategia usada en los notebooks: el script vive en
+    mlops_pipeline/ y los datos en la raiz del repositorio.
     """
     try:
         actual = Path(__file__).resolve().parent
@@ -68,7 +80,7 @@ def encontrar_raiz(marcador: str = "Base_de_datos.csv", max_niveles: int = 6) ->
 
 
 RUTA_RAIZ = encontrar_raiz()
-RUTA_CONFIG = RUTA_RAIZ / "etl_scripts" / "src" / "config.json"
+RUTA_CONFIG = RUTA_RAIZ / "config.json"
 RUTA_SALIDA = RUTA_RAIZ / "data" / "processed"
 
 
@@ -390,20 +402,12 @@ def construir_derivadas(df: pd.DataFrame, fecha_corte_obs: pd.Timestamp) -> pd.D
 # categoria mas, con su propio WoE estimado a partir de su tasa observada.
 
 
-# Cortes iniciales derivados de los hallazgos del EDA. La fusion automatica
-# posterior los ajusta si algun tramo resulta demasiado pequenio.
-CORTES_INICIALES = {
-    "puntaje_datacredito": [280, 600, 700, 750, 800, 850, 950],
-    # P3 | Cortes revisados. Con los anteriores ([0,6,12,18,24,36,90]) el tramo
-    # (12,18] tenia 275 registros y 12 eventos, por debajo de ambos minimos, y
-    # la fusion lo unia con (18,24] -- que es justo donde empieza la senal
-    # (8.16% de mora). El resultado diluia el gradiente y el IV de la variable
-    # BAJABA al transformarla (0.1069 -> 0.0904 en la particion estratificada).
-    # La Fase 1 muestra que (12,18] (4.36%) se parece mucho mas a (6,12] (3.91%)
-    # que a (18,24] (8.16%), asi que se agrupan desde el corte inicial y se deja
-    # (18,24] aislado.
-    "plazo_meses": [0, 6, 18, 24, 90],
-}
+# Cortes de negocio: se IMPORTAN del contrato del EDA (reglas_negocio.py), no se
+# redefinen aqui. El nombre CORTES_INICIALES se conserva porque describe su rol
+# dentro de esta fase: son el punto de partida que la fusion automatica ajusta si
+# algun tramo resulta demasiado pequenio. La justificacion de cada corte vive
+# junto a su definicion, en el contrato.
+CORTES_INICIALES = CORTES_NEGOCIO
 
 # Variables numericas que se discretizan por cuantiles (sin cortes de negocio).
 VARS_CUANTILES = [

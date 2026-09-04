@@ -1,0 +1,12 @@
+{
+  "project_name": "MLOPS_CURSE",
+  "_nota_rutas": "Las rutas de datos son relativas a la RAIZ del repositorio, donde vive este archivo. Los modulos de mlops_pipeline/ localizan la raiz con encontrar_raiz(), que sube por el arbol hasta encontrar Base_de_datos.csv, de modo que funcionan sin depender del directorio de trabajo.",
+  "data": {
+    "raw_path": "Base_de_datos.csv",
+    "clean_path": "Base_de_datos_limpia.csv",
+    "separator": ";",
+    "encoding": "utf-8-sig"
+  },
+  "target_variable": "Pago_atiempo",
+  "random_state": 42
+}
