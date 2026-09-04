@@ -1,7 +1,30 @@
-pandas
-numpy
-matplotlib
-seaborn
-jupyter
-scipy
-scikit-learn
+# MLOPS_CURSE - Modelo de riesgo crediticio
+#
+# Versiones fijadas: sin ellas una instalacion nueva puede traer otra cosa, y
+# con pandas 3.x recien salido eso no es hipotetico. Python 3.11.
+#
+#   pip install -r requirements.txt
+
+# --- Datos y calculo ---
+pandas==3.0.5
+numpy==2.4.6
+scipy==1.17.1
+
+# --- Modelado ---
+scikit-learn==1.9.0
+# Aporta HistGradientBoostingClassifier, con lo que no hace falta XGBoost.
+joblib==1.5.3
+# Serializa el pipeline de caracteristicas que carga model_deploy.py.
+
+imbalanced-learn==0.14.2
+# SMOTE, para la comparacion de tratamientos del desbalance (etapa 5).
+sklearn-compat==0.1.6
+# Dependencia de imbalanced-learn.
+
+# --- Graficos ---
+matplotlib==3.11.1
+seaborn==0.13.2
+
+# --- Notebooks ---
+jupyter==1.1.1
+ipykernel==7.3.0
