@@ -1,29 +1,37 @@
 """
-Fase 3 - Modelado
+Modelo heuristico: el piso de referencia
 ================================================================================
 Proyecto : Modelo de riesgo crediticio (MLOPS_CURSE)
-Entrada  : data/processed/*_train.csv (Fase 2)
+Contrato : reglas_negocio.py (bandas y criterio derivados del EDA)
+Entrada  : data/processed/*_train.csv
+Salida   : data/models/baseline_heuristico.json
 
-    Etapa 1  Baseline heuristico           IMPLEMENTADA
-    Etapa 2  Seleccion de variables        (pendiente)
-    Etapa 3  Regresion logistica sobre WoE (pendiente)
-    Etapa 4  Modelos de arboles            (pendiente)
-    Etapa 5  Tratamiento del desbalance    (pendiente)
-    Etapa 6  Prueba de estres temporal     (pendiente)
-    Etapa 7  Calibracion                   (pendiente)
-    Etapa 8  Fairness                      (pendiente)
-    Etapa 9  Evaluacion final en test      (pendiente)
-    Etapa 10 Scorecard                     (pendiente)
+POR QUE ESTE ARCHIVO VA ANTES QUE CUALQUIER MODELO
 
-Por que el baseline va primero
-Antes de entrenar cualquier modelo hay que responder una pregunta de negocio:
-que tan bien se puede decidir SIN modelo. Si un algoritmo no supera una regla
-simple que un analista podria aplicar a mano, no hay caso para desplegarlo. El
-coste de mantener un modelo en produccion monitoreo, reentrenamiento,
-validacion, gobierno olo se justifica si aporta sobre la alternativa barata.
+Antes de entrenar nada hay que responder una pregunta de negocio: que tan bien
+se puede decidir SIN modelo. Si un algoritmo no supera una regla simple que un
+analista podria aplicar a mano, no hay caso para desplegarlo. El coste de
+mantener un modelo en produccion (monitoreo, reentrenamiento, validacion,
+gobierno) solo se justifica si aporta sobre la alternativa barata.
 
-el punto de corte se deriva EXCLUSIVAMENTE de train. El conjunto
-de prueba no se toca hasta la etapa 9.
+DE QUE DEPENDE Y DE QUE NO
+
+Depende de las PARTICIONES (data/processed/*_train.csv), porque el piso debe
+medirse sobre exactamente los mismos datos que veran los modelos posteriores;
+comparar sobre muestras distintas no significaria nada.
+
+NO depende de la ingenieria de caracteristicas. No usa WoE, ni escalado, ni la
+matriz de features: solo el puntaje crudo y el contrato. Que antes lo hiciera
+fue un accidente de implementacion, no una necesidad.
+
+QUE NO HACE ESTE ARCHIVO
+
+No optimiza. El corte se deriva de un principio de negocio (PRINCIPIO_CORTE en
+el contrato), no de maximizar una metrica: ajustar el umbral sobre train
+convertiria la regla en un modelo entrenado y dejaria de ser un piso honesto.
+
+El punto de corte se deriva EXCLUSIVAMENTE de train. El conjunto de prueba no
+se toca hasta la evaluacion final, en model_evaluation.py.
 ================================================================================
 """
 
@@ -36,6 +44,24 @@ from pathlib import Path
 
 import pandas as pd
 from sklearn.metrics import average_precision_score, precision_recall_fscore_support
+
+# El contrato del EDA vive en un modulo hermano. Se garantiza que el directorio
+# de este archivo esta en sys.path para que la importacion funcione tanto al
+# ejecutar el script directamente como al importarlo desde el notebook.
+try:
+    _DIR_MODULO = str(Path(__file__).resolve().parent)
+except NameError:
+    _DIR_MODULO = str(Path.cwd().resolve())
+if _DIR_MODULO not in sys.path:
+    sys.path.insert(0, _DIR_MODULO)
+
+from reglas_negocio import (  # noqa: E402
+    BANDAS_SCORE,
+    MIN_POBLACION_BANDA_PCT,
+    PRINCIPIO_CORTE,
+    RECHAZAR_SIN_SCORE,
+    VARIABLE_REGLA,
+)
 
 
 # CONFIGURACION
@@ -69,18 +95,23 @@ RUTA_RAIZ = encontrar_raiz()
 RUTA_DATOS = RUTA_RAIZ / "data" / "processed"
 RUTA_MODELOS = RUTA_RAIZ / "data" / "models"
 
-CONFIG = json.load(open(RUTA_RAIZ / "etl_scripts" / "src" / "config.json", encoding="utf-8"))
+CONFIG = json.load(open(RUTA_RAIZ / "config.json", encoding="utf-8"))
 TARGET = CONFIG["target_variable"]
 SEPARADOR = CONFIG["data"]["separator"]
 ENCODING = CONFIG["data"]["encoding"]
 
-# Variable sobre la que se construye la regla. Es la unica eleccion razonable:
-# la Fase 1 la identifico como el predictor individual mas fuerte (IV = 0.2136)
-# y es un dato que la entidad ya tiene sin coste adicional.
-VARIABLE_REGLA = "puntaje_datacredito"
-
-# Bandas con significado comercial, heredadas del binning de la Fase 2.
-BANDAS_SCORE = [280, 600, 650, 700, 750, 800, 850, 950]
+# VARIABLE_REGLA, BANDAS_SCORE, MIN_POBLACION_BANDA_PCT, PRINCIPIO_CORTE y
+# RECHAZAR_SIN_SCORE se importan del contrato del EDA. Este archivo APLICA la
+# regla; no decide sus bandas ni su criterio.
+#
+# Version anterior de este bloque, corregida:
+#   BANDAS_SCORE = [280, 600, 650, 700, 750, 800, 850, 950]
+# El corte en 650 no proviene del EDA ni de la receta de la Fase 2, y generaba
+# una banda de 8 registros. El comentario que lo acompaniaba afirmaba haber
+# heredado las bandas de la Fase 2, cuando la Fase 2 hizo lo contrario:
+# fusionarlas por inestables. Las metricas no cambian, porque la derivacion del
+# corte ignora las bandas por debajo del 1% de la cartera, pero la cadena
+# EDA -> reglas -> features queda restaurada.
 
 # Resultados de la sonda de features de la Fase 2. Son el numero a superar.
 AUC_PR_FASE2 = {"estratificado": 0.1424, "temporal": 0.1748}
@@ -101,7 +132,8 @@ def tabla_bandas(datos: pd.DataFrame) -> pd.DataFrame:
     return tabla
 
 
-def derivar_corte(datos: pd.DataFrame, min_poblacion: float = 1.0) -> tuple[int, str]:
+def derivar_corte(datos: pd.DataFrame,
+                  min_poblacion: float = MIN_POBLACION_BANDA_PCT) -> tuple[int, str]:
     """Encuentra el corte donde la tasa de mora cruza la tasa base de la cartera.
 
     Es un principio de negocio, no una optimizacion
@@ -136,12 +168,16 @@ def derivar_corte(datos: pd.DataFrame, min_poblacion: float = 1.0) -> tuple[int,
 def aplicar_regla(datos: pd.DataFrame, corte: int) -> pd.Series:
     """Devuelve True donde la regla RECHAZA la solicitud.
 
-    Los solicitantes sin score valido tambien se rechazan: la Fase 2 midio que
-    ese grupo tiene una tasa de mora superior a la base (WoE +0.4174), asi que
-    aprobarlos contradiria el mismo principio que define el corte.
+    El tratamiento de los solicitantes sin score valido lo fija el contrato
+    (RECHAZAR_SIN_SCORE): se rechazan porque su tasa de mora observada supera la
+    base de la cartera, de modo que aprobarlos contradiria el mismo principio
+    que define el corte.
     """
     score = datos[VARIABLE_REGLA]
-    return (score < corte) | score.isna()
+    rechaza = score < corte
+    if RECHAZAR_SIN_SCORE:
+        rechaza = rechaza | score.isna()
+    return rechaza
 
 
 def evaluar_baseline(datos: pd.DataFrame, corte: int) -> dict:
@@ -243,10 +279,8 @@ def main() -> dict:
             "etapa": "Fase 3 - Etapa 1: baseline heuristico",
             "variable_regla": VARIABLE_REGLA,
             "bandas_evaluadas": BANDAS_SCORE,
-            "criterio_corte": ("Banda donde la tasa de mora cruza la tasa base de la "
-                               "cartera. No se optimiza ninguna metrica: hacerlo "
-                               "ajustaria la regla a train y dejaria de ser un "
-                               "baseline honesto."),
+            "criterio_corte": PRINCIPIO_CORTE,
+            "origen_bandas": "reglas_negocio.py (contrato derivado del EDA, celda 63)",
             "nota_test": "El conjunto de prueba NO se ha utilizado en esta etapa.",
             "resultados": resultados,
         }, f, indent=2, ensure_ascii=False)
