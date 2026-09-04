@@ -502,12 +502,39 @@ VARS_MONOTONAS = {
 
 
 def _discretizar(serie: pd.Series, cortes: list | None,
-                 n_cuantiles: int = 5) -> tuple[pd.Series, list]:
-    """Convierte una serie numerica en etiquetas de tramo, con SIN_DATO aparte."""
+                 n_cuantiles: int = 5,
+                 etiqueta_nulo: str | None = None) -> tuple[pd.Series, list]:
+    """Convierte una serie numerica en etiquetas de tramo, con SIN_DATO aparte.
+
+    `etiqueta_nulo` se recibe como argumento en lugar de leerse de la constante
+    del modulo, para que un pipeline ya serializado no cambie de comportamiento
+    si esa constante se edita despues.
+    """
+    etiqueta_nulo = ETIQUETA_NULO if etiqueta_nulo is None else etiqueta_nulo
+
     if cortes is None:
         _, cortes = pd.qcut(serie, n_cuantiles, duplicates="drop", retbins=True)
         cortes = [float(c) for c in cortes]
         cortes[0], cortes[-1] = -np.inf, np.inf
+    else:
+        # Los extremos se abren al infinito. Los cortes de negocio describen el
+        # rango OBSERVADO, no el rango posible, y en produccion llegan valores
+        # fuera de el: el contrato admite puntajes desde 150 mientras la banda
+        # mas baja empieza en 280, y admite plazos hasta 120 meses mientras el
+        # ultimo tramo acaba en 90.
+        #
+        # Sin abrir los extremos, pd.cut devuelve NaN para esos valores, la
+        # busqueda del WoE cae al valor por defecto y el solicitante entra al
+        # modelo con riesgo PROMEDIO. Para un score de 160, que es el peor riesgo
+        # posible, esa es la respuesta contraria a la correcta, y se produce sin
+        # lanzar ningun error.
+        #
+        # No cambia ninguna asignacion aprendida: todo el entrenamiento cae
+        # dentro del rango original (score observado 342-947, plazo 2-90), asi
+        # que los tramos y sus WoE son los mismos. Solo cambia el nombre de los
+        # dos tramos extremos, y lo que antes quedaba fuera ahora cae en el tramo
+        # que le corresponde por riesgo.
+        cortes = [-np.inf] + [float(c) for c in cortes[1:-1]] + [np.inf]
 
     # Los cortes se pasan a pd.cut SIEMPRE como float. La etiqueta del tramo es
     # una cadena y es la clave con la que `aplicar_binning` busca el WoE, de modo
@@ -525,7 +552,7 @@ def _discretizar(serie: pd.Series, cortes: list | None,
     # Forzar float hace la etiqueta estable en cualquier tamanio de lote, y
     # produce exactamente la misma cadena que ya guardan las recetas.
     tramos = pd.cut(serie, [float(c) for c in cortes]).astype(str)
-    return tramos.where(serie.notna(), ETIQUETA_NULO), cortes
+    return tramos.where(serie.notna(), etiqueta_nulo), cortes
 
 
 def _fusionar_bins_pequenos(tramos: pd.Series, objetivo: pd.Series,
@@ -683,7 +710,10 @@ def ajustar_binning(train: pd.DataFrame, objetivo: pd.Series) -> dict:
         woe, iv = ajustar_woe(tramos, objetivo)
         receta[col] = {"tipo": "numerica", "cortes": cortes,
                        "fusion": mapa, "woe": woe, "iv": iv,
-                       "monotonia_forzada": monotonia_forzada}
+                       "monotonia_forzada": monotonia_forzada,
+                       # Viaja en la receta para que transform() no dependa de
+                       # la constante del modulo.
+                       "etiqueta_nulo": ETIQUETA_NULO}
 
     for col in VARS_CATEGORICAS_WOE:
         tramos = train[col].astype(str)
@@ -702,7 +732,9 @@ def aplicar_binning(df: pd.DataFrame, receta: dict) -> pd.DataFrame:
     salida = pd.DataFrame(index=df.index)
     for col, spec in receta.items():
         if spec["tipo"] == "numerica":
-            tramos, _ = _discretizar(df[col], spec["cortes"])
+            tramos, _ = _discretizar(
+                df[col], spec["cortes"],
+                etiqueta_nulo=spec.get("etiqueta_nulo", ETIQUETA_NULO))
             tramos = tramos.map(lambda t: spec["fusion"].get(t, t))
         else:
             tramos = df[col].astype(str)
