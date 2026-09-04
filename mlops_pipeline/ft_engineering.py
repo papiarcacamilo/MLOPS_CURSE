@@ -869,6 +869,85 @@ def baseline_comparativo(matriz_train: pd.DataFrame,
 
     return resultado
 
+# ------------------------------------------------------------------------------
+# SELECCION DE VARIABLES
+# ------------------------------------------------------------------------------
+# Dos variables quedaron marcadas en `alertas` por tener un Information Value
+# bajo el umbral de 0.02 en LAS DOS particiones. La evidencia apunta a
+# retirarlas, pero una alerta no es una medicion: la decision se toma comparando
+# AUC-PR con los mismos folds, no discutiendo el IV.
+CANDIDATAS_RETIRO = {
+    "woe_cant_creditosvigentes": (
+        "IV 0.0191 estratificado / 0.0093 temporal. Ademas su WoE no es "
+        "monotono y el ultimo tramo revierte el signo, patron sin lectura de "
+        "negocio"),
+    "woe_tipo_laboral": (
+        "IV 0.0157 / 0.0142. Solo dos categorias, y es eje de fairness: se "
+        "asumiria riesgo etico a cambio de poder casi nulo"),
+}
+
+
+def comparar_conjuntos_features(matriz_train: pd.DataFrame) -> dict:
+    """Mide el efecto de retirar las candidatas sobre el poder predictivo.
+
+    Replica el montaje de `baseline_comparativo` (mismos folds, mismo modelo,
+    misma metrica) para que las cifras sean comparables contra su AUC-PR de
+    referencia. Como los folds son identicos entre configuraciones, la
+    diferencia fold a fold es una comparacion pareada y detecta cambios que la
+    media sola podria esconder.
+    """
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.model_selection import StratifiedKFold, cross_val_score
+    from sklearn.pipeline import make_pipeline
+    from sklearn.impute import SimpleImputer
+    from sklearn.preprocessing import StandardScaler
+
+    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=SEMILLA)
+    y = 1 - matriz_train[TARGET]
+    X_todo = matriz_train.drop(columns=[TARGET])
+
+    def evaluar(X):
+        modelo = make_pipeline(
+            SimpleImputer(strategy="median"),
+            StandardScaler(),
+            LogisticRegression(max_iter=5000, class_weight="balanced",
+                               random_state=SEMILLA),
+        )
+        return cross_val_score(modelo, X, y, cv=cv, scoring="average_precision")
+
+    a, b = list(CANDIDATAS_RETIRO)
+    configuraciones = {
+        "19_completo": [],
+        "18_sin_creditosvigentes": [a],
+        "18_sin_tipo_laboral": [b],
+        "17_sin_ambas": [a, b],
+    }
+
+    resultados, referencia = {}, None
+    for nombre, retirar in configuraciones.items():
+        faltantes = [c for c in retirar if c not in X_todo.columns]
+        if faltantes:
+            log.warning("[%s] columnas ausentes, se omite: %s", nombre, faltantes)
+            continue
+
+        folds = evaluar(X_todo.drop(columns=retirar))
+        if referencia is None:
+            referencia = folds
+
+        resultados[nombre] = {
+            "n_features": int(X_todo.shape[1] - len(retirar)),
+            "retiradas": retirar,
+            "auc_pr_media": round(float(folds.mean()), 4),
+            "auc_pr_desv": round(float(folds.std()), 4),
+            "folds": [round(float(v), 4) for v in folds],
+            "delta_media": round(float(folds.mean() - referencia.mean()), 4),
+            "delta_por_fold": [round(float(d), 4) for d in (folds - referencia)],
+            "folds_que_mejoran": int((folds > referencia).sum()),
+        }
+
+    return resultados
+
+
 def guardar_recetas(reportes: dict) -> None:
     """Persiste la receta de transformacion. Es el artefacto reutilizable.
 

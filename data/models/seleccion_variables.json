@@ -1,0 +1,196 @@
+{
+  "estratificado": {
+    "19_completo": {
+      "n_features": 19,
+      "retiradas": [],
+      "auc_pr_media": 0.1424,
+      "auc_pr_desv": 0.0163,
+      "folds": [
+        0.1687,
+        0.1533,
+        0.1318,
+        0.1342,
+        0.1242
+      ],
+      "delta_media": 0.0,
+      "delta_por_fold": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "folds_que_mejoran": 0
+    },
+    "18_sin_creditosvigentes": {
+      "n_features": 18,
+      "retiradas": [
+        "woe_cant_creditosvigentes"
+      ],
+      "auc_pr_media": 0.1471,
+      "auc_pr_desv": 0.0166,
+      "folds": [
+        0.1743,
+        0.1584,
+        0.1378,
+        0.133,
+        0.132
+      ],
+      "delta_media": 0.0047,
+      "delta_por_fold": [
+        0.0056,
+        0.0051,
+        0.006,
+        -0.0011,
+        0.0078
+      ],
+      "folds_que_mejoran": 4
+    },
+    "18_sin_tipo_laboral": {
+      "n_features": 18,
+      "retiradas": [
+        "woe_tipo_laboral"
+      ],
+      "auc_pr_media": 0.1435,
+      "auc_pr_desv": 0.0167,
+      "folds": [
+        0.1697,
+        0.1558,
+        0.1337,
+        0.1341,
+        0.1242
+      ],
+      "delta_media": 0.0011,
+      "delta_por_fold": [
+        0.001,
+        0.0025,
+        0.0019,
+        -0.0,
+        -0.0
+      ],
+      "folds_que_mejoran": 3
+    },
+    "17_sin_ambas": {
+      "n_features": 17,
+      "retiradas": [
+        "woe_cant_creditosvigentes",
+        "woe_tipo_laboral"
+      ],
+      "auc_pr_media": 0.1468,
+      "auc_pr_desv": 0.0165,
+      "folds": [
+        0.1744,
+        0.1565,
+        0.1393,
+        0.133,
+        0.131
+      ],
+      "delta_media": 0.0044,
+      "delta_por_fold": [
+        0.0057,
+        0.0032,
+        0.0075,
+        -0.0012,
+        0.0068
+      ],
+      "folds_que_mejoran": 4
+    }
+  },
+  "temporal": {
+    "19_completo": {
+      "n_features": 19,
+      "retiradas": [],
+      "auc_pr_media": 0.1748,
+      "auc_pr_desv": 0.0293,
+      "folds": [
+        0.184,
+        0.1425,
+        0.1704,
+        0.1512,
+        0.2258
+      ],
+      "delta_media": 0.0,
+      "delta_por_fold": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "folds_que_mejoran": 0
+    },
+    "18_sin_creditosvigentes": {
+      "n_features": 18,
+      "retiradas": [
+        "woe_cant_creditosvigentes"
+      ],
+      "auc_pr_media": 0.1729,
+      "auc_pr_desv": 0.0279,
+      "folds": [
+        0.1806,
+        0.1434,
+        0.1661,
+        0.1518,
+        0.2227
+      ],
+      "delta_media": -0.0019,
+      "delta_por_fold": [
+        -0.0034,
+        0.0008,
+        -0.0043,
+        0.0006,
+        -0.0032
+      ],
+      "folds_que_mejoran": 2
+    },
+    "18_sin_tipo_laboral": {
+      "n_features": 18,
+      "retiradas": [
+        "woe_tipo_laboral"
+      ],
+      "auc_pr_media": 0.1734,
+      "auc_pr_desv": 0.0271,
+      "folds": [
+        0.1745,
+        0.1453,
+        0.1764,
+        0.1494,
+        0.2213
+      ],
+      "delta_media": -0.0015,
+      "delta_por_fold": [
+        -0.0096,
+        0.0027,
+        0.006,
+        -0.0018,
+        -0.0046
+      ],
+      "folds_que_mejoran": 2
+    },
+    "17_sin_ambas": {
+      "n_features": 17,
+      "retiradas": [
+        "woe_cant_creditosvigentes",
+        "woe_tipo_laboral"
+      ],
+      "auc_pr_media": 0.1718,
+      "auc_pr_desv": 0.026,
+      "folds": [
+        0.1695,
+        0.1458,
+        0.1719,
+        0.1519,
+        0.2197
+      ],
+      "delta_media": -0.003,
+      "delta_por_fold": [
+        -0.0145,
+        0.0033,
+        0.0015,
+        0.0007,
+        -0.0061
+      ],
+      "folds_que_mejoran": 3
+    }
+  }
+}
