@@ -174,11 +174,40 @@ REGLAS_VALIDACION = {
                               'fuente': 'Maximo observado 13 + margen'},
     'creditos_sectorReal':   {'min': 0,    'max': 100,        'nulos_permitidos': False,
                               'fuente': 'Maximo observado 25 + margen'},
+    # `dayfirst` es obligatorio aqui: el archivo de origen trae las fechas en
+    # formato d/m/Y ("7/01/2025 14:40" es el 7 de enero). Sin declararlo, pandas
+    # interpreta como mes el primer campo de las fechas ambiguas y desplaza el
+    # rango del dataset de [2024-11-26, 2026-04-26] a [2024-01-12, 2026-12-02],
+    # produciendo 21 "fechas futuras" que no existen. En el dataset limpio no se
+    # nota porque ya esta en ISO, pero en la Fase 4 esta funcion validara
+    # clientes nuevos con el formato de origen.
     'fecha_prestamo':        {'min_fecha': '2020-01-01', 'max_fecha': 'hoy', 'nulos_permitidos': False,
+                              'dayfirst': True,
                               'fuente': 'Una fecha de desembolso no puede ser futura ni anterior al '
                                         'inicio de operacion del producto. Rango observado: '
                                         '2024-11-26 a 2026-04-26'},
 }
+
+
+def _a_fecha(serie: pd.Series, dayfirst: bool = False) -> pd.Series:
+    """Convierte a datetime sin depender de la inferencia de formato de pandas.
+
+    La misma columna llega en dos formatos segun la etapa del pipeline: el
+    archivo de origen la trae como d/m/Y ("7/01/2025 14:40"), y el dataset ya
+    procesado la trae en ISO ("2025-01-07 14:40:00"). Dejar que pandas adivine
+    falla en ambos sentidos: sin `dayfirst` lee el 7 de enero como 1 de julio;
+    con `dayfirst` sobre ISO intenta %Y-%d-%m y desordena mes y dia.
+
+    Se resuelve en dos pasadas deterministas: ISO primero, y solo lo que no
+    encaje se reintenta con la convencion declarada en la regla.
+    """
+    fechas = pd.to_datetime(serie, errors='coerce', format='ISO8601')
+    pendientes = fechas.isna() & serie.notna()
+    if pendientes.any():
+        fechas = fechas.copy()
+        fechas[pendientes] = pd.to_datetime(serie[pendientes], errors='coerce',
+                                            dayfirst=dayfirst)
+    return fechas
 
 
 def validar_dataframe(datos: pd.DataFrame, reglas: dict | None = None) -> list[str]:
@@ -207,7 +236,7 @@ def validar_dataframe(datos: pd.DataFrame, reglas: dict | None = None) -> list[s
             limite_inf = pd.Timestamp(regla['min_fecha'])
             limite_sup = (pd.Timestamp.today() if regla['max_fecha'] == 'hoy'
                           else pd.Timestamp(regla['max_fecha']))
-            serie_fecha = pd.to_datetime(serie, errors='coerce')
+            serie_fecha = _a_fecha(serie, dayfirst=regla.get('dayfirst', False))
             if (serie_fecha < limite_inf).any():
                 violaciones.append(f"{col}: {(serie_fecha < limite_inf).sum()} "
                                    f"fechas anteriores a {regla['min_fecha']}")
