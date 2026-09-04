@@ -60,8 +60,8 @@ log = logging.getLogger("ft_engineering")
 def encontrar_raiz(marcador: str = "Base_de_datos.csv", max_niveles: int = 6) -> Path:
     """Sube por el arbol de directorios hasta encontrar el archivo marcador.
 
-    Se replica la estrategia usada en `transformacion_eda.ipynb`: el script vive
-    en etl_scripts/src/desarrollo/ y los datos en la raiz del repositorio.
+    Se replica la estrategia usada en los notebooks: el script vive en
+    mlops_pipeline/ y los datos en la raiz del repositorio.
     """
     try:
         actual = Path(__file__).resolve().parent
@@ -80,7 +80,7 @@ def encontrar_raiz(marcador: str = "Base_de_datos.csv", max_niveles: int = 6) ->
 
 
 RUTA_RAIZ = encontrar_raiz()
-RUTA_CONFIG = RUTA_RAIZ / "etl_scripts" / "src" / "config.json"
+RUTA_CONFIG = RUTA_RAIZ / "config.json"
 RUTA_SALIDA = RUTA_RAIZ / "data" / "processed"
 
 
