@@ -537,11 +537,15 @@ MLOPS_CURSE/
 │       ├── estratificado_test.csv         # 2.153 registros
 │       ├── temporal_train.csv             # 8.609 registros (hasta 2025-07-11)
 │       ├── temporal_test.csv              # 2.154 registros (desde 2025-07-12)
-│       ├── *_features.csv                 # Matrices transformadas (25 features)
+│       ├── *_features.csv                 # Matrices transformadas (17 features)
 │       ├── receta_estratificado.json      # Cortes y WoE (reutilizable en Fase 4)
 │       ├── receta_temporal.json
 │       ├── reporte_features.json          # Ranking IV, alertas y baseline
 │       └── split_metadata.json            # Semilla, tamaños, tasas y exclusiones
+│   └── models/
+│       ├── pipeline_features_*.joblib     # Pipeline sklearn ajustado (Fase 4 lo carga)
+│       ├── baseline_heuristico.json       # Piso de referencia
+│       └── seleccion_variables.json       # Medición de la etapa 2
 ├── Base_de_datos.csv                 # Datos crudos originales (no modificar)
 ├── Base_de_datos_limpia.csv          # Salida de la Fase 1 (generado por el notebook)
 ├── PRESENTACION.pptx                 # Presentación de insights
@@ -887,7 +891,7 @@ estaban perjudicando la generalización justo donde importa: al predecir sobre c
 
 ### Estado
 
-**Fase 2 completada y auditada.** Dataset final: 19 características, sin fuga, sin colinealidad,
+**Fase 2 completada y auditada.** Dataset final: 17 características, sin fuga, sin colinealidad,
 con monotonía verificada.
 
 **Siguiente: Fase 3 — Modelado.** Baseline heurístico como piso de referencia, regresión logística
