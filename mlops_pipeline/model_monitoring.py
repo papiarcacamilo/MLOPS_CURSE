@@ -4,7 +4,7 @@ Monitoreo y medida de data drift
 Proyecto : Modelo de riesgo crediticio (MLOPS_CURSE)
 Entrada  : el registro de model_deploy.py (entradas + pronosticos del endpoint)
 Salida   : metricas de deriva con periodicidad definida
-Estado   : PENDIENTE -- se implementa al final del flujo
+Estado   : PENDIENTE. Se implementa al final del flujo
 
 QUE PIDE LA ENTREGA 3, LITERALMENTE
 

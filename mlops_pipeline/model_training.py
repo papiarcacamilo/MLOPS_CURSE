@@ -4,7 +4,7 @@ Entrenamiento y seleccion de modelos
 Proyecto : Modelo de riesgo crediticio (MLOPS_CURSE)
 Entrada  : data/processed/*_train_features.csv + receta_*.json
 Salida   : el objeto del modelo seleccionado como mejor
-Estado   : PENDIENTE -- se implementa tras medir la seleccion de variables
+Estado   : PENDIENTE. Se implementa tras medir la seleccion de variables
 
 QUE PIDE LA ENTREGA 3, LITERALMENTE
 
