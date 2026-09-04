@@ -4,7 +4,7 @@ Despliegue del modelo
 Proyecto : Modelo de riesgo crediticio (MLOPS_CURSE)
 Entrada  : el mejor modelo + receta_*.json + reglas_negocio.py
 Salida   : endpoint para prediccion por lote, empaquetado en una imagen
-Estado   : PENDIENTE -- se implementa tras la evaluacion
+Estado   : PENDIENTE. Se implementa tras la evaluacion
 
 QUE PIDE LA ENTREGA 3, LITERALMENTE
 
@@ -19,7 +19,7 @@ EL REQUISITO QUE NO PUEDE FALLAR
 Un cliente nuevo debe atravesar EXACTAMENTE las mismas transformaciones que el
 conjunto de entrenamiento. Si el endpoint recalcula cortes, reajusta WoE o
 imputa de otra forma, el modelo recibe una entrada que no se parece a lo que
-aprendio -- train-serving skew -- y falla en silencio: sigue devolviendo
+aprendio (train-serving skew) y falla en silencio: sigue devolviendo
 probabilidades, solo que equivocadas.
 
 Por eso las recetas de la Fase 2 se guardaron como artefacto. El endpoint las

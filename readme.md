@@ -556,7 +556,7 @@ carpetas **no es modificable** porque el paso a producción se valida con Jenkin
 `hueristic_model.py` reproduce la errata del enunciado de forma deliberada: corregir la ortografía
 sería el error.
 
-Los tres archivos marcados como *añadidos* no alteran la estructura exigida — añadir no es
+Los tres archivos marcados como *añadidos* no alteran la estructura exigida, porque añadir no es
 modificar. `reglas_negocio.py` publica el contrato del EDA que el resto del pipeline aplica; los dos
 notebooks aportan la narrativa de su `.py` correspondiente sin duplicar su lógica.
 

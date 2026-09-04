@@ -2,13 +2,13 @@
 Contrato de negocio derivado del EDA
 ================================================================================
 Proyecto : Modelo de riesgo crediticio (MLOPS_CURSE)
-Origen   : Fase 1 - transformacion_eda.ipynb
+Origen   : Fase 1, comprension_eda.ipynb
 
 QUE ES ESTE ARCHIVO
 
 Es la fuente unica de los cortes, bandas y reglas de validacion que el EDA
-establecio. Todo lo que viene despues -- el modelo heuristico, la ingenieria de
-caracteristicas, el despliegue y el monitoreo -- APLICA este contrato. Ninguno
+establecio. Todo lo que viene despues (el modelo heuristico, la ingenieria de
+caracteristicas, el despliegue y el monitoreo) APLICA este contrato. Ninguno
 de ellos lo redefine.
 
 POR QUE EXISTE
@@ -17,8 +17,8 @@ Hasta ahora las bandas de `puntaje_datacredito` vivian duplicadas en tres
 lugares: la celda 63 del notebook de EDA, la constante CORTES_INICIALES de
 ft_engineering.py, y la constante BANDAS_SCORE del modelo heuristico. Las dos
 primeras coincidian; la tercera habia derivado por su cuenta e incluia un corte
-en 650 que no proviene de ninguna parte y que generaba una banda de 8 registros
--- justo el tipo de tramo que la Fase 2 fusiona por inestable. El comentario que
+en 650 que no proviene de ninguna parte y que generaba una banda de 8 registros,
+justo el tipo de tramo que la Fase 2 fusiona por inestable. El comentario que
 lo acompaniaba afirmaba haber heredado las bandas de la Fase 2, cuando la Fase 2
 hizo lo contrario.
 
@@ -34,7 +34,7 @@ DIRECCION DE LA DEPENDENCIA
       v
     reglas_negocio.py  (publica el contrato)
       |
-      +--> heuristic_model.py   decide sin modelo
+      +--> hueristic_model.py   decide sin modelo
       +--> ft_engineering.py    discretiza y transforma
       +--> model_deploy.py      valida clientes nuevos
       +--> model_monitoring.py  linea base de deriva
@@ -59,8 +59,8 @@ import pandas as pd
 # No son cuantiles: son cortes con significado comercial en el sistema
 # financiero colombiano, sobre el rango oficial de DataCredito Experian
 # [150, 950]. El EDA midio sobre ellas un gradiente de 64% de mora por debajo de
-# 600 puntos a 2.91% por encima de 850, con un Information Value de 0.2136 -- el
-# mas alto del dataset -- mientras su correlacion de Pearson (0.1212) se leeria
+# 600 puntos a 2.91% por encima de 850, con un Information Value de 0.2136, el
+# mas alto del dataset, mientras su correlacion de Pearson (0.1212) se leeria
 # aisladamente como "relacion muy debil". Esa distancia entre ambas medidas es el
 # hallazgo metodologico central de la Fase 1.
 BANDAS_SCORE = [280, 600, 700, 750, 800, 850, 950]
@@ -73,7 +73,7 @@ CORTES_NEGOCIO = {
     # P3 | Cortes revisados en la Fase 2 sobre la evidencia de la Fase 1.
     # Con los iniciales ([0,6,12,18,24,36,90]) el tramo (12,18] tenia 275
     # registros y 12 eventos, por debajo de ambos minimos, y la fusion lo unia
-    # con (18,24] -- que es justo donde empieza la senial (8.16% de mora). El
+    # con (18,24], que es justo donde empieza la senial (8.16% de mora). El
     # resultado diluia el gradiente y el IV de la variable BAJABA al
     # transformarla (0.1069 -> 0.0904 en la particion estratificada). La Fase 1
     # muestra que (12,18] (4.36%) se parece mucho mas a (6,12] (3.91%) que a

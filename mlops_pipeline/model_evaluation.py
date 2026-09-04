@@ -4,7 +4,7 @@ Evaluacion del modelo desplegado
 Proyecto : Modelo de riesgo crediticio (MLOPS_CURSE)
 Entrada  : el modelo seleccionado + data/processed/*_test*.csv
 Salida   : pestania de metricas de desempenio
-Estado   : PENDIENTE -- se implementa despues de model_training.py
+Estado   : PENDIENTE. Se implementa despues de model_training.py
 
 QUE PIDE LA ENTREGA 3, LITERALMENTE
 
@@ -49,7 +49,7 @@ FAIRNESS
 Ejes disponibles: edad_cliente y tipo_laboral. Dos puntos que deben poder
 defenderse:
 
-  1. tipo_laboral tiene IV ~0.015 -- poder casi nulo -- y es eje de
+  1. tipo_laboral tiene IV ~0.015 (poder casi nulo) y es eje de
      discriminacion. Se asumiria riesgo etico a cambio de nada medible.
   2. Quitar la variable NO elimina el sesgo. woe_promedio_ingresos_datacredito
      distingue a clientes con menor huella financiera formal, lo que

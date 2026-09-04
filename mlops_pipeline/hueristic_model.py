@@ -1,5 +1,5 @@
 """
-Modelo heuristico - el piso de referencia
+Modelo heuristico: el piso de referencia
 ================================================================================
 Proyecto : Modelo de riesgo crediticio (MLOPS_CURSE)
 Contrato : reglas_negocio.py (bandas y criterio derivados del EDA)
@@ -11,8 +11,8 @@ POR QUE ESTE ARCHIVO VA ANTES QUE CUALQUIER MODELO
 Antes de entrenar nada hay que responder una pregunta de negocio: que tan bien
 se puede decidir SIN modelo. Si un algoritmo no supera una regla simple que un
 analista podria aplicar a mano, no hay caso para desplegarlo. El coste de
-mantener un modelo en produccion -- monitoreo, reentrenamiento, validacion,
-gobierno -- solo se justifica si aporta sobre la alternativa barata.
+mantener un modelo en produccion (monitoreo, reentrenamiento, validacion,
+gobierno) solo se justifica si aporta sobre la alternativa barata.
 
 DE QUE DEPENDE Y DE QUE NO
 
@@ -109,8 +109,8 @@ ENCODING = CONFIG["data"]["encoding"]
 # El corte en 650 no proviene del EDA ni de la receta de la Fase 2, y generaba
 # una banda de 8 registros. El comentario que lo acompaniaba afirmaba haber
 # heredado las bandas de la Fase 2, cuando la Fase 2 hizo lo contrario:
-# fusionarlas por inestables. Las metricas no cambian -- la derivacion del corte
-# ignora las bandas por debajo del 1% de la cartera -- pero la cadena
+# fusionarlas por inestables. Las metricas no cambian, porque la derivacion del
+# corte ignora las bandas por debajo del 1% de la cartera, pero la cadena
 # EDA -> reglas -> features queda restaurada.
 
 # Resultados de la sonda de features de la Fase 2. Son el numero a superar.
