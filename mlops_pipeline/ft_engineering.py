@@ -416,11 +416,50 @@ VARS_CUANTILES = [
     "promedio_ingresos_datacredito",
     "discrepancia_ingresos",
     "edad_cliente",
-    "cant_creditosvigentes",
 ]
 
 # Categoricas: reciben WoE directamente sobre sus niveles.
-VARS_CATEGORICAS_WOE = ["tipo_laboral", "tendencia_ingresos", "tipo_credito_grp"]
+VARS_CATEGORICAS_WOE = ["tendencia_ingresos", "tipo_credito_grp"]
+
+# ------------------------------------------------------------------------------
+# ETAPA 2 | Variables retiradas tras medirlas
+# ------------------------------------------------------------------------------
+# Salieron de las dos listas de arriba, con lo que la matriz pasa de 19 a 17
+# caracteristicas. La decision NO se tomo por su Information Value bajo, que era
+# solo una alerta, sino comparando AUC-PR con los mismos folds en cuatro
+# configuraciones (ver comparar_conjuntos_features y
+# data/models/seleccion_variables.json).
+#
+# Al pasar de 19 a 17 caracteristicas:
+#
+#     estratificado   +0.0044   0.27 desviaciones entre folds
+#     temporal        -0.0030   0.10 desviaciones entre folds
+#
+# El efecto es menor que la variabilidad entre folds en los dos casos y cambia
+# de signo entre particiones. La lectura no es que retirarlas mejore el modelo:
+# es que no se mide ninguna diferencia. No aportan poder predictivo.
+#
+# Con el rendimiento empatado, la decision se toma por los otros tres criterios:
+#
+#   fairness            tipo_laboral es eje de discriminacion. Mantenerla es
+#                       asumir riesgo etico a cambio de cero poder medido
+#   interpretabilidad   el WoE de cant_creditosvigentes no es monotono y su
+#                       ultimo tramo revierte el signo, patron sin lectura de
+#                       negocio que defender ante un supervisor
+#   estabilidad         en la particion temporal la desviacion entre folds baja
+#                       de 0.0293 a 0.0260 al retirarlas
+#
+# Las dos siguen presentes en las particiones crudas (data/processed/*_train.csv)
+# y en las reglas de validacion del contrato. Salen del MODELO, no del proyecto:
+# tipo_laboral se conserva como eje de auditoria de fairness, porque retirarla
+# no elimina el sesgo si otra variable actua como proxy.
+EXCLUIDAS_POR_MEDICION = {
+    "cant_creditosvigentes": "IV 0.0191 / 0.0093. WoE no monotono, sin lectura de negocio",
+    "tipo_laboral": "IV 0.0157 / 0.0142. Eje de fairness sin poder predictivo medible",
+}
+
+assert not (set(EXCLUIDAS_POR_MEDICION) & set(VARS_CUANTILES + VARS_CATEGORICAS_WOE)), \
+    "Una variable excluida por medicion sigue en las listas activas"
 
 # Monetarias muy asimetricas: log1p + escalado robusto (paso 6).
 VARS_MONETARIAS = [
@@ -902,9 +941,21 @@ def comparar_conjuntos_features(matriz_train: pd.DataFrame) -> dict:
     from sklearn.impute import SimpleImputer
     from sklearn.preprocessing import StandardScaler
 
-    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=SEMILLA)
     y = 1 - matriz_train[TARGET]
     X_todo = matriz_train.drop(columns=[TARGET])
+
+    # La medicion solo tiene sentido sobre una matriz que aun contenga las
+    # candidatas. Tras aplicar el recorte, la matriz guardada tiene 17
+    # caracteristicas y esta funcion ya no puede reproducirla: su resultado
+    # quedo congelado en data/models/seleccion_variables.json.
+    ausentes = [c for c in CANDIDATAS_RETIRO if c not in X_todo.columns]
+    if ausentes:
+        raise ValueError(
+            f"La matriz no contiene {ausentes}, de modo que no hay nada que "
+            f"comparar. El recorte ya esta aplicado; el resultado de la etapa 2 "
+            f"esta en data/models/seleccion_variables.json.")
+
+    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=SEMILLA)
 
     def evaluar(X):
         modelo = make_pipeline(
