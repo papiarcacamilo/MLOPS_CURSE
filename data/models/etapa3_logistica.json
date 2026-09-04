@@ -34,8 +34,8 @@
           0.133,
           0.131
         ],
-        "seg_ajuste": 0.032,
-        "seg_prediccion_por_1000": 0.0016,
+        "seg_ajuste": 0.035,
+        "seg_prediccion_por_1000": 0.0014,
         "por_fold": [
           {
             "n": 1722,
@@ -164,8 +164,8 @@
           0.1217,
           0.123
         ],
-        "seg_ajuste": 0.508,
-        "seg_prediccion_por_1000": 0.0346,
+        "seg_ajuste": 0.491,
+        "seg_prediccion_por_1000": 0.032,
         "por_fold": [
           {
             "n": 1722,
@@ -391,8 +391,8 @@
           0.1519,
           0.2197
         ],
-        "seg_ajuste": 0.023,
-        "seg_prediccion_por_1000": 0.0013,
+        "seg_ajuste": 0.018,
+        "seg_prediccion_por_1000": 0.0011,
         "por_fold": [
           {
             "n": 1722,
@@ -521,8 +521,8 @@
           0.1452,
           0.2163
         ],
-        "seg_ajuste": 0.468,
-        "seg_prediccion_por_1000": 0.0386,
+        "seg_ajuste": 0.467,
+        "seg_prediccion_por_1000": 0.0284,
         "por_fold": [
           {
             "n": 1722,
