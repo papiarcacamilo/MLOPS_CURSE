@@ -1,0 +1,673 @@
+{
+  "modelo": "logistica sobre WoE, sin tratamiento del desbalance",
+  "orden": "calibracion, fairness, umbral y scorecard se deciden sobre predicciones fuera de fold. El test se abre una sola vez, al final, con todas las decisiones ya tomadas.",
+  "calibracion": {
+    "brier": 0.04371,
+    "ece": 0.00812,
+    "prob_media_predicha": 0.04742,
+    "tasa_observada": 0.0475,
+    "sesgo_global": -8e-05,
+    "curva": [
+      {
+        "grupo": 0,
+        "n": 861,
+        "predicha": 0.00973,
+        "observada": 0.02323,
+        "diferencia": -0.0135
+      },
+      {
+        "grupo": 1,
+        "n": 861,
+        "predicha": 0.01585,
+        "observada": 0.01394,
+        "diferencia": 0.00192
+      },
+      {
+        "grupo": 2,
+        "n": 861,
+        "predicha": 0.02122,
+        "observada": 0.02555,
+        "diferencia": -0.00433
+      },
+      {
+        "grupo": 3,
+        "n": 861,
+        "predicha": 0.02645,
+        "observada": 0.0302,
+        "diferencia": -0.00374
+      },
+      {
+        "grupo": 4,
+        "n": 861,
+        "predicha": 0.03228,
+        "observada": 0.03368,
+        "diferencia": -0.0014
+      },
+      {
+        "grupo": 5,
+        "n": 861,
+        "predicha": 0.03862,
+        "observada": 0.04413,
+        "diferencia": -0.00552
+      },
+      {
+        "grupo": 6,
+        "n": 861,
+        "predicha": 0.04747,
+        "observada": 0.05459,
+        "diferencia": -0.00712
+      },
+      {
+        "grupo": 7,
+        "n": 861,
+        "predicha": 0.05965,
+        "observada": 0.0453,
+        "diferencia": 0.01435
+      },
+      {
+        "grupo": 8,
+        "n": 861,
+        "predicha": 0.07935,
+        "observada": 0.08479,
+        "diferencia": -0.00544
+      },
+      {
+        "grupo": 9,
+        "n": 861,
+        "predicha": 0.14355,
+        "observada": 0.11963,
+        "diferencia": 0.02392
+      }
+    ]
+  },
+  "fairness": {
+    "tipo_laboral": {
+      "paridad_demografica": 0.0621,
+      "brecha_tpr": 0.0626,
+      "brecha_fpr": 0.0592,
+      "brecha_tasa_base": 0.0119,
+      "por_grupo": [
+        {
+          "grupo": "Empleado",
+          "n": 5427,
+          "tasa_base": 0.0431,
+          "tasa_rechazo": 0.1861,
+          "tpr": 0.406,
+          "fpr": 0.1762,
+          "auc_pr": 0.1395
+        },
+        {
+          "grupo": "Independiente",
+          "n": 3183,
+          "tasa_base": 0.055,
+          "tasa_rechazo": 0.2482,
+          "tpr": 0.4686,
+          "fpr": 0.2354,
+          "auc_pr": 0.1295
+        }
+      ]
+    },
+    "edad": {
+      "paridad_demografica": 0.3355,
+      "brecha_tpr": 0.4314,
+      "brecha_fpr": 0.3245,
+      "brecha_tasa_base": 0.0312,
+      "por_grupo": [
+        {
+          "grupo": "18-30",
+          "n": 1464,
+          "tasa_base": 0.0676,
+          "tasa_rechazo": 0.4194,
+          "tpr": 0.6667,
+          "fpr": 0.4015,
+          "auc_pr": 0.1984
+        },
+        {
+          "grupo": "31-45",
+          "n": 3830,
+          "tasa_base": 0.048,
+          "tasa_rechazo": 0.2251,
+          "tpr": 0.413,
+          "fpr": 0.2156,
+          "auc_pr": 0.1122
+        },
+        {
+          "grupo": "46-60",
+          "n": 2529,
+          "tasa_base": 0.0364,
+          "tasa_rechazo": 0.102,
+          "tpr": 0.2935,
+          "fpr": 0.0948,
+          "auc_pr": 0.1292
+        },
+        {
+          "grupo": "60+",
+          "n": 787,
+          "tasa_base": 0.0432,
+          "tasa_rechazo": 0.0839,
+          "tpr": 0.2353,
+          "fpr": 0.077,
+          "auc_pr": 0.0731
+        }
+      ]
+    }
+  },
+  "umbral": {
+    "umbral": 0.0661,
+    "criterio": "cuantil que rechaza el 20.9% de las solicitudes, el mismo volumen que la regla heuristica",
+    "pct_rechazado": 20.91,
+    "recall": 0.4328,
+    "precision": 0.0983,
+    "tasa_mora_aprobados": 0.0341
+  },
+  "scorecard": {
+    "escala": {
+      "pdo": 20,
+      "score_base": 600,
+      "odds_base": 20.0,
+      "factor": 28.8539,
+      "offset": 513.5614
+    },
+    "puntos_base": 601,
+    "rango_tabla": [
+      6,
+      81
+    ],
+    "tabla": [
+      {
+        "variable": "puntaje_datacredito",
+        "tramo": "(-inf,  700.0]",
+        "woe": 1.1914,
+        "coeficiente": 0.7775,
+        "puntos": 40
+      },
+      {
+        "variable": "puntaje_datacredito",
+        "tramo": "(700.0, 750.0]",
+        "woe": 0.5455,
+        "coeficiente": 0.7775,
+        "puntos": 55
+      },
+      {
+        "variable": "puntaje_datacredito",
+        "tramo": "(750.0, 800.0]",
+        "woe": -0.089,
+        "coeficiente": 0.7775,
+        "puntos": 69
+      },
+      {
+        "variable": "puntaje_datacredito",
+        "tramo": "(800.0,  inf]",
+        "woe": -0.4191,
+        "coeficiente": 0.7775,
+        "puntos": 76
+      },
+      {
+        "variable": "puntaje_datacredito",
+        "tramo": "SIN_DATO",
+        "woe": 0.4174,
+        "coeficiente": 0.7775,
+        "puntos": 57
+      },
+      {
+        "variable": "plazo_meses",
+        "tramo": "(-inf, 6.0]",
+        "woe": -0.0185,
+        "coeficiente": 0.8573,
+        "puntos": 67
+      },
+      {
+        "variable": "plazo_meses",
+        "tramo": "(18.0, 24.0]",
+        "woe": 0.5791,
+        "coeficiente": 0.8573,
+        "puntos": 52
+      },
+      {
+        "variable": "plazo_meses",
+        "tramo": "(24.0, inf]",
+        "woe": 1.0157,
+        "coeficiente": 0.8573,
+        "puntos": 42
+      },
+      {
+        "variable": "plazo_meses",
+        "tramo": "(6.0, 18.0]",
+        "woe": -0.1747,
+        "coeficiente": 0.8573,
+        "puntos": 71
+      },
+      {
+        "variable": "huella_consulta",
+        "tramo": "(-inf, 2.0]",
+        "woe": -0.4708,
+        "coeficiente": 0.4803,
+        "puntos": 73
+      },
+      {
+        "variable": "huella_consulta",
+        "tramo": "(2.0, 3.0]",
+        "woe": -0.0975,
+        "coeficiente": 0.4803,
+        "puntos": 68
+      },
+      {
+        "variable": "huella_consulta",
+        "tramo": "(3.0, 4.0]",
+        "woe": 0.0416,
+        "coeficiente": 0.4803,
+        "puntos": 66
+      },
+      {
+        "variable": "huella_consulta",
+        "tramo": "(4.0, 6.0]",
+        "woe": 0.1117,
+        "coeficiente": 0.4803,
+        "puntos": 65
+      },
+      {
+        "variable": "huella_consulta",
+        "tramo": "(6.0, inf]",
+        "woe": 0.4713,
+        "coeficiente": 0.4803,
+        "puntos": 60
+      },
+      {
+        "variable": "consultas_por_credito",
+        "tramo": "(-inf, 0.3]",
+        "woe": -0.4689,
+        "coeficiente": 0.5823,
+        "puntos": 75
+      },
+      {
+        "variable": "consultas_por_credito",
+        "tramo": "(0.3, 0.5]",
+        "woe": -0.3137,
+        "coeficiente": 0.5823,
+        "puntos": 72
+      },
+      {
+        "variable": "consultas_por_credito",
+        "tramo": "(0.5, 0.714]",
+        "woe": 0.0174,
+        "coeficiente": 0.5823,
+        "puntos": 67
+      },
+      {
+        "variable": "consultas_por_credito",
+        "tramo": "(0.714, 1.091]",
+        "woe": 0.1394,
+        "coeficiente": 0.5823,
+        "puntos": 64
+      },
+      {
+        "variable": "consultas_por_credito",
+        "tramo": "(1.091, inf]",
+        "woe": 0.4622,
+        "coeficiente": 0.5823,
+        "puntos": 59
+      },
+      {
+        "variable": "promedio_ingresos_datacredito",
+        "tramo": "(-inf, 916148.0]",
+        "woe": 0.3339,
+        "coeficiente": 0.7671,
+        "puntos": 59
+      },
+      {
+        "variable": "promedio_ingresos_datacredito",
+        "tramo": "(1000000.0, 1500000.0]",
+        "woe": -0.0729,
+        "coeficiente": 0.7671,
+        "puntos": 68
+      },
+      {
+        "variable": "promedio_ingresos_datacredito",
+        "tramo": "(1500000.0, 2738056.0]",
+        "woe": -0.225,
+        "coeficiente": 0.7671,
+        "puntos": 72
+      },
+      {
+        "variable": "promedio_ingresos_datacredito",
+        "tramo": "(2738056.0, inf]",
+        "woe": -0.6352,
+        "coeficiente": 0.7671,
+        "puntos": 81
+      },
+      {
+        "variable": "promedio_ingresos_datacredito",
+        "tramo": "(916148.0, 1000000.0]",
+        "woe": -0.2688,
+        "coeficiente": 0.7671,
+        "puntos": 73
+      },
+      {
+        "variable": "promedio_ingresos_datacredito",
+        "tramo": "SIN_DATO",
+        "woe": 0.2742,
+        "coeficiente": 0.7671,
+        "puntos": 61
+      },
+      {
+        "variable": "discrepancia_ingresos",
+        "tramo": "(-inf, 288096.4]",
+        "woe": -0.5445,
+        "coeficiente": 0.6329,
+        "puntos": 77
+      },
+      {
+        "variable": "discrepancia_ingresos",
+        "tramo": "(1806414.6, 3265803.2]",
+        "woe": -0.0073,
+        "coeficiente": 0.6329,
+        "puntos": 67
+      },
+      {
+        "variable": "discrepancia_ingresos",
+        "tramo": "(288096.4, 874983.8]",
+        "woe": -0.3579,
+        "coeficiente": 0.6329,
+        "puntos": 73
+      },
+      {
+        "variable": "discrepancia_ingresos",
+        "tramo": "(3265803.2, inf]",
+        "woe": 0.1857,
+        "coeficiente": 0.6329,
+        "puntos": 63
+      },
+      {
+        "variable": "discrepancia_ingresos",
+        "tramo": "(874983.8, 1806414.6]",
+        "woe": -0.044,
+        "coeficiente": 0.6329,
+        "puntos": 68
+      },
+      {
+        "variable": "discrepancia_ingresos",
+        "tramo": "SIN_DATO",
+        "woe": 0.2742,
+        "coeficiente": 0.6329,
+        "puntos": 62
+      },
+      {
+        "variable": "edad_cliente",
+        "tramo": "(-inf, 32.0]",
+        "woe": 0.3652,
+        "coeficiente": 0.6204,
+        "puntos": 60
+      },
+      {
+        "variable": "edad_cliente",
+        "tramo": "(32.0, 39.0]",
+        "woe": 0.1079,
+        "coeficiente": 0.6204,
+        "puntos": 65
+      },
+      {
+        "variable": "edad_cliente",
+        "tramo": "(39.0, 45.0]",
+        "woe": -0.238,
+        "coeficiente": 0.6204,
+        "puntos": 71
+      },
+      {
+        "variable": "edad_cliente",
+        "tramo": "(45.0, 55.0]",
+        "woe": -0.3561,
+        "coeficiente": 0.6204,
+        "puntos": 73
+      },
+      {
+        "variable": "edad_cliente",
+        "tramo": "(55.0, inf]",
+        "woe": -0.1069,
+        "coeficiente": 0.6204,
+        "puntos": 69
+      },
+      {
+        "variable": "tendencia_ingresos",
+        "tramo": "Creciente",
+        "woe": -0.2072,
+        "coeficiente": 0.3596,
+        "puntos": 69
+      },
+      {
+        "variable": "tendencia_ingresos",
+        "tramo": "Decreciente",
+        "woe": 0.1684,
+        "coeficiente": 0.3596,
+        "puntos": 65
+      },
+      {
+        "variable": "tendencia_ingresos",
+        "tramo": "Estable",
+        "woe": -0.1418,
+        "coeficiente": 0.3596,
+        "puntos": 68
+      },
+      {
+        "variable": "tendencia_ingresos",
+        "tramo": "Sin_dato",
+        "woe": 0.2756,
+        "coeficiente": 0.3596,
+        "puntos": 64
+      },
+      {
+        "variable": "tipo_credito_grp",
+        "tramo": "10",
+        "woe": -0.5397,
+        "coeficiente": 0.7575,
+        "puntos": 79
+      },
+      {
+        "variable": "tipo_credito_grp",
+        "tramo": "4",
+        "woe": -0.0262,
+        "coeficiente": 0.7575,
+        "puntos": 67
+      },
+      {
+        "variable": "tipo_credito_grp",
+        "tramo": "6",
+        "woe": 2.7812,
+        "coeficiente": 0.7575,
+        "puntos": 6
+      },
+      {
+        "variable": "tipo_credito_grp",
+        "tramo": "9",
+        "woe": 0.0109,
+        "coeficiente": 0.7575,
+        "puntos": 67
+      },
+      {
+        "variable": "tipo_credito_grp",
+        "tramo": "Otros",
+        "woe": 1.3831,
+        "coeficiente": 0.7575,
+        "puntos": 37
+      }
+    ],
+    "ajustes_continuos": [
+      {
+        "variable": "esc_capital_prestado",
+        "coeficiente": 0.1548,
+        "puntos_por_unidad": -4.47
+      },
+      {
+        "variable": "esc_cuota_pactada",
+        "coeficiente": 0.0461,
+        "puntos_por_unidad": -1.33
+      },
+      {
+        "variable": "esc_salario_cliente",
+        "coeficiente": 0.0748,
+        "puntos_por_unidad": -2.16
+      },
+      {
+        "variable": "esc_total_otros_prestamos",
+        "coeficiente": -0.0527,
+        "puntos_por_unidad": 1.52
+      },
+      {
+        "variable": "edad_cliente_corregida",
+        "coeficiente": 0.3523,
+        "puntos_por_unidad": -10.17
+      },
+      {
+        "variable": "salario_cliente_corregido",
+        "coeficiente": -0.0305,
+        "puntos_por_unidad": 0.88
+      },
+      {
+        "variable": "tendencia_ingresos_reconstruida",
+        "coeficiente": -3.9728,
+        "puntos_por_unidad": 114.63
+      },
+      {
+        "variable": "total_otros_prestamos_sospechoso",
+        "coeficiente": 0.3493,
+        "puntos_por_unidad": -10.08
+      }
+    ],
+    "nota": "Solo las 9 variables WoE se tabulan por tramo. Las 4 monetarias escaladas y las 4 banderas entran como ajuste continuo."
+  },
+  "verificacion_scorecard": {
+    "error_max_probabilidad": 2.220446049250313e-16,
+    "coincide": true,
+    "puntaje_min": 464,
+    "puntaje_max": 767,
+    "puntaje_medio": 608
+  },
+  "evaluacion_final": {
+    "estratificado": {
+      "n_test": 2153,
+      "eventos_test": 102,
+      "metricas": {
+        "n": 2153,
+        "eventos": 102,
+        "tasa_base": 0.0474,
+        "auc_pr": 0.1479,
+        "lift_vs_azar": 3.12,
+        "ks": 0.2742,
+        "gini": 0.3697,
+        "brier": 0.04337,
+        "umbral": 0.0661,
+        "precision": 0.0884,
+        "recall": 0.402,
+        "f1": 0.1449,
+        "pct_marcado": 21.55,
+        "k": 0.209,
+        "recall_at_k": 0.3922,
+        "precision_at_k": 0.0889,
+        "lift_at_k": 1.88
+      },
+      "calibracion": {
+        "brier": 0.04337,
+        "ece": 0.00846,
+        "prob_media_predicha": 0.04759,
+        "tasa_observada": 0.04738,
+        "sesgo_global": 0.00021
+      },
+      "piso_en_el_mismo_test": {
+        "auc_pr": 0.0829,
+        "lift_vs_azar": 1.75,
+        "pct_rechazado": 21.46,
+        "recall": 0.3725,
+        "precision": 0.0823
+      },
+      "modelo_supera_al_piso": true,
+      "ventaja_sobre_el_piso": 1.78,
+      "madurez_incompleta_pct": 20.2,
+      "solo_maduros": {
+        "n": 1718,
+        "eventos": 75,
+        "metricas": {
+          "n": 1718,
+          "eventos": 75,
+          "tasa_base": 0.0437,
+          "auc_pr": 0.0957,
+          "lift_vs_azar": 2.19,
+          "ks": 0.2557,
+          "gini": 0.2866,
+          "brier": 0.04136,
+          "umbral": 0.0661,
+          "precision": 0.0673,
+          "recall": 0.2933,
+          "f1": 0.1095,
+          "pct_marcado": 19.03,
+          "k": 0.209,
+          "recall_at_k": 0.3467,
+          "precision_at_k": 0.0724,
+          "lift_at_k": 1.66
+        }
+      }
+    },
+    "temporal": {
+      "n_test": 2154,
+      "eventos_test": 69,
+      "metricas": {
+        "n": 2154,
+        "eventos": 69,
+        "tasa_base": 0.032,
+        "auc_pr": 0.0647,
+        "lift_vs_azar": 2.02,
+        "ks": 0.2026,
+        "gini": 0.2415,
+        "brier": 0.03332,
+        "umbral": 0.0661,
+        "precision": 0.0404,
+        "recall": 0.4203,
+        "f1": 0.0737,
+        "pct_marcado": 33.33,
+        "k": 0.209,
+        "recall_at_k": 0.3188,
+        "precision_at_k": 0.0489,
+        "lift_at_k": 1.53
+      },
+      "calibracion": {
+        "brier": 0.03332,
+        "ece": 0.03137,
+        "prob_media_predicha": 0.0634,
+        "tasa_observada": 0.03203,
+        "sesgo_global": 0.03137
+      },
+      "piso_en_el_mismo_test": {
+        "auc_pr": 0.0445,
+        "lift_vs_azar": 1.39,
+        "pct_rechazado": 21.77,
+        "recall": 0.3043,
+        "precision": 0.0448
+      },
+      "modelo_supera_al_piso": true,
+      "ventaja_sobre_el_piso": 1.45,
+      "madurez_incompleta_pct": 53.4,
+      "solo_maduros": {
+        "n": 1003,
+        "eventos": 21,
+        "metricas": {
+          "n": 1003,
+          "eventos": 21,
+          "tasa_base": 0.0209,
+          "auc_pr": 0.0358,
+          "lift_vs_azar": 1.71,
+          "ks": 0.3243,
+          "gini": 0.2686,
+          "brier": 0.0233,
+          "umbral": 0.0661,
+          "precision": 0.0233,
+          "recall": 0.3333,
+          "f1": 0.0435,
+          "pct_marcado": 30.01,
+          "k": 0.209,
+          "recall_at_k": 0.1905,
+          "precision_at_k": 0.019,
+          "lift_at_k": 0.91
+        }
+      }
+    }
+  },
+  "limitacion": "El dataset no tiene identificador de cliente. La unidad de observacion es el credito, no la persona, y el 67.9% de las filas comparte perfil demografico con otra. No se pudo aplicar particion agrupada por cliente."
+}
