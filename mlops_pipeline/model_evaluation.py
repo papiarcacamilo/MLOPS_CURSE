@@ -75,6 +75,22 @@ RUTA_MODELOS = fe.RUTA_MODELOS
 TARGET = fe.TARGET
 
 
+def corte_heuristico(particion: str) -> int:
+    """Lee el corte que DERIVO hueristic_model.py, en vez de escribirlo a mano.
+
+    Hoy vale 750 en las dos particiones, pero escribirlo como literal aqui haria
+    que la evaluacion siguiera usando 750 si el corte cambiara, comparando el
+    modelo contra una regla que ya no existe. Es el mismo tipo de fallo silencioso
+    que la banda fantasma de 650.
+    """
+    ruta = RUTA_MODELOS / "baseline_heuristico.json"
+    if not ruta.exists():
+        raise FileNotFoundError(
+            f"No existe {ruta.name}: ejecuta antes hueristic_model.py")
+    base = json.load(open(ruta, encoding="utf-8"))
+    return int(base["resultados"][particion]["regla"]["corte"])
+
+
 def cargar_particion(particion: str, conjunto: str) -> pd.DataFrame:
     return pd.read_csv(RUTA_DATOS / f"{particion}_{conjunto}.csv",
                        sep=fe.SEPARADOR, encoding=fe.ENCODING)
@@ -359,12 +375,25 @@ def verificar_scorecard(modelo, X, scorecard: dict) -> dict:
     offset = scorecard["escala"]["offset"]
     puntajes = offset - factor * Z
 
+    # Error acumulado por redondear los puntos a enteros. Es inevitable y es la
+    # convencion del sector, pero hay que declararlo: con 9 variables WoE,
+    # redondear cada una puede desviar el total hasta 4.5 puntos. Sobre un rango
+    # de unos 300 puntos es menos del 2%, y no cambia ninguna decision, pero un
+    # analista que sume la tabla a mano debe saber por que no le da exacto.
+    n_woe = sum(1 for c in caracteristicas.get_feature_names_out()
+                if c.startswith("woe_"))
+
     return {
         "error_max_probabilidad": float(np.abs(p_modelo - p_desde_z).max()),
         "coincide": bool(np.allclose(p_modelo, p_desde_z, atol=1e-9)),
         "puntaje_min": int(puntajes.min()),
         "puntaje_max": int(puntajes.max()),
         "puntaje_medio": int(puntajes.mean()),
+        "error_max_por_redondeo": round(n_woe * 0.5, 1),
+        "nota_redondeo": (f"Sumar la tabla a mano puede desviarse hasta "
+                          f"{n_woe * 0.5:.1f} puntos del puntaje exacto, porque "
+                          f"los puntos de cada una de las {n_woe} variables WoE "
+                          f"se redondean a entero."),
     }
 
 
@@ -407,7 +436,8 @@ def evaluacion_final(modelo, particion: str, umbral: float) -> dict:
     score = te[hm.VARIABLE_REGLA]
     orden_heuristico = (-score).fillna(-score.min())
     auc_heuristico = float(average_precision_score(y_te, orden_heuristico))
-    rechaza_regla = hm.aplicar_regla(te, 750).to_numpy()
+    corte = corte_heuristico(particion)
+    rechaza_regla = hm.aplicar_regla(te, corte).to_numpy()
 
     resultado = {
         "n_test": int(len(y_te)),
@@ -416,6 +446,7 @@ def evaluacion_final(modelo, particion: str, umbral: float) -> dict:
         "calibracion": {k: v for k, v in evaluar_calibracion(y_te, p_te).items()
                         if k != "curva"},
         "piso_en_el_mismo_test": {
+            "corte": corte,
             "auc_pr": round(auc_heuristico, 4),
             "lift_vs_azar": round(auc_heuristico / float(y_te.mean()), 2),
             "pct_rechazado": round(float(rechaza_regla.mean()) * 100, 2),

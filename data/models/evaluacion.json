@@ -539,7 +539,9 @@
     "coincide": true,
     "puntaje_min": 464,
     "puntaje_max": 767,
-    "puntaje_medio": 608
+    "puntaje_medio": 608,
+    "error_max_por_redondeo": 4.5,
+    "nota_redondeo": "Sumar la tabla a mano puede desviarse hasta 4.5 puntos del puntaje exacto, porque los puntos de cada una de las 9 variables WoE se redondean a entero."
   },
   "evaluacion_final": {
     "estratificado": {
@@ -572,6 +574,7 @@
         "sesgo_global": 0.00021
       },
       "piso_en_el_mismo_test": {
+        "corte": 750,
         "auc_pr": 0.0829,
         "lift_vs_azar": 1.75,
         "pct_rechazado": 21.46,
@@ -635,6 +638,7 @@
         "sesgo_global": 0.03137
       },
       "piso_en_el_mismo_test": {
+        "corte": 750,
         "auc_pr": 0.0445,
         "lift_vs_azar": 1.39,
         "pct_rechazado": 21.77,
