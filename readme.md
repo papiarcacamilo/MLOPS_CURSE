@@ -4,9 +4,9 @@ Proyecto transversal de **Ciencia de Datos en Producción**. Construye un pipeli
 sobre una base de datos real de créditos de una empresa financiera colombiana, desde la
 comprensión y limpieza de los datos hasta el despliegue y monitoreo de un modelo predictivo.
 
-> **Estado actual:** Fase 1 (EDA) y Fase 2 (Feature Engineering) cerradas. Del modelado están
-> hechas las etapas 1 a 5: piso heurístico, selección de variables, y comparación y elección
-> del modelo. Pendientes la evaluación final sobre test, el despliegue y el monitoreo.
+> **Estado actual:** Fase 1 (EDA), Fase 2 (Feature Engineering) y Fase 3 (Modelado) cerradas.
+> El modelo está elegido, evaluado sobre test una sola vez, auditado en calibración y *fairness*,
+> y traducido a scorecard. Pendientes el despliegue y el monitoreo.
 > Este readme describe únicamente lo que el código implementa hoy.
 
 ---
@@ -510,6 +510,104 @@ Rechazando el mismo 20,9% de solicitudes:
 
 **El conjunto de prueba no se ha utilizado.** Toda la selección se hizo con validación cruzada
 sobre entrenamiento. El test se abre una sola vez, en `model_evaluation.py`.
+
+### Evaluación final
+
+El conjunto de prueba se abrió **una sola vez**, con el modelo ya elegido y el umbral ya fijado.
+Calibración, *fairness*, umbral y scorecard se decidieron antes, sobre predicciones fuera de fold.
+
+| | Modelo | Piso heurístico en el **mismo** test | Ventaja |
+|---|---|---|---|
+| Estratificado | **0,1479** (lift 3,12×) | 0,0829 (1,75×) | **1,78×** |
+| Temporal | **0,0647** (lift 2,02×) | 0,0445 (1,39×) | **1,45×** |
+
+El modelo supera al piso en las dos particiones, así que **pasa la prueba de estrés temporal**.
+Su ventaja cae de 1,78× a 1,45×: degrada bajo desplazamiento temporal, pero sigue aportando.
+
+Comparar el AUC-PR entre particiones directamente sería un error, porque depende de la tasa base
+y esta difiere (4,74% frente a 3,20%). Por eso se evalúa el piso sobre el mismo conjunto y se
+reporta el *lift*, que sí es comparable.
+
+| Métrica | Estratificado | Temporal |
+|---|---|---|
+| KS | 0,2742 | 0,2026 |
+| Gini | 0,3697 | 0,2415 |
+| Brier | 0,0434 | 0,0333 |
+
+**KS queda por debajo de 0,30**, el umbral que se considera utilizable en un scorecard. Es una
+limitación que hay que declarar: el modelo aporta sobre la regla, pero no alcanza el estándar del
+sector para operar sin supervisión.
+
+### Calibración: no hace falta corregirla
+
+Sobre predicciones fuera de fold, la probabilidad media predicha es **0,04742** frente a una mora
+observada de **0,04750**. El sesgo es de ocho diezmilésimas y el error de calibración esperado
+(ECE) queda en 0,00812.
+
+Es el pago directo de haber elegido *ninguno* en el tratamiento del desbalance: `class_weight` y
+SMOTE dejaban un Brier cinco veces peor y habrían obligado a un paso de Platt o isotónica.
+Recalibrar un modelo ya calibrado solo añadiría varianza, así que **no se aplica**.
+
+Importa porque la probabilidad de incumplimiento entra al cálculo de provisiones: mal calibrada
+significa provisionar mal, que es un problema contable antes que estadístico.
+
+### Fairness: dos hallazgos que hay que poder defender
+
+Se miden tasa de rechazo y tasas de error **por grupo**, no solo el AUC global.
+
+**`tipo_laboral`**, retirado del modelo en la selección de variables:
+
+| | Riesgo real | Tasa de rechazo |
+|---|---|---|
+| Empleado | 4,31% | 18,61% |
+| Independiente | 5,50% | 24,82% |
+
+La brecha de rechazo (6,21 puntos) es **cinco veces** la brecha de riesgo real (1,19 puntos).
+**Retirar la variable no eliminó el sesgo**, exactamente como se advirtió al decidirlo: otras
+variables actúan de *proxy* de la informalidad laboral. Queda medido, no supuesto.
+
+**`edad_cliente`**, que sí está en el modelo:
+
+| | Riesgo real | Tasa de rechazo |
+|---|---|---|
+| 18-30 | 6,76% | **41,94%** |
+| 31-45 | 4,80% | 22,51% |
+| 46-60 | 3,64% | 10,20% |
+| 60+ | 4,32% | **8,39%** |
+
+Los jóvenes son rechazados **cinco veces más** que los mayores cuando su riesgo real es 1,6 veces
+mayor. La brecha de igualdad de opciones (TPR) llega a 43 puntos.
+
+Se documenta sin corregirlo: **es una decisión de negocio, no técnica**. Las opciones son umbrales
+por grupo, retirar la edad a costa de rendimiento, o asumirlo con justificación explícita. Ninguna
+es una elección que corresponda al modelador tomar en solitario.
+
+### Punto de operación
+
+El umbral se fija por **volumen de rechazo**, no por probabilidad: se elige el que rechaza el mismo
+20,9% que la regla heurística, para que la comparación sea a igual coste comercial. El 0,5 por
+defecto no sirve aquí, porque sin reponderar clases el modelo casi nunca lo supera.
+
+| | Rechaza | Mora capturada | Precisión |
+|---|---|---|---|
+| Fuera de fold, entrenamiento | 20,9% | 43,3% | 9,83% |
+| Test estratificado | 21,6% | 40,2% | 8,84% |
+| Test temporal | **33,3%** | 42,0% | 4,04% |
+
+**Un umbral fijo no se sostiene cuando la población se desplaza.** En el test temporal, el mismo
+umbral rechaza el 33,3% en lugar del 21%. Es la señal que tendrá que vigilar el monitoreo.
+
+### Scorecard
+
+Tabla de 45 filas con puntaje base 601 y puntajes observados entre 464 y 767, en la escala
+convencional del sector (PDO 20, base 600 a odds 20:1). Más puntos significan menos riesgo.
+
+Verificado que **la tabla reproduce la predicción del modelo con error menor a 1e-9**: si no lo
+hiciera, el analista estaría viendo una tabla que no representa lo que decide el sistema.
+
+Solo las 9 variables WoE se tabulan por tramo. Las 4 monetarias escaladas son continuas y entran
+como ajuste sobre el puntaje, no como fila de la tabla.
+
 
 ## Resultados
 
