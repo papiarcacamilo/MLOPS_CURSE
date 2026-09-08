@@ -386,8 +386,14 @@ def construir_derivadas(df: pd.DataFrame, fecha_corte_obs: pd.Timestamp) -> pd.D
     df["trimestre_prestamo"] = df[COLUMNA_FECHA].dt.quarter
 
     # Los tipos 7 y 68 tienen 2 y 1 registro en el dataset completo: como
-    # categorias propias no son estimables. El 6 se conserva separado por su
-    # tasa del 42.86% (OR ~15, p < 0.0001).
+    # categorias propias no son estimables.
+    #
+    # El 6 se conserva separado por su riesgo elevado, pero conviene no leer su
+    # tasa como un valor puntual: son 21 creditos con 9 en mora, y su intervalo
+    # de confianza al 95% va de 24.5% a 63.5%. La asociacion es solida
+    # (chi2, p = 1.77e-13) porque el limite inferior queda muy por encima del
+    # 4.75% de la cartera, pero la MAGNITUD es imprecisa. Se trata como senial a
+    # confirmar con mas volumen, no como una tasa medida.
     df["tipo_credito_grp"] = df["tipo_credito"].astype(str).where(
         df["tipo_credito"].isin([4, 6, 9, 10]), "Otros"
     )
