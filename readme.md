@@ -504,9 +504,12 @@ sobre entrenamiento. El test se abre una sola vez, en `model_evaluation.py`.
    la central de riesgo no reporta ingresos incumplen al 5,73%, frente al 4,38% de aquellos con el
    dato disponible (p = 0,0037). El patrón se repite en los clientes sin saldo registrado (7,16%,
    p = 0,031) y sin codeudor registrado (6,78%, p = 0,022).
-3. **El tipo de crédito 6 concentra riesgo desproporcionado:** de sus 21 créditos, 9 cayeron en
-   mora (42,86% dentro de ese grupo), frente al 4,75% del total de la cartera. Asociación
-   confirmada por chi-cuadrado (p = 1,77e−13).
+3. **El tipo de crédito 6 concentra riesgo elevado, pero de magnitud imprecisa.** De sus 21
+   créditos, 9 cayeron en mora, frente al 4,75% de la cartera. La asociación es estadísticamente
+   sólida (χ², p = 1,77e−13) y su intervalo de confianza al 95% (Wilson) va de **24,5% a 63,5%**,
+   muy por encima de la tasa base: el efecto existe. Lo que no se puede afirmar es su tamaño, que
+   con 21 observaciones queda entre 5 y 13 veces la base. **Se registra como señal a confirmar con
+   más volumen, no como una tasa puntual del 42,86%.**
 4. **Depurar el score mejoró su poder predictivo un 78%:** de |r| = 0.068 a |r| = 0.1212, pasando
    a ser el predictor cuantitativo más fuerte.
 5. **Los independientes presentan mayor riesgo** que los empleados: 5,51% vs 4,29% (p = 0,0047).
@@ -604,9 +607,9 @@ MLOPS_CURSE/
 │       ├── baseline_heuristico.json       # Piso de referencia
 │       └── seleccion_variables.json       # Medición de la etapa 2
 ├── Base_de_datos.csv                 # Datos crudos originales (no modificar)
-├── Base_de_datos_limpia.csv          # Salida de la Fase 1 (generado por el notebook)
-├── PRESENTACION.pptx                 # Presentación de insights
-├── requirements.txt                  # Dependencias
+├── Base_de_datos_limpia.csv          # Salida de la Fase 1, entrada de la Fase 2
+├── config.json                       # Separador, codificación, semilla y target
+├── requirements.txt                  # Dependencias con versiones fijadas
 ├── set_up.bat                        # Script de instalación de dependencias
 ├── .gitignore
 └── readme.md
@@ -616,6 +619,22 @@ Esta estructura es la solicitada en el **Entregable 3**, cuyo enunciado advierte
 carpetas **no es modificable** porque el paso a producción se valida con Jenkins. Por eso
 `hueristic_model.py` reproduce la errata del enunciado de forma deliberada: corregir la ortografía
 sería el error.
+
+### Sobre versionar los datos generados
+
+`Base_de_datos_limpia.csv` y el contenido de `data/` son datos generados, y la práctica habitual es
+no versionarlos. Aquí se versionan de forma deliberada, por dos razones.
+
+`config.json` declara `Base_de_datos_limpia.csv` como `clean_path`, y es la entrada de
+`ft_engineering.py` y de tres notebooks. Sin él, un clon nuevo no puede ejecutar el pipeline hasta
+correr las 104 celdas de `comprension_eda.ipynb`.
+
+Y las particiones, las recetas y los modelos de `data/` son lo que permite **auditar los resultados
+sin reejecutar nada**: comprobar que las particiones conservan su hash, que las recetas coinciden
+con el contrato o que el modelo serializado es el que declara la tabla comparativa.
+
+`PRESENTACION.pptx` sí queda fuera, en `.gitignore`: es un binario que ningún script consume y que
+solo ensucia los diffs.
 
 Los tres archivos marcados como *añadidos* no alteran la estructura exigida, porque añadir no es
 modificar. `reglas_negocio.py` publica el contrato del EDA que el resto del pipeline aplica; los dos
@@ -757,7 +776,8 @@ idénticamente a train y test sin riesgo de fuga.
 
 `consultas_por_credito` (IV 0,1637 en Fase 1) · `discrepancia_ingresos` (IV 0,0930) ·
 `antiguedad_dias` · `mes_prestamo` · `trimestre_prestamo` · `tipo_credito_grp` (tipos 7 y 68,
-con 2 y 1 registro, agrupados en "Otros"; el tipo 6 se conserva separado por su tasa del 42,86%).
+con 2 y 1 registro, agrupados en "Otros"; el tipo 6 se conserva separado por su riesgo elevado,
+con la reserva sobre su magnitud descrita en [Resultados](#resultados)).
 
 `tiene_mora_previa` **no se construye**: derivaría de `saldo_mora`, variable con fuga confirmada.
 
