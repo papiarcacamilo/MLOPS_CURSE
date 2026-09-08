@@ -477,8 +477,27 @@ particiones lo eligen de forma independiente. Serializado en
 `data/models/modelo_seleccionado.joblib`, con la ingeniería incluida: predice desde registros
 crudos.
 
-**Revisión de signos:** los 9 coeficientes WoE salen positivos, y su orden reproduce el ranking
-de Information Value de la Fase 1. Es la comprobación obligatoria antes de firmar un scorecard.
+**Revisión de signos.** Sobre entrenamiento, los 9 coeficientes WoE salen positivos y su orden
+reproduce el ranking de Information Value de la Fase 1. Es la comprobación obligatoria antes de
+firmar un scorecard, pero por sí sola **no prueba que la dirección generalice**: el WoE se ajusta
+sobre entrenamiento y los coeficientes se aprenden sobre entrenamiento, así que su signo solo
+confirma que el modelo aprendió la dirección que uno mismo codificó.
+
+Comprobado fuera de los datos de ajuste:
+
+| | Resultado |
+|---|---|
+| Folds con los 9 positivos | **5 de 5** |
+| Positivos en test, con la receta congelada | **7 de 9** |
+
+Los dos que se invierten tienen lecturas distintas. `woe_tipo_credito_grp` cae a **−0,0066**,
+indistinguible de cero: las categorías que cargan la señal tienen 3 y 1 registros en test.
+`woe_discrepancia_ingresos` sí se invierte de verdad, de +0,15 a **−0,40**, y el detalle univariado
+confirma que su gradiente monótono en entrenamiento (2,79% → 6,18%) desaparece en test.
+
+El contexto que hay que declarar: el test tiene **6 eventos por variable** frente a los 24 de
+entrenamiento, muy por debajo del mínimo de 10 que se considera necesario para que los coeficientes
+de una logística sean estables. Ajustados sobre test son ruidosos por construcción.
 
 ### Contra el piso, en su mismo punto de operación
 

@@ -27,6 +27,9 @@ ESTADO
     Etapa 4  Arboles y boosting                            IMPLEMENTADA
     Etapa 5  Tratamiento del desbalance                    IMPLEMENTADA
 
+Ademas, dos mediciones pedidas en la revision de la PR1: los signos fuera de
+los datos de ajuste, y el otro orden de aplicacion de SMOTE.
+
 LA REGLA QUE NO SE ROMPE
 
 El conjunto de prueba NO se toca aqui. Toda la seleccion se hace con validacion
@@ -55,9 +58,9 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from imblearn.over_sampling import SMOTE
+from imblearn.over_sampling import SMOTE, SMOTENC
 from imblearn.pipeline import Pipeline as PipelineImb
-from sklearn.base import clone
+from sklearn.base import BaseEstimator, TransformerMixin, clone
 from sklearn.ensemble import HistGradientBoostingClassifier, RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
@@ -705,6 +708,203 @@ def main() -> dict:
 
     return {"etapa3": resultados, "etapas4y5": comparaciones}
 
+
+
+# ==============================================================================
+# MEDICIONES PEDIDAS EN LA REVISION DE LA PR1
+# ==============================================================================
+# La revision seniala dos huecos legitimos. Los dos se miden aqui en lugar de
+# responderlos por argumento.
+
+
+def verificar_signos_fuera_de_muestra(particion: str = "estratificado") -> dict:
+    """Comprueba la direccion de los coeficientes fuera de los datos de ajuste.
+
+    EL HUECO QUE SENIALA LA REVISION
+
+    El WoE se ajusta sobre train, los coeficientes se entrenan sobre train, y la
+    revision de signos se hacia sobre train. Que salgan positivos solo dice que
+    el modelo aprendio la direccion que uno mismo codifico al construir el WoE.
+    Es esperable, y no prueba que la relacion se sostenga en datos nuevos.
+
+    Se comprueba de dos formas:
+
+        a) estabilidad entre folds   se ajusta el modelo en cada fold de
+                                     entrenamiento y se miran los signos. No
+                                     gasta el conjunto de prueba
+        b) signos sobre test         con la RECETA CONGELADA de train se ajusta
+                                     una logistica sobre test y se comparan los
+                                     signos. Es lo que pide la revision
+
+    Sobre (b) y el uso del test: es un DIAGNOSTICO que se reporta, no un criterio
+    de seleccion. El modelo no se cambia por lo que salga aqui. Si se cambiara,
+    el test dejaria de ser una estimacion honesta y pasaria a ser un segundo
+    conjunto de validacion.
+    """
+    tr = cargar(particion, con_features=False)
+    te = pd.read_csv(RUTA_DATOS / f"{particion}_test.csv",
+                     sep=fe.SEPARADOR, encoding=fe.ENCODING)
+    y_tr = (1 - tr[TARGET]).values
+    y_te = (1 - te[TARGET]).values
+
+    # La receta se aprende UNA vez sobre train y se congela.
+    ct = fe.construir_pipeline().named_steps["caracteristicas"]
+    M_tr = ct.fit_transform(tr.drop(columns=[TARGET]), y_tr)
+    M_te = ct.transform(te.drop(columns=[TARGET]))
+    columnas = list(M_tr.columns)
+    woe_cols = [c for c in columnas if c.startswith("woe_")]
+
+    def coeficientes(M, y):
+        m = logistica_woe().fit(M, y)
+        return pd.Series(_clasificador(m).coef_[0], index=columnas)
+
+    # --- a) Estabilidad entre folds, sin tocar el test ---------------------
+    por_fold = []
+    for i_ajuste, _ in folds_estandar().split(M_tr, y_tr):
+        c = coeficientes(M_tr.iloc[i_ajuste], y_tr[i_ajuste])
+        por_fold.append(bool((c[woe_cols] > 0).all()))
+
+    # --- b) Signos sobre test, con la receta congelada ---------------------
+    c_train = coeficientes(M_tr, y_tr)
+    c_test = coeficientes(M_te, y_te)
+
+    tabla = pd.DataFrame({
+        "variable": woe_cols,
+        "coef_train": c_train[woe_cols].round(4).values,
+        "coef_test": c_test[woe_cols].round(4).values,
+    })
+    tabla["mismo_signo"] = (
+        np.sign(tabla["coef_train"]) == np.sign(tabla["coef_test"]))
+    tabla["positivo_en_test"] = tabla["coef_test"] > 0
+
+    return {
+        "n_woe": len(woe_cols),
+        "folds_con_todos_positivos": f"{sum(por_fold)} de {len(por_fold)}",
+        "positivos_en_test": int(tabla["positivo_en_test"].sum()),
+        "coinciden_en_signo": int(tabla["mismo_signo"].sum()),
+        "invertidos_en_test": tabla.loc[~tabla["positivo_en_test"],
+                                        "variable"].tolist(),
+        "correlacion_train_test": round(float(
+            tabla["coef_train"].corr(tabla["coef_test"])), 4),
+        "tabla": tabla.to_dict(orient="records"),
+        "nota": ("El test se usa aqui como diagnostico, no como criterio de "
+                 "seleccion: el modelo no se modifica por este resultado."),
+    }
+
+
+class ImputadorParaSmote(BaseEstimator, TransformerMixin):
+    """Imputa por mediana SOLO para que SMOTE pueda medir distancias.
+
+    No es una decision de modelado, es un requisito tecnico: SMOTE calcula
+    vecinos y no admite nulos. Y tiene un coste conocido, porque destruye la
+    categoria SIN_DATO, que la Fase 1 midio como predictiva (5.73% de mora
+    frente a 4.38%, p = 0.0037). Por eso se mide tambien la imputacion SOLA,
+    para separar su efecto del de SMOTE.
+    """
+
+    def fit(self, X, y=None):
+        self.medianas_ = X.select_dtypes(include=[np.number]).median()
+        return self
+
+    def transform(self, X):
+        X = X.copy()
+        for c in X.columns:
+            if X[c].dtype == bool:
+                X[c] = X[c].astype(int)
+        for c, v in self.medianas_.items():
+            if c in X.columns:
+                X[c] = X[c].fillna(v)
+        return X
+
+
+def smote_antes_del_woe(particion: str = "estratificado") -> dict:
+    """Compara los dos ordenes de aplicacion de SMOTE.
+
+    EL HUECO QUE SENIALA LA REVISION
+
+    La etapa 5 midio SMOTE DESPUES del WoE. El otro orden posible es aplicarlo
+    ANTES, sobre las variables originales, y no se habia medido.
+
+    POR QUE NO ES UNA COMPARACION LIMPIA
+
+    El 27.3% de las filas tiene algun nulo, concentrado en
+    promedio_ingresos_datacredito y discrepancia_ingresos. SMOTE no admite
+    nulos, de modo que aplicarlo antes del WoE obliga a imputar, y la imputacion
+    borra la categoria SIN_DATO.
+
+    Es decir, "SMOTE antes del WoE" cambia DOS cosas a la vez. Para poder
+    atribuir el efecto a la correcta se miden cuatro configuraciones:
+
+        A  sin nada                 la referencia
+        B  SMOTE despues del WoE    lo que ya midio la etapa 5
+        C  solo imputacion          aisla lo que cuesta perder SIN_DATO
+        D  imputacion + SMOTE antes lo que pide la revision
+
+    A contra C mide el coste de imputar. C contra D mide lo que aporta SMOTE una
+    vez imputado. B contra D compara los dos ordenes.
+    """
+    tr = cargar(particion, con_features=False)
+    columnas = fe.COLUMNAS_WOE + fe.VARS_MONETARIAS + fe.VARS_BINARIAS
+    X = tr[columnas]
+    y = (1 - tr[TARGET]).values
+
+    def ct():
+        return fe.construir_pipeline().named_steps["caracteristicas"]
+
+    # La base es el modelo SELECCIONADO: logistica sin tratamiento del
+    # desbalance. Usar logistica_woe() seria un error, porque lleva
+    # class_weight="balanced" fijo y apilaria dos tratamientos, midiendo SMOTE
+    # sobre una base que ya esta reponderada.
+    def modelo():
+        return catalogo_modelos()["logistica"](None)
+
+    idx_cat = [X.columns.get_loc(c) for c in fe.VARS_CATEGORICAS_WOE]
+
+    configuraciones = {
+        "A_sin_nada": Pipeline([
+            ("caracteristicas", ct()),
+            ("modelo", modelo())]),
+        "B_smote_despues_del_woe": PipelineImb([
+            ("caracteristicas", ct()),
+            ("smote", SMOTE(random_state=SEMILLA, k_neighbors=5)),
+            ("modelo", modelo())]),
+        "C_solo_imputacion": Pipeline([
+            ("imputa", ImputadorParaSmote()),
+            ("caracteristicas", ct()),
+            ("modelo", modelo())]),
+        "D_smote_antes_del_woe": PipelineImb([
+            ("imputa", ImputadorParaSmote()),
+            ("smote", SMOTENC(categorical_features=idx_cat,
+                              random_state=SEMILLA, k_neighbors=5)),
+            ("caracteristicas", ct()),
+            ("modelo", modelo())]),
+    }
+
+    resultados = {}
+    for nombre, pipe in configuraciones.items():
+        log.info("   midiendo %s", nombre)
+        r = build_model(pipe, X, y, nombre=nombre)
+        resultados[nombre] = {
+            "auc_pr": r["auc_pr_media"],
+            "desv_folds": r["auc_pr_desv"],
+            "brier": r["resumen_oof"]["brier"],
+            "recall_at_k": r["resumen_oof"]["recall_at_k"],
+            "seg_ajuste": r["seg_ajuste"],
+        }
+
+    base = resultados["A_sin_nada"]["auc_pr"]
+    for r in resultados.values():
+        r["delta_vs_A"] = round(r["auc_pr"] - base, 4)
+
+    return {
+        "pct_filas_con_nulo": round(float(X.isna().any(axis=1).mean()) * 100, 1),
+        "resultados": resultados,
+        "coste_de_imputar": round(
+            resultados["C_solo_imputacion"]["auc_pr"] - base, 4),
+        "aporte_de_smote_tras_imputar": round(
+            resultados["D_smote_antes_del_woe"]["auc_pr"]
+            - resultados["C_solo_imputacion"]["auc_pr"], 4),
+    }
 
 if __name__ == "__main__":
     main()
