@@ -4,9 +4,10 @@ Proyecto transversal de **Ciencia de Datos en Producción**. Construye un pipeli
 sobre una base de datos real de créditos de una empresa financiera colombiana, desde la
 comprensión y limpieza de los datos hasta el despliegue y monitoreo de un modelo predictivo.
 
-> **Estado actual: Fase 1 completada** (EDA, limpieza y diccionario de datos).
-> Las fases de Feature Engineering, Modelado, Despliegue y Monitoreo están pendientes.
-> Este README describe únicamente lo que el código implementa hoy.
+> **Estado actual:** Fase 1 (EDA) y Fase 2 (Feature Engineering) cerradas. Del modelado están
+> hechas las etapas 1 a 5: piso heurístico, selección de variables, y comparación y elección
+> del modelo. Pendientes la evaluación final sobre test, el despliegue y el monitoreo.
+> Este readme describe únicamente lo que el código implementa hoy.
 
 ---
 
@@ -85,7 +86,7 @@ categoría.
 | Archivo fuente | `Base_de_datos.csv` |
 | Registros | 10.763 créditos |
 | Variables originales | 23 |
-| Variables tras limpieza | 31 (incluye columnas de trazabilidad) |
+| Variables tras limpieza | 35 (incluye columnas de trazabilidad) |
 | Separador | `;` |
 | Codificación | UTF-8 con BOM |
 | Rango temporal | 2024-11-26 a 2026-04-26 |
@@ -101,7 +102,7 @@ cliente** (ver [Limitaciones](#limitaciones)).
 ## Diccionario de datos
 
 El diccionario está implementado como estructura de código en
-`etl_scripts/src/desarrollo/transformacion_eda.ipynb`
+`mlops_pipeline/comprension_eda.ipynb`
 (constante `DICCIONARIO_DATOS`), de la cual el resto del análisis deriva sus listas de variables.
 Esto evita inferir el tipo estadístico desde el tipo de dato técnico.
 
@@ -370,7 +371,7 @@ producción queden señalados en lugar de pasar silenciosamente.
 > VALOR"), no construirlos. Se calculan en un DataFrame independiente (`derivadas = df.copy()`)
 > solo para medir su poder predictivo; **ninguno se incorpora a `Base_de_datos_limpia.csv`**.
 > Su implementación definitiva corresponde a la Fase 2
-> (`etl_scripts/src/desarrollo/ft_engineering.py`, hoy vacío).
+> (`mlops_pipeline/ft_engineering.py`, hoy vacío).
 
 Se propusieron y evaluaron 9 atributos derivados dentro del notebook, midiendo su relación con la
 variable objetivo mediante **dos medidas complementarias**: correlación de Pearson (relación
@@ -419,20 +420,77 @@ relación con la mora no es lineal.
 
 ## Modelamiento
 
-> **Estado: no implementado.** Corresponde a la Fase 3
-> (`etl_scripts/src/desarrollo/model_training_evaluation.py`, actualmente vacío).
+> **Estado: etapas 1 a 5 completadas.** Piso heurístico fijado
+> (`hueristic_model.py`) y modelo seleccionado (`model_training.py`).
+> Pendientes la evaluación final, el despliegue y el monitoreo.
 
-Requisitos ya definidos a partir del análisis:
+**Problema:** clasificación binaria supervisada en originación, con desbalance de 20:1.
 
-- **Problema:** clasificación binaria supervisada.
-- **Desbalance 20:1** → obligatorio usar `class_weight='balanced'`, submuestreo o SMOTE,
-  aplicado **solo sobre el conjunto de entrenamiento**.
-- **Métricas:** precisión, recall, F1 y AUC-PR sobre la clase minoritaria. **La exactitud
-  (accuracy) queda descartada**: un modelo trivial alcanzaría 95.25% sin aprender nada.
-- **Advertencia de split:** sin identificador de cliente no es posible un `GroupShuffleSplit`;
-  debe declararse como limitación al reportar métricas.
-- **Interpretabilidad:** requisito de negocio en riesgo crediticio: hay que poder explicar por
-  qué se niega un crédito, lo que condiciona la elección del algoritmo.
+**Métrica principal AUC-PR.** La exactitud queda descartada: un modelo trivial alcanzaría
+95.25% sin aprender nada. Se acompaña de KS, Gini, Brier y recall en el punto de operación.
+
+**Sin identificador de cliente** no es posible un split agrupado. Debe declararse como
+limitación junto a cualquier métrica que se publique.
+
+### El piso: qué se consigue sin modelo
+
+Regla de negocio sobre `puntaje_datacredito` con corte en 750, derivada del principio
+*rechazar donde el riesgo observado supera el promedio de la cartera*. No se optimiza ninguna
+métrica: hacerlo la convertiría en un modelo entrenado y dejaría de ser un piso honesto.
+
+| | Estratificado | Temporal |
+|---|---|---|
+| AUC-PR del score como ordenador | 0,0753 | 0,0862 |
+| Rechaza | 20,9% | 20,8% |
+| Mora capturada | 37,2% | 38,2% |
+
+### Selección del modelo
+
+Nueve configuraciones: tres familias por tres tratamientos del desbalance, con la ingeniería
+de características **dentro** de la validación cruzada.
+
+| Modelo | Desbalance | AUC-PR | Desv. folds | Brier |
+|---|---|---|---|---|
+| **logística** | **ninguno** | **0,1385** | 0,0159 | **0,0437** |
+| logística | smote | 0,1363 | 0,0147 | 0,2153 |
+| logística | class_weight | 0,1323 | 0,0122 | 0,2158 |
+| bosque | ninguno | 0,1287 | 0,0241 | 0,0442 |
+| boosting | ninguno | 0,1109 | 0,0283 | 0,0456 |
+
+**Dos resultados que corrigen suposiciones previas de este documento.**
+
+*Los árboles no superan a la logística.* Las tres configuraciones de boosting quedan por debajo
+de todas las de la logística. El WoE ya codifica la no linealidad de cada variable, que es para
+lo que se eligió en la Fase 2, así que los árboles no encuentran estructura nueva y ajustan
+ruido. Se ve en su desviación entre folds, más del doble.
+
+*El tratamiento del desbalance no era obligatorio.* El rango de AUC-PR entre los tres
+tratamientos es 0,0062, menor que la desviación entre folds (0,0159): la diferencia es ruido.
+Pero `class_weight` y SMOTE empeoran el Brier cinco veces, porque desplazan las probabilidades
+por diseño. Sin ganancia en discriminación, solo añaden un paso de recalibración.
+
+SMOTE se midió en lugar de descartarlo por argumento, aunque el argumento era sólido: interpola
+entre valores WoE y produce clientes sintéticos que no corresponden a ningún tramo real.
+
+**Modelo seleccionado: regresión logística sobre WoE, sin tratamiento del desbalance.** Las dos
+particiones lo eligen de forma independiente. Serializado en
+`data/models/modelo_seleccionado.joblib`, con la ingeniería incluida: predice desde registros
+crudos.
+
+**Revisión de signos:** los 9 coeficientes WoE salen positivos, y su orden reproduce el ranking
+de Information Value de la Fase 1. Es la comprobación obligatoria antes de firmar un scorecard.
+
+### Contra el piso, en su mismo punto de operación
+
+Rechazando el mismo 20,9% de solicitudes:
+
+| | Regla | Modelo |
+|---|---|---|
+| Mora capturada | 37,2% | **44,5%** |
+| Precisión | 8,44% | **10,12%** |
+
+**El conjunto de prueba no se ha utilizado.** Toda la selección se hizo con validación cruzada
+sobre entrenamiento. El test se abre una sola vez, en `model_evaluation.py`.
 
 ## Resultados
 
@@ -517,46 +575,64 @@ para depurar el score (insight 4), pero su tasa de mora no constituye un hallazg
 
 ```
 MLOPS_CURSE/
-├── etl_scripts/
-│   └── src/
-│       ├── desarrollo/
-│       │   ├── transformacion_eda.ipynb      # Fase 1: diccionario, limpieza, EDA (COMPLETADO)
-│       │   ├── ft_engineering.py             # Fase 2: Feature Engineering (COMPLETADO)
-│       │   ├── model_training_evaluation.py  # Fase 3: Entrenamiento y evaluación (pendiente)
-│       │   ├── model_deploy.py               # Fase 4: Despliegue (pendiente)
-│       │   └── model_monitoring.py           # Fase 5: Monitoreo (pendiente)
-│       └── config.json                       # Configuración del proyecto
+├── mlops_pipeline/
+│   ├── Cargar_datos.ipynb            # Ingesta y compuerta de calidad (COMPLETADO)
+│   ├── comprension_eda.ipynb         # Fase 1: diccionario, limpieza, EDA (COMPLETADO)
+│   ├── ft_engineering.py             # Fase 2: Feature Engineering (COMPLETADO)
+│   ├── hueristic_model.py            # Piso de referencia sin modelo (COMPLETADO)
+│   ├── model_training.py             # Entrenamiento y selección (pendiente)
+│   ├── model_evaluation.py           # Evaluación y test final (pendiente)
+│   ├── model_deploy.py               # Despliegue en endpoint (pendiente)
+│   ├── model_monitoring.py           # Monitoreo y data drift (pendiente)
+│   ├── reglas_negocio.py             # Contrato derivado del EDA (añadido)
+│   ├── feature_engineering.ipynb     # Narrativa de la Fase 2 (añadido)
+│   └── hueristic_model.ipynb         # Narrativa del heurístico (añadido)
+├── config.json                       # Configuración del proyecto
 ├── data/
 │   └── processed/                    # Salida de la Fase 2
 │       ├── estratificado_train.csv        # 8.610 registros (datos particionados)
 │       ├── estratificado_test.csv         # 2.153 registros
 │       ├── temporal_train.csv             # 8.609 registros (hasta 2025-07-11)
 │       ├── temporal_test.csv              # 2.154 registros (desde 2025-07-12)
-│       ├── *_features.csv                 # Matrices transformadas (25 features)
+│       ├── *_features.csv                 # Matrices transformadas (17 features)
 │       ├── receta_estratificado.json      # Cortes y WoE (reutilizable en Fase 4)
 │       ├── receta_temporal.json
 │       ├── reporte_features.json          # Ranking IV, alertas y baseline
 │       └── split_metadata.json            # Semilla, tamaños, tasas y exclusiones
+│   └── models/
+│       ├── pipeline_features_*.joblib     # Pipeline sklearn ajustado (Fase 4 lo carga)
+│       ├── baseline_heuristico.json       # Piso de referencia
+│       └── seleccion_variables.json       # Medición de la etapa 2
 ├── Base_de_datos.csv                 # Datos crudos originales (no modificar)
 ├── Base_de_datos_limpia.csv          # Salida de la Fase 1 (generado por el notebook)
 ├── PRESENTACION.pptx                 # Presentación de insights
 ├── requirements.txt                  # Dependencias
 ├── set_up.bat                        # Script de instalación de dependencias
 ├── .gitignore
-└── README.md
+└── readme.md
 ```
 
-Esta estructura corresponde a la solicitada en el enunciado del Entregable 2. Los scripts de las
-fases 2 a 5 se ubican junto al notebook en `desarrollo/`, que es donde reside el código de
-desarrollo del pipeline.
+Esta estructura es la solicitada en el **Entregable 3**, cuyo enunciado advierte que la estructura de
+carpetas **no es modificable** porque el paso a producción se valida con Jenkins. Por eso
+`hueristic_model.py` reproduce la errata del enunciado de forma deliberada: corregir la ortografía
+sería el error.
+
+Los tres archivos marcados como *añadidos* no alteran la estructura exigida, porque añadir no es
+modificar. `reglas_negocio.py` publica el contrato del EDA que el resto del pipeline aplica; los dos
+notebooks aportan la narrativa de su `.py` correspondiente sin duplicar su lógica.
 
 ### Ramas
 
+Se sigue el flujo Gitflow que exige el Stage 1 del Entregable 3:
+
 | Rama | Propósito |
 |---|---|
-| `developer` | Trabajo activo y experimentación |
-| `master` | Versión estable (merge al cerrar cada fase validada) |
-| `certification` | Entregable final |
+| `master` | Versiones entregadas, con etiqueta de versión |
+| `develop` | Integración de las ramas de trabajo |
+| `feature1` · `feature2` | Trabajo activo en paralelo |
+
+Los merges hacia `develop` y `master` se hacen con `--no-ff`, de modo que el grafo conserve la forma
+del diagrama del enunciado en lugar de aplanarse por *fast-forward*.
 
 ## Tecnologías utilizadas
 
@@ -583,7 +659,7 @@ set_up.bat
 pip install -r requirements.txt
 
 # 3. Ejecutar el análisis
-jupyter notebook etl_scripts/src/desarrollo/transformacion_eda.ipynb
+jupyter notebook mlops_pipeline/comprension_eda.ipynb
 #    (o abrir la carpeta MLOPS_CURSE en VS Code y usar "Run All")
 ```
 
@@ -593,8 +669,7 @@ jupyter notebook etl_scripts/src/desarrollo/transformacion_eda.ipynb
 mientras que los CSV viven en la raíz. En lugar de fijar `'../../../'` a mano —frágil ante
 cambios de ubicación o de directorio de trabajo del kernel— el notebook localiza la raíz del
 proyecto con la función `encontrar_raiz()`, que sube por el árbol de directorios hasta encontrar
-`Base_de_datos.csv`. Verificado: funciona desde la raíz del repo, desde `etl_scripts/`, desde
-`etl_scripts/src/` y desde `etl_scripts/src/desarrollo/`. Los scripts de las fases 2 a 5 deben
+`Base_de_datos.csv`. Verificado: funciona desde la raíz del repo, y desde `mlops_pipeline/`. Los scripts de las fases 2 a 5 deben
 resolver las rutas de la misma forma.
 
 El archivo crudo nunca se modifica; la salida `Base_de_datos_limpia.csv` se regenera en cada
@@ -873,7 +948,7 @@ estaban perjudicando la generalización justo donde importa: al predecir sobre c
 
 ### Estado
 
-**Fase 2 completada y auditada.** Dataset final: 19 características, sin fuga, sin colinealidad,
+**Fase 2 completada y auditada.** Dataset final: 17 características, sin fuga, sin colinealidad,
 con monotonía verificada.
 
 **Siguiente: Fase 3 — Modelado.** Baseline heurístico como piso de referencia, regresión logística
