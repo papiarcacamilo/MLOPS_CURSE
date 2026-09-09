@@ -4,9 +4,9 @@ Proyecto transversal de **Ciencia de Datos en Producción**. Construye un pipeli
 sobre una base de datos real de créditos de una empresa financiera colombiana, desde la
 comprensión y limpieza de los datos hasta el despliegue y monitoreo de un modelo predictivo.
 
-> **Estado actual:** Fase 1 (EDA) y Fase 2 (Feature Engineering) completadas. El **modelo
-> heurístico** que fija el piso de referencia está implementado y evaluado. El entrenamiento de
-> modelos, la evaluación final, el despliegue y el monitoreo están pendientes.
+> **Estado actual:** Fase 1 (EDA) y Fase 2 (Feature Engineering) cerradas. Del modelado están
+> hechas las etapas 1 a 5: piso heurístico, selección de variables, y comparación y elección
+> del modelo. Pendientes la evaluación final sobre test, el despliegue y el monitoreo.
 > Este readme describe únicamente lo que el código implementa hoy.
 
 ---
@@ -420,20 +420,77 @@ relación con la mora no es lineal.
 
 ## Modelamiento
 
-> **Estado: no implementado.** Corresponde a la Fase 3
-> (`mlops_pipeline/hueristic_model.py`, actualmente vacío).
+> **Estado: etapas 1 a 5 completadas.** Piso heurístico fijado
+> (`hueristic_model.py`) y modelo seleccionado (`model_training.py`).
+> Pendientes la evaluación final, el despliegue y el monitoreo.
 
-Requisitos ya definidos a partir del análisis:
+**Problema:** clasificación binaria supervisada en originación, con desbalance de 20:1.
 
-- **Problema:** clasificación binaria supervisada.
-- **Desbalance 20:1** → obligatorio usar `class_weight='balanced'`, submuestreo o SMOTE,
-  aplicado **solo sobre el conjunto de entrenamiento**.
-- **Métricas:** precisión, recall, F1 y AUC-PR sobre la clase minoritaria. **La exactitud
-  (accuracy) queda descartada**: un modelo trivial alcanzaría 95.25% sin aprender nada.
-- **Advertencia de split:** sin identificador de cliente no es posible un `GroupShuffleSplit`;
-  debe declararse como limitación al reportar métricas.
-- **Interpretabilidad:** requisito de negocio en riesgo crediticio: hay que poder explicar por
-  qué se niega un crédito, lo que condiciona la elección del algoritmo.
+**Métrica principal AUC-PR.** La exactitud queda descartada: un modelo trivial alcanzaría
+95.25% sin aprender nada. Se acompaña de KS, Gini, Brier y recall en el punto de operación.
+
+**Sin identificador de cliente** no es posible un split agrupado. Debe declararse como
+limitación junto a cualquier métrica que se publique.
+
+### El piso: qué se consigue sin modelo
+
+Regla de negocio sobre `puntaje_datacredito` con corte en 750, derivada del principio
+*rechazar donde el riesgo observado supera el promedio de la cartera*. No se optimiza ninguna
+métrica: hacerlo la convertiría en un modelo entrenado y dejaría de ser un piso honesto.
+
+| | Estratificado | Temporal |
+|---|---|---|
+| AUC-PR del score como ordenador | 0,0753 | 0,0862 |
+| Rechaza | 20,9% | 20,8% |
+| Mora capturada | 37,2% | 38,2% |
+
+### Selección del modelo
+
+Nueve configuraciones: tres familias por tres tratamientos del desbalance, con la ingeniería
+de características **dentro** de la validación cruzada.
+
+| Modelo | Desbalance | AUC-PR | Desv. folds | Brier |
+|---|---|---|---|---|
+| **logística** | **ninguno** | **0,1385** | 0,0159 | **0,0437** |
+| logística | smote | 0,1363 | 0,0147 | 0,2153 |
+| logística | class_weight | 0,1323 | 0,0122 | 0,2158 |
+| bosque | ninguno | 0,1287 | 0,0241 | 0,0442 |
+| boosting | ninguno | 0,1109 | 0,0283 | 0,0456 |
+
+**Dos resultados que corrigen suposiciones previas de este documento.**
+
+*Los árboles no superan a la logística.* Las tres configuraciones de boosting quedan por debajo
+de todas las de la logística. El WoE ya codifica la no linealidad de cada variable, que es para
+lo que se eligió en la Fase 2, así que los árboles no encuentran estructura nueva y ajustan
+ruido. Se ve en su desviación entre folds, más del doble.
+
+*El tratamiento del desbalance no era obligatorio.* El rango de AUC-PR entre los tres
+tratamientos es 0,0062, menor que la desviación entre folds (0,0159): la diferencia es ruido.
+Pero `class_weight` y SMOTE empeoran el Brier cinco veces, porque desplazan las probabilidades
+por diseño. Sin ganancia en discriminación, solo añaden un paso de recalibración.
+
+SMOTE se midió en lugar de descartarlo por argumento, aunque el argumento era sólido: interpola
+entre valores WoE y produce clientes sintéticos que no corresponden a ningún tramo real.
+
+**Modelo seleccionado: regresión logística sobre WoE, sin tratamiento del desbalance.** Las dos
+particiones lo eligen de forma independiente. Serializado en
+`data/models/modelo_seleccionado.joblib`, con la ingeniería incluida: predice desde registros
+crudos.
+
+**Revisión de signos:** los 9 coeficientes WoE salen positivos, y su orden reproduce el ranking
+de Information Value de la Fase 1. Es la comprobación obligatoria antes de firmar un scorecard.
+
+### Contra el piso, en su mismo punto de operación
+
+Rechazando el mismo 20,9% de solicitudes:
+
+| | Regla | Modelo |
+|---|---|---|
+| Mora capturada | 37,2% | **44,5%** |
+| Precisión | 8,44% | **10,12%** |
+
+**El conjunto de prueba no se ha utilizado.** Toda la selección se hizo con validación cruzada
+sobre entrenamiento. El test se abre una sola vez, en `model_evaluation.py`.
 
 ## Resultados
 
