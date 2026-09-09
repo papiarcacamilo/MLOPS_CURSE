@@ -402,7 +402,8 @@ def verificar_scorecard(modelo, X, scorecard: dict) -> dict:
 # ==============================================================================
 
 
-def evaluacion_final(modelo, particion: str, umbral: float) -> dict:
+def evaluacion_final(modelo, particion: str, umbral: float,
+                     devolver_predicciones: bool = False) -> dict:
     """Entrena sobre train y evalua sobre test. Una vez.
 
     El modelo se reajusta sobre TODO el train de la particion y se aplica al
@@ -471,6 +472,14 @@ def evaluacion_final(modelo, particion: str, umbral: float) -> dict:
                     y_te[maduros], p_te[maduros], umbral=umbral,
                     k=mt.K_OPERATIVO),
             }
+
+    # Las predicciones no entran en el JSON, que quedaria inflado con 2.000
+    # numeros por particion. Se devuelven solo cuando alguien las pide, que es
+    # el caso del notebook para dibujar las curvas sin recalcular el ajuste.
+    if devolver_predicciones:
+        resultado["_y_test"] = y_te
+        resultado["_p_test"] = p_te
+
     return resultado
 
 
