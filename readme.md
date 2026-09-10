@@ -4,9 +4,10 @@ Proyecto transversal de **Ciencia de Datos en Producción**. Construye un pipeli
 sobre una base de datos real de créditos de una empresa financiera colombiana, desde la
 comprensión y limpieza de los datos hasta el despliegue y monitoreo de un modelo predictivo.
 
-> **Estado actual:** Fase 1 (EDA), Fase 2 (Feature Engineering) y Fase 3 (Modelado) cerradas.
+> **Estado actual:** Fases 1 (EDA), 2 (Feature Engineering), 3 (Modelado) y 4 (Despliegue) cerradas.
 > El modelo está elegido, evaluado sobre test una sola vez, auditado en calibración y *fairness*,
-> y traducido a scorecard. Pendientes el despliegue y el monitoreo.
+> traducido a scorecard y servido en un endpoint por lote dentro de una imagen Docker.
+> Pendiente el monitoreo.
 > Este readme describe únicamente lo que el código implementa hoy.
 
 ---
@@ -25,13 +26,14 @@ comprensión y limpieza de los datos hasta el despliegue y monitoreo de un model
 10. [Reglas de validación](#reglas-de-validación)
 11. [Ingeniería de características](#ingeniería-de-características)
 12. [Modelamiento](#modelamiento)
-13. [Resultados](#resultados)
-14. [Conclusiones](#conclusiones)
-15. [Limitaciones](#limitaciones)
-16. [Estructura del repositorio](#estructura-del-repositorio)
-17. [Tecnologías utilizadas](#tecnologías-utilizadas)
-18. [Instrucciones de ejecución](#instrucciones-de-ejecución)
-19. [Referencias](#referencias)
+13. [Despliegue](#despliegue)
+14. [Resultados](#resultados)
+15. [Conclusiones](#conclusiones)
+16. [Limitaciones](#limitaciones)
+17. [Estructura del repositorio](#estructura-del-repositorio)
+18. [Tecnologías utilizadas](#tecnologías-utilizadas)
+19. [Instrucciones de ejecución](#instrucciones-de-ejecución)
+20. [Referencias](#referencias)
 
 ---
 
@@ -609,6 +611,134 @@ Solo las 9 variables WoE se tabulan por tramo. Las 4 monetarias escaladas son co
 como ajuste sobre el puntaje, no como fila de la tabla.
 
 
+## Despliegue
+
+El enunciado pide tres piezas, y cada una vive en su archivo.
+
+| Pieza | Archivo | Qué hace |
+|---|---|---|
+| La app | `mlops_pipeline/app.py` | API con los endpoints, capa HTTP únicamente |
+| La imagen | `Dockerfile` | Librerías, código y artefactos, sin datos de entrenamiento |
+| El motor | `mlops_pipeline/model_deploy.py` | Cadena de inferencia y decisión |
+
+### Cadena de inferencia
+
+`sanear` → `validar` → `transformar` → `puntuar` → `decidir` → `registrar`
+
+El requisito que no puede fallar es que un cliente nuevo atraviese exactamente las mismas
+transformaciones que el conjunto de entrenamiento. Si el endpoint recalcula cortes, reajusta WoE o
+imputa de otra forma, el modelo recibe una entrada que no se parece a lo que aprendió y falla en
+silencio: sigue devolviendo probabilidades, solo que equivocadas.
+
+Por eso aquí nada se ajusta. `cadena_inferencia()` reutiliza los pasos ya ajustados del `.joblib` y
+les antepone las derivadas, que son fila a fila. Y las constantes de saneamiento se congelan en el
+artefacto en lugar de recalcularse sobre el lote entrante: una mediana estimada sobre 50 solicitudes
+no es la mediana con la que el modelo aprendió.
+
+### Por qué sanear va antes de validar
+
+El orden previsto era el inverso, y al implementarlo no funciona. El contrato exige
+`puntaje_datacredito` entre 150 y 950, pero la Fase 1 documentó que un valor fuera de ese rango no
+es un error: es ausencia de historial, y su tratamiento es pasar a nulo con bandera. Validar primero
+rechazaría como inválido justo lo que el EDA decidió conservar.
+
+La distinción es entre dos clases de anomalía.
+
+| Clase | Ejemplos | Qué hace el endpoint |
+|---|---|---|
+| Con tratamiento definido | Edad sobre 90, salario cero o extremo, tendencia corrupta, score fuera de rango | Repite el tratamiento de la Fase 1 y puntúa |
+| Sin tratamiento definido | Columna ausente, edad de 12 años, plazo 0, `tipo_credito` 99 | Rechazo técnico, sin puntuar |
+
+Una excepción, y hay que justificarla: el contrato pone techo de 1.000 millones a
+`total_otros_prestamos` para **señalar** los 13 registros no verificables, no para excluirlos. La
+Fase 1 decidió marcarlos sin imputar, y esos 13 registros entraron al entrenamiento con su bandera
+puesta. Aplicar el techo como rechazo técnico negaría en producción lo que en entrenamiento se
+puntuó, y dejaría `total_otros_prestamos_sospechoso` sin poder activarse nunca por esa vía. El
+mínimo sí se conserva: una deuda negativa no tiene tratamiento definido.
+
+### Dos verificaciones que se ejecutan en cada corrida
+
+| Verificación | Qué comprueba | Resultado |
+|---|---|---|
+| `verificar_saneamiento()` | Sanear el crudo reproduce `Base_de_datos_limpia.csv` | 10.763 registros, 10 columnas, 0 diferencias |
+| Equivalencia de cadenas | Partir del crudo da la misma probabilidad que partir del limpio | Error máximo 0.00e+00 |
+
+La segunda es la prueba definitiva contra el *train-serving skew*: la ruta del endpoint y la ruta
+que se evaluó son numéricamente idénticas sobre los 10.763 registros.
+
+### Decisión y política
+
+El umbral **0.0661** no se elige en despliegue: viene de `model_evaluation.py`, fijado sobre
+predicciones fuera de fold para rechazar el mismo 20.9% que rechazaba la regla heurística. Elegirlo
+aquí, con los datos que llegan, sería ajustar el punto de operación a la población que se quiere
+medir.
+
+`RECHAZAR_SIN_SCORE` es política de negocio publicada en el contrato, no una salida del modelo.
+Medido sobre la población completa:
+
+| Origen del rechazo | Porcentaje |
+|---|---|
+| Umbral del modelo | 21,22% |
+| Política, casos que el umbral no cubría | 0,40% |
+| Rechazo total | 21,62% |
+
+El modelo ya penaliza la ausencia de score (WoE +0,417), de modo que la política solo agrega ese
+0,40%. Se aplica después de puntuar y la probabilidad se reporta igual, con el motivo declarando la
+política: sin eso, la respuesta mostraría una probabilidad baja junto a un rechazo y nada que
+explicara la contradicción.
+
+### Bandas de riesgo
+
+Los cortes son los quintiles del puntaje en train, no números elegidos a mano, y cada banda se
+publica con la tasa de mora que le corresponde.
+
+| Banda | Puntaje | Registros en train | Mora observada |
+|---|---|---|---|
+| A | 627,1 o más | 1.722 | 1,51% |
+| B | 614,2 a 627,1 | 1.722 | 2,56% |
+| C | 603,0 a 614,2 | 1.722 | 3,37% |
+| D | 588,9 a 603,0 | 1.722 | 5,23% |
+| E | Menos de 588,9 | 1.722 | 11,09% |
+
+De A a E la mora se multiplica por 7,3. Es la lectura que un comité de crédito puede usar sin
+entender el modelo.
+
+### Endpoints
+
+| Método | Ruta | Devuelve |
+|---|---|---|
+| `GET` | `/salud` | Sonda de vida, usada por el `HEALTHCHECK` del contenedor |
+| `GET` | `/modelo` | Versión, umbral, desempeño en test, esquema de entrada y bandas |
+| `GET` | `/scorecard` | Tabla de puntos por tramo |
+| `POST` | `/predecir` | Lote en JSON |
+| `POST` | `/predecir/archivo` | Lote en CSV, respuesta en CSV |
+
+La respuesta trae `decision`, `probabilidad_mora`, `puntaje`, `banda` y `motivo`. Ningún campo
+queda vacío: una solicitud rechazada por contrato trae la regla que incumplió, y una puntuada trae
+las tres variables que más mueven su puntaje.
+
+```
+APROBAR          p=0.039792  pts=605.4  C          plazo_meses -25; discrepancia_ingresos +7; huella_consulta +7
+RECHAZAR         p=0.905316  pts=448.4  E          tipo_credito_grp -61; puntaje_datacredito -27; plazo_meses -25
+RECHAZAR         p=0.012288  pts=640.1  A          politica: sin score de central de riesgo; promedio_ingresos_datacredito +14; ...
+RECHAZO_TECNICO  p=None      pts=None   SIN_BANDA  edad_cliente: bajo el minimo (18)
+```
+
+### Qué entra en la imagen y qué no
+
+Entra el código de inferencia (4 módulos), el modelo serializado y los artefactos que describen cómo
+decidir. No entran los datos de entrenamiento, los notebooks ni las librerías de gráficos: una
+imagen de servicio que carga la base de clientes es una fuga de datos esperando ocurrir, y engorda
+la imagen sin aportar nada al endpoint.
+
+Como el código localiza la raíz del proyecto buscando `Base_de_datos.csv`, que en la imagen
+deliberadamente no existe, `encontrar_raiz()` acepta la variable de entorno `MLOPS_RAIZ`. Fuera del
+contenedor la variable no existe y el comportamiento es el de siempre.
+
+El contenedor corre como usuario sin privilegios y expone `data/monitoring` como volumen: ahí queda
+el registro de solicitudes y pronósticos, que es la entrada de la Fase 5.
+
+
 ## Resultados
 
 ### Insights principales
@@ -700,12 +830,14 @@ MLOPS_CURSE/
 │   ├── comprension_eda.ipynb         # Fase 1: diccionario, limpieza, EDA (COMPLETADO)
 │   ├── ft_engineering.py             # Fase 2: Feature Engineering (COMPLETADO)
 │   ├── hueristic_model.py            # Piso de referencia sin modelo (COMPLETADO)
-│   ├── model_training.py             # Entrenamiento y selección (pendiente)
-│   ├── model_evaluation.py           # Evaluación y test final (pendiente)
-│   ├── model_deploy.py               # Despliegue en endpoint (pendiente)
-│   ├── model_monitoring.py           # Monitoreo y data drift (pendiente)
+│   ├── model_training.py             # Fase 3: entrenamiento y selección (COMPLETADO)
+│   ├── model_evaluation.py           # Fase 3: evaluación y test final (COMPLETADO)
+│   ├── model_deploy.py               # Fase 4: motor de inferencia (COMPLETADO)
+│   ├── model_monitoring.py           # Fase 5: monitoreo y data drift (pendiente)
 │   ├── reglas_negocio.py             # Contrato derivado del EDA (añadido)
+│   ├── app.py                        # Fase 4: API del endpoint (añadido)
 │   ├── feature_engineering.ipynb     # Narrativa de la Fase 2 (añadido)
+│   ├── model_evaluation.ipynb        # Narrativa de la evaluación (añadido)
 │   └── hueristic_model.ipynb         # Narrativa del heurístico (añadido)
 ├── config.json                       # Configuración del proyecto
 ├── data/
@@ -719,14 +851,28 @@ MLOPS_CURSE/
 │       ├── receta_temporal.json
 │       ├── reporte_features.json          # Ranking IV, alertas y baseline
 │       └── split_metadata.json            # Semilla, tamaños, tasas y exclusiones
-│   └── models/
-│       ├── pipeline_features_*.joblib     # Pipeline sklearn ajustado (Fase 4 lo carga)
-│       ├── baseline_heuristico.json       # Piso de referencia
-│       └── seleccion_variables.json       # Medición de la etapa 2
+│   ├── models/
+│   │   ├── modelo_seleccionado.joblib     # El objeto que sirve el endpoint
+│   │   ├── pipeline_features_*.joblib     # Pipeline sklearn ajustado
+│   │   ├── baseline_heuristico.json       # Piso de referencia
+│   │   ├── seleccion_variables.json       # Medición de la etapa 2
+│   │   ├── etapa3_logistica.json          # Resultados de la etapa 3
+│   │   ├── etapas4y5_comparacion.json     # Rejilla de 3 familias x 3 tratamientos
+│   │   ├── evaluacion.json                # Calibración, fairness, umbral y scorecard
+│   │   ├── artefacto_despliegue.json      # Contrato de servicio de la Fase 4
+│   │   ├── scorecard.csv                  # Tabla de puntos publicada
+│   │   └── figuras/                       # Gráficos comparativos por partición
+│   └── monitoring/
+│       ├── lote_ejemplo.csv               # 50 solicitudes para probar el endpoint
+│       └── registro_endpoint.csv          # Entradas y pronósticos (no versionado)
 ├── Base_de_datos.csv                 # Datos crudos originales (no modificar)
 ├── Base_de_datos_limpia.csv          # Salida de la Fase 1, entrada de la Fase 2
 ├── config.json                       # Separador, codificación, semilla y target
+├── Dockerfile                        # Fase 4: imagen del endpoint (añadido)
+├── docker-compose.yml                # Fase 4: levantar con volumen (añadido)
+├── .dockerignore                     # Fase 4: qué no viaja al build (añadido)
 ├── requirements.txt                  # Dependencias con versiones fijadas
+├── requirements-api.txt              # Subconjunto que instala la imagen (añadido)
 ├── set_up.bat                        # Script de instalación de dependencias
 ├── .gitignore
 └── readme.md
@@ -753,6 +899,12 @@ con el contrato o que el modelo serializado es el que declara la tabla comparati
 `PRESENTACION.pptx` sí queda fuera, en `.gitignore`: es un binario que ningún script consume y que
 solo ensucia los diffs.
 
+`data/monitoring/registro_endpoint.csv` también queda fuera, y por una razón distinta: crece en cada
+llamada al endpoint y lleva marca de tiempo, de modo que no hay dos ejecuciones con el mismo
+contenido. Versionarlo produciría un diff distinto cada vez sin ganar auditabilidad. Se reconstruye
+con `python mlops_pipeline/model_deploy.py`. `lote_ejemplo.csv` sí se versiona: es una muestra fija,
+con semilla, y sirve para probar el endpoint sin abrir la base de clientes.
+
 Los tres archivos marcados como *añadidos* no alteran la estructura exigida, porque añadir no es
 modificar. `reglas_negocio.py` publica el contrato del EDA que el resto del pipeline aplica; los dos
 notebooks aportan la narrativa de su `.py` correspondiente sin duplicar su lógica.
@@ -778,8 +930,11 @@ del diagrama del enunciado en lugar de aplanarse por *fast-forward*.
 | pandas, numpy | Manipulación y análisis de datos |
 | matplotlib, seaborn | Visualización |
 | scipy | Estadística (skewness, kurtosis, chi-cuadrado, prueba exacta de Fisher) |
+| scikit-learn, imbalanced-learn | Modelado, pipelines y tratamiento del desbalance |
 | Jupyter | Notebooks de análisis |
-| Git / GitHub | Control de versiones (3 ramas) |
+| FastAPI, uvicorn | App y endpoint de predicción por lote |
+| Docker | Imagen que contiene librerías, código y artefactos |
+| Git / GitHub | Control de versiones (Gitflow, 4 ramas) |
 
 ## Instrucciones de ejecución
 
@@ -810,6 +965,32 @@ resolver las rutas de la misma forma.
 
 El archivo crudo nunca se modifica; la salida `Base_de_datos_limpia.csv` se regenera en cada
 ejecución completa.
+
+### Levantar el endpoint (Fase 4)
+
+```bash
+# 1. Construir los artefactos de despliegue y correr las verificaciones
+python mlops_pipeline/model_deploy.py
+
+# 2a. En local, sin contenedor
+uvicorn app:app --app-dir mlops_pipeline --port 8000
+
+# 2b. O en contenedor, que es como se entrega
+docker compose up --build
+```
+
+Documentación interactiva en `http://localhost:8000/docs`.
+
+Probar el endpoint por lote con la muestra versionada:
+
+```bash
+curl -X POST http://localhost:8000/predecir/archivo      -F "archivo=@data/monitoring/lote_ejemplo.csv" -o decisiones.csv
+```
+
+El paso 1 es obligatorio antes del `docker build`: la imagen copia
+`data/models/artefacto_despliegue.json`, que ese script produce. Si falta, el contenedor no arranca,
+y eso es deliberado: un contenedor que arranca sin modelo y devuelve errores 500 es peor que uno que
+no arranca, porque el primero parece sano.
 
 ## Fase 2 — Feature Engineering (completada)
 
@@ -1085,14 +1266,16 @@ estaban perjudicando la generalización justo donde importa: al predecir sobre c
 
 ### Estado
 
-**Fase 2 completada y auditada.** Dataset final: 17 características, sin fuga, sin colinealidad,
-con monotonía verificada.
+**Fases 1 a 4 completadas y auditadas.** Dataset final de 17 características, sin fuga, sin
+colinealidad y con monotonía verificada; modelo elegido sobre validación cruzada, evaluado una sola
+vez sobre test, auditado en calibración y *fairness*, traducido a scorecard y servido en un endpoint
+por lote dentro de una imagen Docker.
 
-**Siguiente: Fase 3 — Modelado.** Baseline heurístico como piso de referencia, regresión logística
-sobre WoE como modelo de referencia por interpretabilidad regulatoria, y modelos de árboles como
-contraste. Métrica principal AUC-PR (la exactitud es inservible con 4,75% de eventos), con KS y
-Gini por ser el lenguaje del sector. La partición estratificada se usa como referencia y la temporal
-como prueba de estrés. Quedan por evaluar calibración y fairness.
+**Siguiente: Fase 5 — Monitoreo.** Sobre el registro que produce el endpoint, medir deriva de
+covariables con PSI reutilizando los cortes del binning, deriva de predicción sobre la distribución
+de probabilidades, y estabilidad del punto de operación. La deriva de concepto solo se puede medir
+sobre cohortes ya vencidas: el 19,9% de los créditos tiene madurez incompleta, y en el test temporal
+el 53,4%, de modo que evaluarla sobre créditos jóvenes subestimaría la mora de forma sistemática.
 
 ## Referencias
 
