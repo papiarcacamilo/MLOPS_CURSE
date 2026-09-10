@@ -4,9 +4,9 @@ Proyecto transversal de **Ciencia de Datos en Producción**. Construye un pipeli
 sobre una base de datos real de créditos de una empresa financiera colombiana, desde la
 comprensión y limpieza de los datos hasta el despliegue y monitoreo de un modelo predictivo.
 
-> **Estado actual:** Fase 1 (EDA) y Fase 2 (Feature Engineering) cerradas. Del modelado están
-> hechas las etapas 1 a 5: piso heurístico, selección de variables, y comparación y elección
-> del modelo. Pendientes la evaluación final sobre test, el despliegue y el monitoreo.
+> **Estado actual:** Fase 1 (EDA), Fase 2 (Feature Engineering) y Fase 3 (Modelado) cerradas.
+> El modelo está elegido, evaluado sobre test una sola vez, auditado en calibración y *fairness*,
+> y traducido a scorecard. Pendientes el despliegue y el monitoreo.
 > Este readme describe únicamente lo que el código implementa hoy.
 
 ---
@@ -477,8 +477,27 @@ particiones lo eligen de forma independiente. Serializado en
 `data/models/modelo_seleccionado.joblib`, con la ingeniería incluida: predice desde registros
 crudos.
 
-**Revisión de signos:** los 9 coeficientes WoE salen positivos, y su orden reproduce el ranking
-de Information Value de la Fase 1. Es la comprobación obligatoria antes de firmar un scorecard.
+**Revisión de signos.** Sobre entrenamiento, los 9 coeficientes WoE salen positivos y su orden
+reproduce el ranking de Information Value de la Fase 1. Es la comprobación obligatoria antes de
+firmar un scorecard, pero por sí sola **no prueba que la dirección generalice**: el WoE se ajusta
+sobre entrenamiento y los coeficientes se aprenden sobre entrenamiento, así que su signo solo
+confirma que el modelo aprendió la dirección que uno mismo codificó.
+
+Comprobado fuera de los datos de ajuste:
+
+| | Resultado |
+|---|---|
+| Folds con los 9 positivos | **5 de 5** |
+| Positivos en test, con la receta congelada | **7 de 9** |
+
+Los dos que se invierten tienen lecturas distintas. `woe_tipo_credito_grp` cae a **−0,0066**,
+indistinguible de cero: las categorías que cargan la señal tienen 3 y 1 registros en test.
+`woe_discrepancia_ingresos` sí se invierte de verdad, de +0,15 a **−0,40**, y el detalle univariado
+confirma que su gradiente monótono en entrenamiento (2,79% → 6,18%) desaparece en test.
+
+El contexto que hay que declarar: el test tiene **6 eventos por variable** frente a los 24 de
+entrenamiento, muy por debajo del mínimo de 10 que se considera necesario para que los coeficientes
+de una logística sean estables. Ajustados sobre test son ruidosos por construcción.
 
 ### Contra el piso, en su mismo punto de operación
 
@@ -492,6 +511,104 @@ Rechazando el mismo 20,9% de solicitudes:
 **El conjunto de prueba no se ha utilizado.** Toda la selección se hizo con validación cruzada
 sobre entrenamiento. El test se abre una sola vez, en `model_evaluation.py`.
 
+### Evaluación final
+
+El conjunto de prueba se abrió **una sola vez**, con el modelo ya elegido y el umbral ya fijado.
+Calibración, *fairness*, umbral y scorecard se decidieron antes, sobre predicciones fuera de fold.
+
+| | Modelo | Piso heurístico en el **mismo** test | Ventaja |
+|---|---|---|---|
+| Estratificado | **0,1479** (lift 3,12×) | 0,0829 (1,75×) | **1,78×** |
+| Temporal | **0,0647** (lift 2,02×) | 0,0445 (1,39×) | **1,45×** |
+
+El modelo supera al piso en las dos particiones, así que **pasa la prueba de estrés temporal**.
+Su ventaja cae de 1,78× a 1,45×: degrada bajo desplazamiento temporal, pero sigue aportando.
+
+Comparar el AUC-PR entre particiones directamente sería un error, porque depende de la tasa base
+y esta difiere (4,74% frente a 3,20%). Por eso se evalúa el piso sobre el mismo conjunto y se
+reporta el *lift*, que sí es comparable.
+
+| Métrica | Estratificado | Temporal |
+|---|---|---|
+| KS | 0,2742 | 0,2026 |
+| Gini | 0,3697 | 0,2415 |
+| Brier | 0,0434 | 0,0333 |
+
+**KS queda por debajo de 0,30**, el umbral que se considera utilizable en un scorecard. Es una
+limitación que hay que declarar: el modelo aporta sobre la regla, pero no alcanza el estándar del
+sector para operar sin supervisión.
+
+### Calibración: no hace falta corregirla
+
+Sobre predicciones fuera de fold, la probabilidad media predicha es **0,04742** frente a una mora
+observada de **0,04750**. El sesgo es de ocho diezmilésimas y el error de calibración esperado
+(ECE) queda en 0,00812.
+
+Es el pago directo de haber elegido *ninguno* en el tratamiento del desbalance: `class_weight` y
+SMOTE dejaban un Brier cinco veces peor y habrían obligado a un paso de Platt o isotónica.
+Recalibrar un modelo ya calibrado solo añadiría varianza, así que **no se aplica**.
+
+Importa porque la probabilidad de incumplimiento entra al cálculo de provisiones: mal calibrada
+significa provisionar mal, que es un problema contable antes que estadístico.
+
+### Fairness: dos hallazgos que hay que poder defender
+
+Se miden tasa de rechazo y tasas de error **por grupo**, no solo el AUC global.
+
+**`tipo_laboral`**, retirado del modelo en la selección de variables:
+
+| | Riesgo real | Tasa de rechazo |
+|---|---|---|
+| Empleado | 4,31% | 18,61% |
+| Independiente | 5,50% | 24,82% |
+
+La brecha de rechazo (6,21 puntos) es **cinco veces** la brecha de riesgo real (1,19 puntos).
+**Retirar la variable no eliminó el sesgo**, exactamente como se advirtió al decidirlo: otras
+variables actúan de *proxy* de la informalidad laboral. Queda medido, no supuesto.
+
+**`edad_cliente`**, que sí está en el modelo:
+
+| | Riesgo real | Tasa de rechazo |
+|---|---|---|
+| 18-30 | 6,76% | **41,94%** |
+| 31-45 | 4,80% | 22,51% |
+| 46-60 | 3,64% | 10,20% |
+| 60+ | 4,32% | **8,39%** |
+
+Los jóvenes son rechazados **cinco veces más** que los mayores cuando su riesgo real es 1,6 veces
+mayor. La brecha de igualdad de opciones (TPR) llega a 43 puntos.
+
+Se documenta sin corregirlo: **es una decisión de negocio, no técnica**. Las opciones son umbrales
+por grupo, retirar la edad a costa de rendimiento, o asumirlo con justificación explícita. Ninguna
+es una elección que corresponda al modelador tomar en solitario.
+
+### Punto de operación
+
+El umbral se fija por **volumen de rechazo**, no por probabilidad: se elige el que rechaza el mismo
+20,9% que la regla heurística, para que la comparación sea a igual coste comercial. El 0,5 por
+defecto no sirve aquí, porque sin reponderar clases el modelo casi nunca lo supera.
+
+| | Rechaza | Mora capturada | Precisión |
+|---|---|---|---|
+| Fuera de fold, entrenamiento | 20,9% | 43,3% | 9,83% |
+| Test estratificado | 21,6% | 40,2% | 8,84% |
+| Test temporal | **33,3%** | 42,0% | 4,04% |
+
+**Un umbral fijo no se sostiene cuando la población se desplaza.** En el test temporal, el mismo
+umbral rechaza el 33,3% en lugar del 21%. Es la señal que tendrá que vigilar el monitoreo.
+
+### Scorecard
+
+Tabla de 45 filas con puntaje base 601 y puntajes observados entre 464 y 767, en la escala
+convencional del sector (PDO 20, base 600 a odds 20:1). Más puntos significan menos riesgo.
+
+Verificado que **la tabla reproduce la predicción del modelo con error menor a 1e-9**: si no lo
+hiciera, el analista estaría viendo una tabla que no representa lo que decide el sistema.
+
+Solo las 9 variables WoE se tabulan por tramo. Las 4 monetarias escaladas son continuas y entran
+como ajuste sobre el puntaje, no como fila de la tabla.
+
+
 ## Resultados
 
 ### Insights principales
@@ -504,9 +621,12 @@ sobre entrenamiento. El test se abre una sola vez, en `model_evaluation.py`.
    la central de riesgo no reporta ingresos incumplen al 5,73%, frente al 4,38% de aquellos con el
    dato disponible (p = 0,0037). El patrón se repite en los clientes sin saldo registrado (7,16%,
    p = 0,031) y sin codeudor registrado (6,78%, p = 0,022).
-3. **El tipo de crédito 6 concentra riesgo desproporcionado:** de sus 21 créditos, 9 cayeron en
-   mora (42,86% dentro de ese grupo), frente al 4,75% del total de la cartera. Asociación
-   confirmada por chi-cuadrado (p = 1,77e−13).
+3. **El tipo de crédito 6 concentra riesgo elevado, pero de magnitud imprecisa.** De sus 21
+   créditos, 9 cayeron en mora, frente al 4,75% de la cartera. La asociación es estadísticamente
+   sólida (χ², p = 1,77e−13) y su intervalo de confianza al 95% (Wilson) va de **24,5% a 63,5%**,
+   muy por encima de la tasa base: el efecto existe. Lo que no se puede afirmar es su tamaño, que
+   con 21 observaciones queda entre 5 y 13 veces la base. **Se registra como señal a confirmar con
+   más volumen, no como una tasa puntual del 42,86%.**
 4. **Depurar el score mejoró su poder predictivo un 78%:** de |r| = 0.068 a |r| = 0.1212, pasando
    a ser el predictor cuantitativo más fuerte.
 5. **Los independientes presentan mayor riesgo** que los empleados: 5,51% vs 4,29% (p = 0,0047).
@@ -604,9 +724,9 @@ MLOPS_CURSE/
 │       ├── baseline_heuristico.json       # Piso de referencia
 │       └── seleccion_variables.json       # Medición de la etapa 2
 ├── Base_de_datos.csv                 # Datos crudos originales (no modificar)
-├── Base_de_datos_limpia.csv          # Salida de la Fase 1 (generado por el notebook)
-├── PRESENTACION.pptx                 # Presentación de insights
-├── requirements.txt                  # Dependencias
+├── Base_de_datos_limpia.csv          # Salida de la Fase 1, entrada de la Fase 2
+├── config.json                       # Separador, codificación, semilla y target
+├── requirements.txt                  # Dependencias con versiones fijadas
 ├── set_up.bat                        # Script de instalación de dependencias
 ├── .gitignore
 └── readme.md
@@ -616,6 +736,22 @@ Esta estructura es la solicitada en el **Entregable 3**, cuyo enunciado advierte
 carpetas **no es modificable** porque el paso a producción se valida con Jenkins. Por eso
 `hueristic_model.py` reproduce la errata del enunciado de forma deliberada: corregir la ortografía
 sería el error.
+
+### Sobre versionar los datos generados
+
+`Base_de_datos_limpia.csv` y el contenido de `data/` son datos generados, y la práctica habitual es
+no versionarlos. Aquí se versionan de forma deliberada, por dos razones.
+
+`config.json` declara `Base_de_datos_limpia.csv` como `clean_path`, y es la entrada de
+`ft_engineering.py` y de tres notebooks. Sin él, un clon nuevo no puede ejecutar el pipeline hasta
+correr las 104 celdas de `comprension_eda.ipynb`.
+
+Y las particiones, las recetas y los modelos de `data/` son lo que permite **auditar los resultados
+sin reejecutar nada**: comprobar que las particiones conservan su hash, que las recetas coinciden
+con el contrato o que el modelo serializado es el que declara la tabla comparativa.
+
+`PRESENTACION.pptx` sí queda fuera, en `.gitignore`: es un binario que ningún script consume y que
+solo ensucia los diffs.
 
 Los tres archivos marcados como *añadidos* no alteran la estructura exigida, porque añadir no es
 modificar. `reglas_negocio.py` publica el contrato del EDA que el resto del pipeline aplica; los dos
@@ -757,7 +893,8 @@ idénticamente a train y test sin riesgo de fuga.
 
 `consultas_por_credito` (IV 0,1637 en Fase 1) · `discrepancia_ingresos` (IV 0,0930) ·
 `antiguedad_dias` · `mes_prestamo` · `trimestre_prestamo` · `tipo_credito_grp` (tipos 7 y 68,
-con 2 y 1 registro, agrupados en "Otros"; el tipo 6 se conserva separado por su tasa del 42,86%).
+con 2 y 1 registro, agrupados en "Otros"; el tipo 6 se conserva separado por su riesgo elevado,
+con la reserva sobre su magnitud descrita en [Resultados](#resultados)).
 
 `tiene_mora_previa` **no se construye**: derivaría de `saldo_mora`, variable con fuga confirmada.
 

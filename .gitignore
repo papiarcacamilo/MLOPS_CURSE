@@ -216,3 +216,17 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ------------------------------------------------------------------------------
+# Artefactos del proyecto
+# ------------------------------------------------------------------------------
+# Binario de PowerPoint. Ningun script lo consume, y versionarlo ensucia los
+# diffs sin aportar nada: su sitio es la plataforma del curso.
+PRESENTACION.pptx
+
+# Base_de_datos_limpia.csv NO se ignora, y es deliberado. config.json lo declara
+# como `clean_path` y es la entrada de ft_engineering.py y de tres notebooks.
+# Sacarlo del repositorio dejaria un clon nuevo sin poder ejecutar el pipeline
+# hasta correr las 104 celdas de comprension_eda.ipynb. Es un dato generado, si,
+# pero el proyecto versiona los datos generados a proposito para que los
+# resultados sean auditables sin reejecutar nada, igual que data/processed/.

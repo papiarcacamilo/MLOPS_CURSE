@@ -1,0 +1,39 @@
+{
+  "pct_filas_con_nulo": 27.3,
+  "resultados": {
+    "A_sin_nada": {
+      "auc_pr": 0.1385,
+      "desv_folds": 0.0159,
+      "brier": 0.04371,
+      "recall_at_k": 0.4328,
+      "seg_ajuste": 0.363,
+      "delta_vs_A": 0.0
+    },
+    "B_smote_despues_del_woe": {
+      "auc_pr": 0.1363,
+      "desv_folds": 0.0147,
+      "brier": 0.2153,
+      "recall_at_k": 0.4328,
+      "seg_ajuste": 0.672,
+      "delta_vs_A": -0.0022
+    },
+    "C_solo_imputacion": {
+      "auc_pr": 0.1381,
+      "desv_folds": 0.0177,
+      "brier": 0.04369,
+      "recall_at_k": 0.445,
+      "seg_ajuste": 0.416,
+      "delta_vs_A": -0.0004
+    },
+    "D_smote_antes_del_woe": {
+      "auc_pr": 0.0909,
+      "desv_folds": 0.0157,
+      "brier": 0.20381,
+      "recall_at_k": 0.3619,
+      "seg_ajuste": 0.785,
+      "delta_vs_A": -0.0476
+    }
+  },
+  "coste_de_imputar": -0.0004,
+  "aporte_de_smote_tras_imputar": -0.0472
+}
