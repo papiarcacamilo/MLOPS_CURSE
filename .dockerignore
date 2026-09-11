@@ -1,0 +1,46 @@
+# Lo que NO viaja al contexto de build.
+#
+# Sin este archivo, `docker build` envia el repositorio entero al demonio antes
+# de ejecutar la primera instruccion: los 3 MB de datos, los notebooks con sus
+# salidas y el historial de git. El Dockerfile copia por ruta explicita, de modo
+# que nada de eso terminaria en la imagen, pero si haria el build mas lento y
+# dejaria los datos de clientes en el contexto.
+
+# --- Datos ---
+Base_de_datos.csv
+Base_de_datos_limpia.csv
+data/processed/
+data/monitoring/
+data/models/figuras/
+data/models/etapa*.json
+data/models/baseline_heuristico.json
+data/models/revision_*.json
+data/models/seleccion_variables.json
+data/models/pipeline_features_*.joblib
+
+# --- Analisis y entrenamiento: no participan en la inferencia ---
+mlops_pipeline/*.ipynb
+mlops_pipeline/comprension_eda.py
+mlops_pipeline/hueristic_model.py
+mlops_pipeline/model_training.py
+mlops_pipeline/model_evaluation.py
+mlops_pipeline/model_monitoring.py
+
+# --- Entorno y control de versiones ---
+.git/
+.gitignore
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+
+# --- Documentacion y utilidades locales ---
+readme.md
+set_up.bat
+requirements.txt
+PRESENTACION.pptx
+Dockerfile
+.dockerignore
+docker-compose.yml

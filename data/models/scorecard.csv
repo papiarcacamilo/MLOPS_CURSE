@@ -1,0 +1,46 @@
+﻿variable;tramo;woe;coeficiente;puntos
+puntaje_datacredito;(-inf,  700.0];1.1914;0.7775;40
+puntaje_datacredito;(700.0, 750.0];0.5455;0.7775;55
+puntaje_datacredito;(750.0, 800.0];-0.089;0.7775;69
+puntaje_datacredito;(800.0,  inf];-0.4191;0.7775;76
+puntaje_datacredito;SIN_DATO;0.4174;0.7775;57
+plazo_meses;(-inf, 6.0];-0.0185;0.8573;67
+plazo_meses;(18.0, 24.0];0.5791;0.8573;52
+plazo_meses;(24.0, inf];1.0157;0.8573;42
+plazo_meses;(6.0, 18.0];-0.1747;0.8573;71
+huella_consulta;(-inf, 2.0];-0.4708;0.4803;73
+huella_consulta;(2.0, 3.0];-0.0975;0.4803;68
+huella_consulta;(3.0, 4.0];0.0416;0.4803;66
+huella_consulta;(4.0, 6.0];0.1117;0.4803;65
+huella_consulta;(6.0, inf];0.4713;0.4803;60
+consultas_por_credito;(-inf, 0.3];-0.4689;0.5823;75
+consultas_por_credito;(0.3, 0.5];-0.3137;0.5823;72
+consultas_por_credito;(0.5, 0.714];0.0174;0.5823;67
+consultas_por_credito;(0.714, 1.091];0.1394;0.5823;64
+consultas_por_credito;(1.091, inf];0.4622;0.5823;59
+promedio_ingresos_datacredito;(-inf, 916148.0];0.3339;0.7671;59
+promedio_ingresos_datacredito;(1000000.0, 1500000.0];-0.0729;0.7671;68
+promedio_ingresos_datacredito;(1500000.0, 2738056.0];-0.225;0.7671;72
+promedio_ingresos_datacredito;(2738056.0, inf];-0.6352;0.7671;81
+promedio_ingresos_datacredito;(916148.0, 1000000.0];-0.2688;0.7671;73
+promedio_ingresos_datacredito;SIN_DATO;0.2742;0.7671;61
+discrepancia_ingresos;(-inf, 288096.4];-0.5445;0.6329;77
+discrepancia_ingresos;(1806414.6, 3265803.2];-0.0073;0.6329;67
+discrepancia_ingresos;(288096.4, 874983.8];-0.3579;0.6329;73
+discrepancia_ingresos;(3265803.2, inf];0.1857;0.6329;63
+discrepancia_ingresos;(874983.8, 1806414.6];-0.044;0.6329;68
+discrepancia_ingresos;SIN_DATO;0.2742;0.6329;62
+edad_cliente;(-inf, 32.0];0.3652;0.6204;60
+edad_cliente;(32.0, 39.0];0.1079;0.6204;65
+edad_cliente;(39.0, 45.0];-0.238;0.6204;71
+edad_cliente;(45.0, 55.0];-0.3561;0.6204;73
+edad_cliente;(55.0, inf];-0.1069;0.6204;69
+tendencia_ingresos;Creciente;-0.2072;0.3596;69
+tendencia_ingresos;Decreciente;0.1684;0.3596;65
+tendencia_ingresos;Estable;-0.1418;0.3596;68
+tendencia_ingresos;Sin_dato;0.2756;0.3596;64
+tipo_credito_grp;10;-0.5397;0.7575;79
+tipo_credito_grp;4;-0.0262;0.7575;67
+tipo_credito_grp;6;2.7812;0.7575;6
+tipo_credito_grp;9;0.0109;0.7575;67
+tipo_credito_grp;Otros;1.3831;0.7575;37

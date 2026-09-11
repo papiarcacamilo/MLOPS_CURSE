@@ -1,0 +1,114 @@
+{
+  "modelo": {
+    "nombre": "logistica sobre WoE, sin tratamiento del desbalance",
+    "archivo": "modelo_seleccionado.joblib",
+    "version": "0b9cf390cc9a",
+    "ajustado_sobre": "estratificado_train.csv (8.610 registros)",
+    "n_caracteristicas": 17,
+    "nota": "Es el mismo objeto que se evaluo sobre test. No se reajusta con train+test: reajustarlo mejoraria el modelo servido pero romperia la trazabilidad entre lo que se midio y lo que responde el endpoint."
+  },
+  "desempenio_en_test": {
+    "auc_pr": 0.1479,
+    "ks": 0.2742,
+    "gini": 0.3697,
+    "brier": 0.04337,
+    "recall": 0.402,
+    "precision": 0.0884,
+    "pct_marcado": 21.55
+  },
+  "umbral": {
+    "valor": 0.0661,
+    "criterio": "cuantil que rechaza el 20.9% de las solicitudes, el mismo volumen que la regla heuristica",
+    "fijado_en": "model_evaluation.py, sobre predicciones fuera de fold"
+  },
+  "politica": {
+    "rechazar_sin_score": true,
+    "fuente": "reglas_negocio.py, contrato del EDA"
+  },
+  "esquema_entrada": {
+    "columnas_requeridas": [
+      "tipo_credito",
+      "fecha_prestamo",
+      "capital_prestado",
+      "plazo_meses",
+      "edad_cliente",
+      "salario_cliente",
+      "total_otros_prestamos",
+      "cuota_pactada",
+      "puntaje_datacredito",
+      "cant_creditosvigentes",
+      "huella_consulta",
+      "promedio_ingresos_datacredito",
+      "tendencia_ingresos"
+    ],
+    "nulos_admitidos": [
+      "puntaje_datacredito",
+      "promedio_ingresos_datacredito"
+    ],
+    "separador": ";",
+    "encoding": "utf-8-sig",
+    "formato_fecha": "d/m/Y, declarado en el contrato"
+  },
+  "saneamiento": {
+    "edad_umbral": 90,
+    "edad_mediana": 42.0,
+    "salario_limite_superior": 18790797.2489,
+    "salario_mediana": 3000000.0,
+    "puntaje_mediana": 791.0,
+    "score_min": 150,
+    "score_max": 950,
+    "tendencia_validas": [
+      "Creciente",
+      "Decreciente",
+      "Estable",
+      "Sin_dato"
+    ],
+    "otros_prestamos_limite": 1000000000,
+    "ratio_deuda_salario_max": 100
+  },
+  "fecha_corte_observacion": "2026-04-26",
+  "bandas": [
+    {
+      "banda": "E",
+      "puntaje_desde": null,
+      "puntaje_hasta": 588.9,
+      "n_train": 1722,
+      "tasa_mora_train": 0.1109
+    },
+    {
+      "banda": "D",
+      "puntaje_desde": 588.9,
+      "puntaje_hasta": 603.0,
+      "n_train": 1722,
+      "tasa_mora_train": 0.0523
+    },
+    {
+      "banda": "C",
+      "puntaje_desde": 603.0,
+      "puntaje_hasta": 614.2,
+      "n_train": 1722,
+      "tasa_mora_train": 0.0337
+    },
+    {
+      "banda": "B",
+      "puntaje_desde": 614.2,
+      "puntaje_hasta": 627.1,
+      "n_train": 1722,
+      "tasa_mora_train": 0.0256
+    },
+    {
+      "banda": "A",
+      "puntaje_desde": 627.1,
+      "puntaje_hasta": null,
+      "n_train": 1722,
+      "tasa_mora_train": 0.0151
+    }
+  ],
+  "escala_scorecard": {
+    "pdo": 20,
+    "score_base": 600,
+    "odds_base": 20.0,
+    "factor": 28.8539,
+    "offset": 513.5614
+  }
+}

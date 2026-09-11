@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import sys
 from pathlib import Path
 
@@ -63,7 +64,21 @@ def encontrar_raiz(marcador: str = "Base_de_datos.csv", max_niveles: int = 6) ->
 
     Se replica la estrategia usada en los notebooks: el script vive en
     mlops_pipeline/ y los datos en la raiz del repositorio.
+
+    La variable de entorno MLOPS_RAIZ tiene prioridad y existe por el
+    despliegue: la imagen de la Fase 4 lleva el modelo y los artefactos, pero
+    NO los datos de entrenamiento, de modo que el marcador no esta ahi. Sin
+    esta salida, importar el modulo dentro del contenedor fallaria; con ella, el
+    unico cambio es declarar MLOPS_RAIZ=/app en el Dockerfile. Fuera del
+    contenedor la variable no existe y el comportamiento es el de siempre.
     """
+    declarada = os.environ.get("MLOPS_RAIZ")
+    if declarada:
+        raiz = Path(declarada).resolve()
+        if not raiz.is_dir():
+            raise FileNotFoundError(f"MLOPS_RAIZ apunta a {raiz}, que no existe.")
+        return raiz
+
     try:
         actual = Path(__file__).resolve().parent
     except NameError:
