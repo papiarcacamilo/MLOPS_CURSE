@@ -240,9 +240,28 @@ def sanear(datos: pd.DataFrame) -> pd.DataFrame:
 
     Devuelve el DataFrame con las columnas corregidas y las cinco banderas de
     trazabilidad, cuatro de las cuales son caracteristicas del modelo.
+
+    ES IDEMPOTENTE, y no lo era. Sanear un lote YA saneado apagaba todas las
+    banderas, porque se recalculan comparando contra los umbrales y sobre valores
+    ya corregidos ninguna se dispara, y ademas rellenaba con la mediana los nulos
+    que marcaban ausencia de historial. Medido sobre el train: 103 banderas de
+    edad, 187 de salario, 47 de tendencia y 105 nulos del score, todos perdidos
+    en la segunda pasada, con probabilidades distintas y sin un solo error.
+
+    En originacion el endpoint recibe datos crudos y el caso no aparece. Pero un
+    reenvio, una integracion que limpie aguas arriba o el propio monitoreo
+    reproduciendo la cadena bastan para dispararlo, y el sintoma seria un
+    puntaje que cambia sin que nada haya cambiado. Por eso cada bandera que el
+    lote ya traiga se conserva en vez de recalcularse a ciegas.
     """
     d = datos.copy()
     c = SANEAMIENTO
+
+    def _bandera_previa(nombre: str) -> pd.Series:
+        """Bandera que el lote ya traia, o todo apagado si no venia."""
+        if nombre not in datos.columns:
+            return pd.Series(False, index=d.index)
+        return datos[nombre].astype(str).str.lower().isin(["true", "1"])
 
     # La fecha llega en el formato de origen (d/m/Y). El contrato declara la
     # convencion en vez de dejar que pandas la adivine.
@@ -251,31 +270,36 @@ def sanear(datos: pd.DataFrame) -> pd.DataFrame:
 
     # Edad
     d["edad_cliente"] = pd.to_numeric(d["edad_cliente"], errors="coerce")
-    d["edad_cliente_corregida"] = d["edad_cliente"] > c["edad_umbral"]
-    d.loc[d["edad_cliente_corregida"], "edad_cliente"] = c["edad_mediana"]
+    d["edad_cliente_corregida"] = (
+        (d["edad_cliente"] > c["edad_umbral"]) | _bandera_previa("edad_cliente_corregida"))
+    d.loc[d["edad_cliente"] > c["edad_umbral"], "edad_cliente"] = c["edad_mediana"]
 
     # Salario
     d["salario_cliente"] = pd.to_numeric(d["salario_cliente"], errors="coerce")
+    fuera_salario = ((d["salario_cliente"] == 0)
+                     | (d["salario_cliente"] > c["salario_limite_superior"]))
     d["salario_cliente_corregido"] = (
-        (d["salario_cliente"] == 0)
-        | (d["salario_cliente"] > c["salario_limite_superior"])
-    )
-    d.loc[d["salario_cliente_corregido"], "salario_cliente"] = c["salario_mediana"]
+        fuera_salario | _bandera_previa("salario_cliente_corregido"))
+    d.loc[fuera_salario, "salario_cliente"] = c["salario_mediana"]
 
     # Tendencia de ingresos
     tendencia = d["tendencia_ingresos"]
     corrupto = tendencia.notna() & ~tendencia.isin(c["tendencia_validas"])
-    d["tendencia_ingresos_reconstruida"] = corrupto
+    d["tendencia_ingresos_reconstruida"] = (
+        corrupto | _bandera_previa("tendencia_ingresos_reconstruida"))
     numerico = pd.to_numeric(tendencia[corrupto], errors="coerce")
     d.loc[corrupto, "tendencia_ingresos"] = np.select(
         [numerico > 0, numerico < 0], ["Creciente", "Decreciente"], "Estable")
     d["tendencia_ingresos"] = d["tendencia_ingresos"].fillna("Sin_dato")
 
-    # Score de central de riesgo
+    # Score de central de riesgo. El nulo que ya venia marcado como ausencia de
+    # historial se respeta: rellenarlo con la mediana convertiria un "no tiene
+    # score" en un score promedio inventado.
     puntaje = pd.to_numeric(d["puntaje_datacredito"], errors="coerce")
-    puntaje = puntaje.fillna(c["puntaje_mediana"])
+    sin_historial_previo = _bandera_previa("sin_historial_crediticio")
+    puntaje = puntaje.where(sin_historial_previo, puntaje.fillna(c["puntaje_mediana"]))
     fuera = (puntaje < c["score_min"]) | (puntaje > c["score_max"])
-    d["sin_historial_crediticio"] = fuera.astype(int)
+    d["sin_historial_crediticio"] = (fuera | sin_historial_previo).astype(int)
     d["puntaje_datacredito"] = puntaje.mask(fuera)
 
     # Ingreso reportado por el buro: no se imputa, se marca
@@ -302,6 +326,10 @@ def verificar_saneamiento() -> dict:
     Es la unica prueba que garantiza que el endpoint aplica el mismo
     preprocesamiento que produjo los datos de entrenamiento. Se ejecuta sobre
     los 10.763 registros, no sobre una muestra.
+
+    Comprueba ademas la IDEMPOTENCIA: sanear dos veces debe dar lo mismo que
+    sanear una. Sin esa segunda comprobacion, la funcion podia reproducir el
+    limpio a la perfeccion y aun asi destruirlo al recibirlo de vuelta.
     """
     crudo = pd.read_csv(RUTA_RAIZ / fe.CONFIG["data"]["raw_path"],
                         sep=fe.SEPARADOR, encoding=fe.ENCODING)
@@ -317,19 +345,29 @@ def verificar_saneamiento() -> dict:
         "promedio_ingresos_datacredito_era_nulo",
     ]
 
-    diferencias = {}
-    for col in comparables:
-        a, b = saneado[col], limpio[col]
-        if a.dtype == bool or b.dtype == bool:
-            a, b = a.astype(float), b.astype(float)
-        distintos = ~((a == b) | (a.isna() & b.isna()))
-        diferencias[col] = int(distintos.sum())
+    def comparar(izquierda: pd.DataFrame, derecha: pd.DataFrame) -> dict:
+        salida = {}
+        for col in comparables:
+            a, b = izquierda[col], derecha[col]
+            if a.dtype == bool or b.dtype == bool:
+                a, b = a.astype(float), b.astype(float)
+            salida[col] = int((~((a == b) | (a.isna() & b.isna()))).sum())
+        return salida
+
+    diferencias = comparar(saneado, limpio)
+
+    # Segunda pasada sobre el resultado de la primera. Debe devolver lo mismo:
+    # un endpoint cuyo saneamiento no sea idempotente cambia el puntaje de una
+    # solicitud reenviada sin que nada haya cambiado en el cliente.
+    diferencias_segunda = comparar(sanear(saneado), saneado)
 
     return {
         "registros": int(len(crudo)),
         "columnas_comparadas": len(comparables),
         "diferencias": diferencias,
         "reproduce_el_limpio": all(v == 0 for v in diferencias.values()),
+        "diferencias_segunda_pasada": diferencias_segunda,
+        "idempotente": all(v == 0 for v in diferencias_segunda.values()),
     }
 
 
@@ -788,6 +826,14 @@ def main() -> dict:
             if n:
                 log.error("   %s: %s diferencias", col, n)
         raise RuntimeError("El saneamiento del endpoint no reproduce la Fase 1.")
+
+    if verificacion["idempotente"]:
+        log.info("   idempotente: sanear dos veces da lo mismo que sanear una")
+    else:
+        for col, n in verificacion["diferencias_segunda_pasada"].items():
+            if n:
+                log.error("   segunda pasada, %s: %s diferencias", col, n)
+        raise RuntimeError("El saneamiento del endpoint no es idempotente.")
 
     # --- Artefacto -----------------------------------------------------------
     log.info("-" * 72)
