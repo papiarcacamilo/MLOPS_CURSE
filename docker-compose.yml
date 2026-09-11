@@ -24,8 +24,10 @@ services:
       - ./data/monitoring:/app/data/monitoring
     restart: unless-stopped
     healthcheck:
+      # Parsea el JSON y exige el estado, no solo que responda: un servicio
+      # que contestara 200 con estado degradado se reportaria sano.
       test: ["CMD", "python", "-c",
-             "import urllib.request as u; u.urlopen('http://127.0.0.1:8000/salud').read()"]
+             "import json,sys,urllib.request as u; sys.exit(0 if json.loads(u.urlopen('http://127.0.0.1:8000/salud').read())['estado'] == 'activo' else 1)"]
       interval: 30s
       timeout: 5s
       start_period: 20s

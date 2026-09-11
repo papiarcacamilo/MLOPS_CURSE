@@ -73,8 +73,12 @@ EXPOSE 8000
 
 # La sonda usa /salud, que responde solo despues de que el modelo quedo cargado.
 # Un contenedor que arranca sin modelo debe reportarse enfermo, no sano.
+#
+# Y no basta con que responda: hay que PARSEAR la respuesta y exigir el estado.
+# Comprobar solo que devuelve 200 daria por sano un servicio que contestara
+# {"estado": "degradado"}, que es justo el caso que la sonda debe atrapar.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-    CMD python -c "import urllib.request as u; u.urlopen('http://127.0.0.1:8000/salud').read()"
+    CMD python -c "import json,sys,urllib.request as u; sys.exit(0 if json.loads(u.urlopen('http://127.0.0.1:8000/salud').read())['estado'] == 'activo' else 1)"
 
 CMD ["uvicorn", "app:app", "--app-dir", "mlops_pipeline", \
      "--host", "0.0.0.0", "--port", "8000"]
