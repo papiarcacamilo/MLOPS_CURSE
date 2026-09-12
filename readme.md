@@ -27,13 +27,14 @@ comprensión y limpieza de los datos hasta el despliegue y monitoreo de un model
 12. [Modelamiento](#modelamiento)
 13. [Despliegue](#despliegue)
 14. [Monitoreo](#monitoreo)
-15. [Resultados](#resultados)
-16. [Conclusiones](#conclusiones)
-17. [Limitaciones](#limitaciones)
-18. [Estructura del repositorio](#estructura-del-repositorio)
-19. [Tecnologías utilizadas](#tecnologías-utilizadas)
-20. [Instrucciones de ejecución](#instrucciones-de-ejecución)
-21. [Referencias](#referencias)
+15. [Pruebas](#pruebas)
+16. [Resultados](#resultados)
+17. [Conclusiones](#conclusiones)
+18. [Limitaciones](#limitaciones)
+19. [Estructura del repositorio](#estructura-del-repositorio)
+20. [Tecnologías utilizadas](#tecnologías-utilizadas)
+21. [Instrucciones de ejecución](#instrucciones-de-ejecución)
+22. [Referencias](#referencias)
 
 ---
 
@@ -882,6 +883,95 @@ nunca se pudo medir.
 |---|---|
 | `psi_por_variable.png` | PSI por variable, control y cohorte reciente lado a lado |
 | `evolucion_por_cosecha.png` | PSI máximo y volumen de rechazo a lo largo de las cosechas |
+
+
+## Pruebas
+
+El Stage 2 del entregable pide calidad, seguridad, cobertura, integridad y estilo Los tests
+responden por calidad y cobertura SonarCloud,  seguridad , integridad y estilo de tests 
+
+### Esto TEST existen ya que 
+
+El proyecto lleva encontrados y detectado ocho fallos, y ninguno lanzaba una excepciónla banda fantasma
+en 650, las fechas sin `dayfirst`, el WoE que se iba a cero, el saneamiento no idempotente, la
+línea base que se reconstruía, el PSI sobre solicitudes repetidas, el esquema inválido que salía
+como error 500, y el modelo que se releía en cada petición.
+
+Todos se encontraron como tal entonces La suite existe para que no haga falta mirar, y sobre todo para que
+no vuelvan. Y hay una razón principal y es que las verificaciones ya existían desde la Fase 4, pero vivían
+dentro de `main()`, de modo que solo corrían si alguien ejecutaba el script entero a mano.
+
+### Qué se probó
+
+| Archivo | Tests | Qué protege |
+|---|---|---|
+| `tests/test_contrato.py` | 60 | Bandas, reglas de validación y el parseo de fechas |
+| `tests/test_despliegue.py` | 41 | Saneamiento, idempotencia, decisiones y scorecard |
+| `tests/test_monitoreo.py` | 36 | PSI, línea base, muestreo y control de la medición |
+| `tests/test_endpoint.py` | 23 | Los cinco endpoints y los casos límite |
+| `tests/test_features.py` | 22 | WoE, atributos derivados, escalado y piso heurístico |
+| **Total** | **182** | **7 segundos** |
+
+### Validación de los tests 
+
+Una suite que nunca ha fallado no prueba que el código esté bien: prueba que los tests no
+discriminan. Por eso se hizo prueba de mutación el cual se daño el código a propósito.
+
+| Mutación introducida | ¿La suite se rompe? |
+|---|---|
+| El umbral pasa de 0,0661 a 0,10 | Sí |
+| `sanear` deja de ser idempotente | Sí |
+| El umbral del PSI pasa de 0,10 a 0,30 | Sí |
+| Un tramo del binning desaparece de la receta | Sí |
+| La política de sin score se desactiva | Sí |
+| El orden se invierte: validar antes de sanear | Sí, 2 tests |
+| La línea base vuelve a reconstruirse | Sí |
+| El deduplicado del muestreo se quita | Sí |
+
+La primera ronda dejó un problema y es que : tres tests comparaban cortes enteros contra flotantes
+en `_discretizar`, y en pandas 3.0.5 esa comparación da siempre igual. Se sustituyeron por el
+invariante que sí importa que toda etiqueta de tramo producida exista en la receta, comprobado a
+cinco tamaños de lote. Es la condición de la que depende que el WoE signifique algo, porque una
+etiqueta desconocida cae silenciosamente a riesgo promedio.
+
+### Cobertura
+
+| Módulo | Cobertura |
+|---|---|
+| `reglas_negocio.py` | 95,3% |
+| `app.py` | 93,9% |
+| `model_deploy.py` | 69,1% |
+| `hueristic_model.py` | 50,0% |
+| `model_monitoring.py` | 47,3% |
+| `ft_engineering.py` | 28,2% |
+| `model_evaluation.py` | 24,9% |
+| `model_training.py` | 23,0% |
+| **Total** | **43,0%** |
+
+Lo que corre en producción está cubierto
+por encima del 90%, y lo bajo es el código de entrenamiento y evaluación, que se ejecutó una vez
+y cuyo resultado está congelado en artefactos versionados. Cubrirlo al mismo nivel exigiría
+reentrenar el modelo en cada corrida de la suite, que tardaría minutos en lugar de segundos.
+
+### Los tests no tocan el registro de producción
+
+`predecir_lote` escribe en `registro_endpoint.csv`, que es el insumo de la Fase 5. Una suite que lo
+ensuciara con perfiles inventados falsearía la medición de deriva. Por eso todo lo que puntúa lo
+hace con `guardar_registro=False`, y el fixture del endpoint redirige la escritura a un directorio
+temporal. Quedo verificado el registro sigue en 4.204 filas y con cero rastros de prueba.
+
+### Integración continua
+
+`.github/workflows/ci.yml` corre la suite en cada push y en cada pull request hacia `master` o
+`develop`, y manda `coverage.xml` a SonarCloud. El análisis de Sonar depende de que los tests pasen
+primero.
+
+### Ejecución 
+
+```bash
+pip install -r requirements.txt
+python -m pytest
+```
 
 
 ## Resultados
