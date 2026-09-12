@@ -1,0 +1,100 @@
+# =============================================================================
+# Integracion continua | MLOPS_CURSE
+# =============================================================================
+#
+# Corre la suite y manda la cobertura a SonarCloud en cada push y en cada PR.
+#
+# POR QUE IMPORTA QUE CORRA SOLO
+#
+# Las verificaciones de este proyecto existian desde la Fase 4, pero vivian
+# dentro de `main()`: solo corrian si alguien ejecutaba el script entero a mano.
+# Aqui corren sin que nadie se acuerde, que es la unica forma de que un fallo
+# silencioso no llegue a la rama principal.
+# =============================================================================
+
+name: CI
+
+on:
+  push:
+    branches: [master, develop, feature1, feature2]
+  pull_request:
+    branches: [master, develop]
+
+jobs:
+  pruebas:
+    name: Tests y cobertura
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Sonar necesita el historial completo para atribuir cada linea a su
+          # autor y calcular el codigo nuevo de la PR.
+          fetch-depth: 0
+
+      - name: Preparar Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-api.txt
+          pip install pytest==8.4.2 pytest-cov==6.3.0 httpx==0.28.1
+
+      - name: Correr la suite
+        run: python -m pytest -q
+
+      - name: Publicar la cobertura como artefacto
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cobertura
+          path: coverage.xml
+          if-no-files-found: warn
+
+  sonar:
+    name: SonarCloud
+    runs-on: ubuntu-latest
+    needs: pruebas
+    # Las PR desde forks no reciben secretos: sin este filtro el job fallaria
+    # siempre en ellas.
+    if: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
+
+    # Sin el secreto configurado, el analisis se salta en lugar de fallar el CI:
+    # quien clone el repositorio sin token sigue teniendo los tests en verde.
+    #
+    # GitHub no permite leer `secrets` dentro de un `if`, de modo que el token se
+    # expone como variable de entorno del job y es el paso el que la consulta.
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Preparar Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-api.txt
+          pip install pytest==8.4.2 pytest-cov==6.3.0 httpx==0.28.1
+
+      - name: Generar coverage.xml
+        run: python -m pytest -q
+
+      - name: Avisar si falta el token
+        if: ${{ env.SONAR_TOKEN == '' }}
+        run: echo "::warning::SONAR_TOKEN no esta configurado; se omite el analisis de SonarCloud."
+
+      - name: Analizar con SonarCloud
+        if: ${{ env.SONAR_TOKEN != '' }}
+        uses: SonarSource/sonarqube-scan-action@v6
