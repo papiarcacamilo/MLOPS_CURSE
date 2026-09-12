@@ -97,6 +97,24 @@ jobs:
         if: ${{ env.SONAR_TOKEN == '' }}
         run: echo "::warning::SONAR_TOKEN no esta configurado; se omite el analisis de SonarCloud."
 
+      # Un token con un salto de linea o un espacio al final es el error mas
+      # comun al pegar un secreto, y el escaner no lo explica: falla con
+      # "Failed to query JRE metadata: invalid header value", porque el token
+      # viaja en una cabecera HTTP y ahi un salto de linea es ilegal. Asi fallo la
+      # segunda ejecucion de este CI.
+      #
+      # Se comprueba con el operador de bash y no con grep: grep trata el salto
+      # final como fin de linea y no como contenido, de modo que no lo veria.
+      # El valor nunca se imprime.
+      - name: Validar el token
+        if: ${{ env.SONAR_TOKEN != '' }}
+        shell: bash
+        run: |
+          if [[ "$SONAR_TOKEN" =~ [[:space:]] ]]; then
+            echo "::error::SONAR_TOKEN contiene espacios o saltos de linea. Vuelve a guardar el secreto en Settings > Secrets and variables > Actions sin ellos."
+            exit 1
+          fi
+
       - name: Analizar con SonarCloud
         if: ${{ env.SONAR_TOKEN != '' }}
         uses: SonarSource/sonarqube-scan-action@v8
