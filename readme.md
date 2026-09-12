@@ -4,10 +4,9 @@ Proyecto transversal de **Ciencia de Datos en Producción**. Construye un pipeli
 sobre una base de datos real de créditos de una empresa financiera colombiana, desde la
 comprensión y limpieza de los datos hasta el despliegue y monitoreo de un modelo predictivo.
 
-> **Estado actual:** Fases 1 (EDA), 2 (Feature Engineering), 3 (Modelado) y 4 (Despliegue) cerradas.
-> El modelo está elegido, evaluado sobre test una sola vez, auditado en calibración y *fairness*,
-> traducido a scorecard y servido en un endpoint por lote dentro de una imagen Docker.
-> Pendiente el monitoreo.
+> **Estado actual:** las cinco fases cerradas. El modelo está elegido, evaluado sobre test una sola
+> vez, auditado en calibración y *fairness*, traducido a scorecard, servido en un endpoint por lote
+> dentro de una imagen Docker, y monitoreado por cosecha sobre el registro que ese endpoint produce.
 > Este readme describe únicamente lo que el código implementa hoy.
 
 ---
@@ -27,13 +26,14 @@ comprensión y limpieza de los datos hasta el despliegue y monitoreo de un model
 11. [Ingeniería de características](#ingeniería-de-características)
 12. [Modelamiento](#modelamiento)
 13. [Despliegue](#despliegue)
-14. [Resultados](#resultados)
-15. [Conclusiones](#conclusiones)
-16. [Limitaciones](#limitaciones)
-17. [Estructura del repositorio](#estructura-del-repositorio)
-18. [Tecnologías utilizadas](#tecnologías-utilizadas)
-19. [Instrucciones de ejecución](#instrucciones-de-ejecución)
-20. [Referencias](#referencias)
+14. [Monitoreo](#monitoreo)
+15. [Resultados](#resultados)
+16. [Conclusiones](#conclusiones)
+17. [Limitaciones](#limitaciones)
+18. [Estructura del repositorio](#estructura-del-repositorio)
+19. [Tecnologías utilizadas](#tecnologías-utilizadas)
+20. [Instrucciones de ejecución](#instrucciones-de-ejecución)
+21. [Referencias](#referencias)
 
 ---
 
@@ -93,7 +93,7 @@ categoría.
 | Codificación | UTF-8 con BOM |
 | Rango temporal | 2024-11-26 a 2026-04-26 |
 | Variable objetivo | `Pago_atiempo` (1 = al día, 0 = mora) |
-| Distribución del objetivo | 95.25% al día / 4.75% mora (ratio 20:1) |
+| Distribución del objetivo | 95,25% al día / 4,75% mora (ratio 20:1) |
 
 **Fuente de los datos:** base de datos entregada por el docente del curso, correspondiente a
 operaciones de crédito de una entidad financiera. No se proporcionó documentación adjunta.
@@ -197,14 +197,14 @@ limpieza se investigó empíricamente antes de aplicarse, y quedó documentada c
 
 | Problema detectado | Registros | Tratamiento aplicado | Justificación |
 |---|---|---|---|
-| `puntaje` con 87.4% de valores idénticos | 9.407 | Columna eliminada | Sin capacidad discriminante; se comporta como constante |
+| `puntaje` con 87,4% de valores idénticos | 9.407 | Columna eliminada | Sin capacidad discriminante; se comporta como constante |
 | `fecha_prestamo` como texto | 10.763 | Conversión a `datetime` | Permite análisis temporal |
 | Edades imposibles (121–123 años) | 150 | Imputación con mediana (42) | Salto claro en la distribución: sin registros entre 70 y 120 |
 | Salarios extremos y en cero | 250 | Imputación con mediana ($3M) | IQR sobre escala logarítmica (técnica para variables monetarias asimétricas) |
 | `tendencia_ingresos` con valores numéricos | 58 | Reconstrucción por signo | Los 58 tenían `promedio_ingresos_datacredito` poblado: fallo de categorización en origen |
 | **Score fuera del rango [150, 950]** | **153** | **Marcado como `sin_historial_crediticio`, score → NaN** | **No son scores bajos: son ausencia de score (fuente: DataCrédito Experian)** |
 | Nulos en saldos | 405 / 590 | Imputación con 0 | Causa estructural confirmada: `cant_creditosvigentes = 0` |
-| Nulos en `puntaje_datacredito` | 6 | Imputación con mediana | Impacto insignificante (0.06%) |
+| Nulos en `puntaje_datacredito` | 6 | Imputación con mediana | Impacto insignificante (0,06%) |
 | Nulos en `promedio_ingresos_datacredito` | 2.930 | **No imputados** (NaN + bandera) | 27% sin causa estructural: imputar fabricaría el dato |
 | Nulos en `tendencia_ingresos` | 2.932 | Categoría explícita `Sin_dato` | Preserva la información de ausencia |
 
@@ -228,11 +228,11 @@ permanece intacto para garantizar reproducibilidad desde cero.
 
 | Variable | Skewness | Kurtosis | Distribución |
 |---|---|---|---|
-| `edad_cliente` | 0.27 | −0.83 | Aproximadamente simétrica / cuasi-gaussiana |
-| `capital_prestado` | 3.72 | 35.3 | Fuertemente sesgada a la derecha (log-normal) |
-| `salario_cliente` | 2.20 | 6.34 | Sesgada a la derecha (log-normal) |
-| `puntaje_datacredito` | −0.71 | 5.25 | Unimodal, moderadamente sesgada a la izquierda |
-| `saldo_mora_codeudor` | 97.7 | 9.813 | Extremadamente sesgada (mayoría en 0) |
+| `edad_cliente` | 0,27 | −0,83 | Aproximadamente simétrica / cuasi-gaussiana |
+| `capital_prestado` | 3,72 | 35,3 | Fuertemente sesgada a la derecha (log-normal) |
+| `salario_cliente` | 2,20 | 6,34 | Sesgada a la derecha (log-normal) |
+| `puntaje_datacredito` | −0,71 | 5,25 | Unimodal, moderadamente sesgada a la izquierda |
+| `saldo_mora_codeudor` | 97,7 | 9.813 | Extremadamente sesgada (mayoría en 0) |
 
 > **Nota sobre `puntaje_datacredito`.** Antes de la depuración esta variable presentaba una forma
 > bimodal, con un grupo artificial de 145 registros en el valor 0. Ese grupo no eran scores bajos
@@ -252,9 +252,9 @@ permanece intacto para garantizar reproducibilidad desde cero.
 
 | Variable | χ² | gl | p-valor | V de Cramér | ¿Asociación significativa? |
 |---|---|---|---|---|---|
-| `tipo_credito` | 68.86 | 5 | 1.77e−13 | 0.0800 | Sí |
-| `tendencia_ingresos` | 21.48 | 3 | 8.38e−05 | 0.0447 | Sí |
-| `tipo_laboral` | 8.00 | 1 | 0.0047 | 0.0273 | Sí |
+| `tipo_credito` | 68,86 | 5 | 1,77e−13 | 0,0800 | Sí |
+| `tendencia_ingresos` | 21,48 | 3 | 8,38e−05 | 0,0447 | Sí |
+| `tipo_laboral` | 8,00 | 1 | 0,0047 | 0,0273 | Sí |
 
 #### Análisis complementarios del bivariado
 
@@ -317,11 +317,11 @@ correlación, pairplot y gráficos de dispersión.
 
 | Variable | \|r\| |
 |---|---|
-| `puntaje_datacredito` | **0.1212** |
-| `huella_consulta` | 0.0737 |
-| `saldo_mora` | 0.0726 |
-| `plazo_meses` | 0.0631 |
-| `edad_cliente` | 0.0524 |
+| `puntaje_datacredito` | **0,1212** |
+| `huella_consulta` | 0,0737 |
+| `saldo_mora` | 0,0726 |
+| `plazo_meses` | 0,0631 |
+| `edad_cliente` | 0,0524 |
 
 **Multicolinealidad detectada (|r| > 0,7):**
 
@@ -429,7 +429,7 @@ relación con la mora no es lineal.
 **Problema:** clasificación binaria supervisada en originación, con desbalance de 20:1.
 
 **Métrica principal AUC-PR.** La exactitud queda descartada: un modelo trivial alcanzaría
-95.25% sin aprender nada. Se acompaña de KS, Gini, Brier y recall en el punto de operación.
+95,25% sin aprender nada. Se acompaña de KS, Gini, Brier y recall en el punto de operación.
 
 **Sin identificador de cliente** no es posible un split agrupado. Debe declararse como
 limitación junto a cualquier métrica que se publique.
@@ -668,8 +668,8 @@ que se evaluó son numéricamente idénticas sobre los 10.763 registros.
 
 ### Decisión y política
 
-El umbral **0.0661** no se elige en despliegue: viene de `model_evaluation.py`, fijado sobre
-predicciones fuera de fold para rechazar el mismo 20.9% que rechazaba la regla heurística. Elegirlo
+El umbral **0,0661** no se elige en despliegue: viene de `model_evaluation.py`, fijado sobre
+predicciones fuera de fold para rechazar el mismo 20,9% que rechazaba la regla heurística. Elegirlo
 aquí, con los datos que llegan, sería ajustar el punto de operación a la población que se quiere
 medir.
 
@@ -738,6 +738,151 @@ contenedor la variable no existe y el comportamiento es el de siempre.
 El contenedor corre como usuario sin privilegios y expone `data/monitoring` como volumen: ahí queda
 el registro de solicitudes y pronósticos, que es la entrada de la Fase 5.
 
+### Lo que el endpoint no tiene
+
+**Sin autenticación y sin rate limiting.** Cualquiera que alcance el puerto 8000 puede pedir
+predicciones. En un banco eso sería inaceptable; aquí es una decisión de alcance, y conviene decirlo
+en vez de que parezca un olvido.
+
+La razón es que el entregable pide *disponibilizar el modelo*, no construir la plataforma que lo
+protege. Autenticación, cuotas por cliente y auditoría de accesos son responsabilidad de la capa que
+va delante del servicio (una pasarela de API), no del contenedor del modelo. Meterlas aquí
+mezclaría dos problemas y haría la imagen más difícil de desplegar detrás de la infraestructura que
+una entidad ya tiene.
+
+Para producción real harían falta tres cosas, en este orden:
+
+| Qué | Por qué |
+|---|---|
+| OAuth2 o mTLS delante del endpoint | Sin identidad no hay trazabilidad de quién pidió qué |
+| Límite de peticiones por cliente | `MAX_SOLICITUDES = 5000` acota el lote, no la frecuencia |
+| Cifrado en tránsito | Las 13 columnas son dato semiprivado bajo la Ley 1266 |
+
+El tope de 5.000 solicitudes por lote sí está, y evita que una petición suficientemente grande agote
+la memoria del contenedor. Es protección frente a un accidente, no frente a un abuso.
+
+Señalado por `danielCH26` en la revisión de la PR4 y documentado aquí, en la Fase 5, porque es
+donde el proyecto pasa de *funciona* a *se puede operar*: lo mismo que empuja a medir la deriva
+empuja a declarar qué falta para operar de verdad.
+
+
+## Monitoreo
+
+El enunciado pide una tabla con los datos pasados al endpoint junto con sus pronósticos, y usarla
+con una periodicidad definida para detectar cambios en la población. La tabla ya existía:
+`registro_endpoint.csv`, que el despliegue produce en cada llamada. El monitoreo la lee y mide.
+
+### Cómo se mide
+
+**Línea base:** `estratificado_train`, congelada en `data/models/linea_base_monitoreo.json`. Toda
+deriva se mide contra esa referencia, nunca contra el periodo anterior. Recalcularla en cada corrida
+tendría el mismo problema que recalcular las medianas del saneamiento: la vara de medir se
+desplazaría junto con lo medido, y una deriva lenta no se detectaría jamás.
+
+**Los cortes del PSI se importan de la receta.** Si el PSI usara tramos distintos a los del binning,
+mediría una cosa y el modelo vería otra. Con los cortes de la receta, un PSI alto significa
+literalmente que los tramos que el modelo usa se están llenando distinto.
+
+| Rango de PSI | Lectura |
+|---|---|
+| Menor a 0,10 | Estable |
+| 0,10 a 0,25 | Cambio moderado, vigilar |
+| 0,25 o más | Cambio importante, actuar |
+
+### Dos ejes de periodicidad
+
+| Eje | Periodo | Qué responde |
+|---|---|---|
+| Llegada | Semanal, sobre `momento` | Si lo que entra hoy se parece a lo que el modelo aprendió |
+| Cosecha | Mensual, sobre `fecha_prestamo` | Cómo evoluciona el riesgo por *vintage*, que es como trabaja riesgo |
+
+El segundo eje es el que da información en este dataset, porque la Fase 1 midió que la mora va de
+1,72% a 9,09% según el mes de desembolso.
+
+**El mínimo se aplica sobre solicitudes distintas, no sobre decisiones.** Una misma solicitud
+puntuada dos veces es una observación de la población, no dos. Sin ese detalle, el registro de las
+pruebas del endpoint (250 decisiones sobre 50 solicitudes reales) daba un PSI de predicción de
+0,2858, es decir *reentrenar*, sobre una población que no había cambiado en absoluto.
+
+### El experimento tiene control
+
+Medir y anunciar que hay deriva no prueba nada si la medición nunca se contrastó. Se evalúan dos
+cohortes, ambas pasando **por el endpoint**, no por atajo:
+
+| Cohorte | PSI máximo | Rechazo | Veredicto |
+|---|---|---|---|
+| Control, muestra de train | 0,0031 | 20,90% | Sin cambio relevante |
+| Reciente, `temporal_test` | 0,1509 | 25,07% | Vigilar |
+
+El control sale de la misma población de ajuste, así que debe dar cerca de cero. Da 0,0031. Si no lo
+diera, la medición estaría rota y el otro número no merecería crédito. Esa comprobación está dentro
+del código: si el control supera 0,10, la ejecución falla.
+
+### Lo que se encontró
+
+Catorce cosechas publicadas de dieciocho. Las cuatro restantes quedan por debajo del mínimo de 100
+solicitudes y se declaran como tales en lugar de publicar un número que nadie puede interpretar.
+
+| Cosecha | Solicitudes | PSI máximo | Variable dominante | Rechazo |
+|---|---|---|---|---|
+| 2024-12 | 248 | 0,259 | `promedio_ingresos_datacredito` | 22,58% |
+| 2025-03 | 226 | 0,123 | `puntaje_datacredito` | 21,24% |
+| 2025-06 | 129 | 0,240 | `tipo_credito_grp` | 17,05% |
+| 2025-08 | 555 | 0,261 | `plazo_meses` | 20,18% |
+| 2025-10 | 232 | 0,179 | `plazo_meses` | 29,74% |
+| 2025-12 | 174 | 0,470 | `plazo_meses` | 31,61% |
+| 2026-01 | 127 | 0,450 | `plazo_meses` | 37,80% |
+
+Hay dos regímenes. Hasta mediados de 2025 la deriva es moderada y la reparten el score y el ingreso
+del buró. **Desde 2025-07 `plazo_meses` toma el control y crece hasta 0,470**, y el rechazo sube en
+paralelo del 21% previsto al 37,80%.
+
+`plazo_meses` es el coeficiente más alto del modelo (0,8573). Que sea justo esa variable la que se
+mueve significa que la entrada más influyente está recibiendo una población distinta de aquella
+sobre la que se ajustó. Es la señal accionable: no es ruido repartido, es la variable que más pesa.
+
+### Las cuatro señales, y cuándo llegan
+
+| Señal | Se mide | Estado en la cohorte reciente |
+|---|---|---|
+| Covariables | De inmediato | PSI máximo 0,1509 en `plazo_meses` |
+| Predicción | De inmediato | PSI 0,0166, estable |
+| Estabilidad del corte | De inmediato | 25,07% frente al 21,25% previsto |
+| Concepto | Solo con etiqueta madura | Ver abajo |
+
+La deriva de predicción sigue estable mientras las covariables ya se movieron. No es contradictorio:
+el modelo comprime 17 entradas en un número, y desplazamientos que se compensan entre sí no cambian
+la distribución de salida. Por eso se vigilan las cuatro y no una sola.
+
+### La deriva de concepto, con su salvedad
+
+| Subgrupo | n | Mora | AUC-PR | Lift | Plazo medio |
+|---|---|---|---|---|---|
+| Cohorte completa | 2.154 | 3,20% | 0,0739 | 2,31× | Mixto |
+| Solo vencidos | 1.003 | 2,09% | 0,0359 | 1,71× | 6,0 meses |
+| Solo jóvenes | 1.151 | 4,17% | 0,0968 | 2,32× | 15,8 meses |
+
+Se reportan los tres, no solo el subgrupo vencido, porque el filtro de madurez está confundido con
+el plazo (ver la [advertencia corregida](#partición-de-datos)). El lift acompaña siempre al AUC-PR
+porque las tasas base difieren, y el AUC-PR no es comparable entre poblaciones con distinta
+proporción de eventos.
+
+### Qué se vigila además
+
+`tendencia_ingresos_reconstruida` tiene 47 casos en train y **cero moras**. Su coeficiente
+(-3,9728) no está estimado sino determinado por la separación perfecta, y en el scorecard regala
+**115 puntos** sobre un rango de 302. Medido sobre la población completa, la bandera se activa en el
+0,54% y voltea 8 decisiones de rechazo a aprobación. El monitoreo publica su tasa de activación
+contra la línea base: si sube, el modelo empieza a regalar puntos a más gente por una relación que
+nunca se pudo medir.
+
+### Figuras
+
+| Archivo | Qué muestra |
+|---|---|
+| `psi_por_variable.png` | PSI por variable, control y cohorte reciente lado a lado |
+| `evolucion_por_cosecha.png` | PSI máximo y volumen de rechazo a lo largo de las cosechas |
+
 
 ## Resultados
 
@@ -757,7 +902,7 @@ el registro de solicitudes y pronósticos, que es la entrada de la Fase 5.
    muy por encima de la tasa base: el efecto existe. Lo que no se puede afirmar es su tamaño, que
    con 21 observaciones queda entre 5 y 13 veces la base. **Se registra como señal a confirmar con
    más volumen, no como una tasa puntual del 42,86%.**
-4. **Depurar el score mejoró su poder predictivo un 78%:** de |r| = 0.068 a |r| = 0.1212, pasando
+4. **Depurar el score mejoró su poder predictivo un 78%:** de |r| = 0,068 a |r| = 0,1212, pasando
    a ser el predictor cuantitativo más fuerte.
 5. **Los independientes presentan mayor riesgo** que los empleados: 5,51% vs 4,29% (p = 0,0047).
 6. **El score discrimina con fuerza, pero no linealmente:** de 64,00% de mora por debajo de 600
@@ -812,7 +957,7 @@ para depurar el score (insight 4), pero su tasa de mora no constituye un hallazg
 
 | Limitación | Implicación |
 |---|---|
-| **Sin identificador de cliente** | La unidad de observación es el crédito, no la persona. El 67.9% de las filas comparte perfil demográfico con otra. Impide split agrupado por cliente → riesgo de fuga entre train y test |
+| **Sin identificador de cliente** | La unidad de observación es el crédito, no la persona. El 67,9% de las filas comparte perfil demográfico con otra. Impide split agrupado por cliente → riesgo de fuga entre train y test |
 | **Fuga de información (confirmada)** | El negocio confirmó que `saldo_mora` y `saldo_mora_codeudor` se registran después del desembolso. Excluidas del modelado desde la Fase 2 |
 | **Muestras pequeñas** | Tipo de crédito 6 (21 registros) y mora previa (55 registros): señales indicativas, no concluyentes |
 | **Etiqueta no homogénea en el tiempo** | El 19,9% de los créditos vence después del corte de datos: su `Pago_atiempo` refleja el estado observado, no el desenlace final (6,40% vs 4,34%, p = 0,0001) |
@@ -833,7 +978,7 @@ MLOPS_CURSE/
 │   ├── model_training.py             # Fase 3: entrenamiento y selección (COMPLETADO)
 │   ├── model_evaluation.py           # Fase 3: evaluación y test final (COMPLETADO)
 │   ├── model_deploy.py               # Fase 4: motor de inferencia (COMPLETADO)
-│   ├── model_monitoring.py           # Fase 5: monitoreo y data drift (pendiente)
+│   ├── model_monitoring.py           # Fase 5: monitoreo y data drift (COMPLETADO)
 │   ├── reglas_negocio.py             # Contrato derivado del EDA (añadido)
 │   ├── app.py                        # Fase 4: API del endpoint (añadido)
 │   ├── feature_engineering.ipynb     # Narrativa de la Fase 2 (añadido)
@@ -861,7 +1006,9 @@ MLOPS_CURSE/
 │   │   ├── evaluacion.json                # Calibración, fairness, umbral y scorecard
 │   │   ├── artefacto_despliegue.json      # Contrato de servicio de la Fase 4
 │   │   ├── scorecard.csv                  # Tabla de puntos publicada
-│   │   └── figuras/                       # Gráficos comparativos por partición
+│   │   ├── linea_base_monitoreo.json      # Referencia congelada de la Fase 5
+│   │   ├── monitoreo.json                 # Deriva por cohorte y por cosecha
+│   │   └── figuras/                       # Gráficos por partición y de monitoreo
 │   └── monitoring/
 │       ├── lote_ejemplo.csv               # 50 solicitudes para probar el endpoint
 │       └── registro_endpoint.csv          # Entradas y pronósticos (no versionado)
@@ -881,7 +1028,8 @@ MLOPS_CURSE/
 Esta estructura es la solicitada en el **Entregable 3**, cuyo enunciado advierte que la estructura de
 carpetas **no es modificable** porque el paso a producción se valida con Jenkins. Por eso
 `hueristic_model.py` reproduce la errata del enunciado de forma deliberada: corregir la ortografía
-sería el error.
+sería el error. Por la misma razón se conserva `set_up.bat` y no `setup.bat`: es el nombre que pide
+el enunciado.
 
 ### Sobre versionar los datos generados
 
@@ -992,6 +1140,16 @@ El paso 1 es obligatorio antes del `docker build`: la imagen copia
 y eso es deliberado: un contenedor que arranca sin modelo y devuelve errores 500 es peor que uno que
 no arranca, porque el primero parece sano.
 
+### Medir la deriva (Fase 5)
+
+```bash
+python mlops_pipeline/model_monitoring.py
+```
+
+Construye la línea base, hace pasar dos cohortes por el endpoint, lee el registro que esas llamadas
+dejaron y lo muestrea por semana de llegada y por mes de cosecha. Falla de forma explícita si el
+control supera el umbral de PSI, porque una medición que no discrimina no sirve para decidir nada.
+
 ## Fase 2 — Feature Engineering (completada)
 
 Implementada en dos archivos complementarios:
@@ -1045,10 +1203,18 @@ situación de despliegue y es necesaria porque la Fase 1 documentó que la tasa 
 estable entre cohortes** (de 1,72% a 9,09% según el mes).
 
 > ⚠️ **Advertencia sobre la partición temporal.** El conjunto de prueba concentra créditos
-> recientes: la madurez incompleta pasa de **11,5% en train a 53,4% en test**. Esa es la razón de
-> que su tasa de mora observada (3,20%) sea inferior a la de train (5,13%): no es que el riesgo
-> haya bajado, es que no ha transcurrido tiempo suficiente para observar el impago. En la Fase 3
-> debe evaluarse con y sin los registros de madurez incompleta.
+> recientes: la madurez incompleta pasa de **11,5% en train a 53,4% en test**, y su tasa de mora
+> observada (3,20%) queda por debajo de la de train (5,13%). En la Fase 3 debe evaluarse con y sin
+> los registros de madurez incompleta.
+>
+> **Corregido en la Fase 5.** Se atribuyó esa diferencia al censurado, es decir, a que no ha
+> transcurrido tiempo suficiente para observar el impago. Medido, no es lo que ocurre: dentro del
+> test temporal los créditos jóvenes tienen **el doble de mora** que los vencidos (4,17% frente a
+> 2,09%). La causa es que `madurez_incompleta` está confundida con el plazo, porque un crédito
+> sigue vivo justamente por haberse pactado a más meses: los vencidos promedian **6,0 meses** y los
+> jóvenes **15,8**. El filtro de madurez no aísla el censurado, selecciona créditos cortos, que son
+> estructuralmente menos riesgosos. Ninguno de los dos subgrupos da una lectura sin sesgo, y por eso
+> el monitoreo reporta ambos por separado.
 
 **Detalle de implementación.** `fecha_prestamo` incluye hora, por lo que el cuantil caía a mitad de
 una jornada y partía el 12 de julio entre ambos conjuntos (1 registro en train, 26 en test). El
@@ -1266,16 +1432,18 @@ estaban perjudicando la generalización justo donde importa: al predecir sobre c
 
 ### Estado
 
-**Fases 1 a 4 completadas y auditadas.** Dataset final de 17 características, sin fuga, sin
+**Las cinco fases completadas y auditadas.** Dataset final de 17 características, sin fuga, sin
 colinealidad y con monotonía verificada; modelo elegido sobre validación cruzada, evaluado una sola
-vez sobre test, auditado en calibración y *fairness*, traducido a scorecard y servido en un endpoint
-por lote dentro de una imagen Docker.
+vez sobre test, auditado en calibración y *fairness*, traducido a scorecard, servido en un endpoint
+por lote dentro de una imagen Docker, y monitoreado por cosecha sobre el registro que ese endpoint
+produce.
 
-**Siguiente: Fase 5 — Monitoreo.** Sobre el registro que produce el endpoint, medir deriva de
-covariables con PSI reutilizando los cortes del binning, deriva de predicción sobre la distribución
-de probabilidades, y estabilidad del punto de operación. La deriva de concepto solo se puede medir
-sobre cohortes ya vencidas: el 19,9% de los créditos tiene madurez incompleta, y en el test temporal
-el 53,4%, de modo que evaluarla sobre créditos jóvenes subestimaría la mora de forma sistemática.
+**Lo que el monitoreo dejó sobre la mesa.** Desde la cosecha de 2025-07, `plazo_meses` domina la
+deriva y llega a un PSI de 0,470, mientras el rechazo sube del 21% previsto al 37,80%. Es el
+coeficiente más alto del modelo, de modo que la entrada más influyente está recibiendo una población
+distinta de aquella sobre la que se ajustó. Con la cartera en ese estado, la decisión que sigue es
+reentrenar sobre datos recientes y volver a fijar el punto de operación, no ajustar el umbral a mano
+sobre la población que se quiere medir.
 
 ## Referencias
 
