@@ -26,34 +26,42 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Sonar necesita el historial completo para atribuir cada linea a su
           # autor y calcular el codigo nuevo de la PR.
           fetch-depth: 0
 
       - name: Preparar Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
           cache: pip
 
+      # requirements.txt y no requirements-api.txt. La primera version del CI
+      # instalaba el de la imagen, que es mas ligero, y fallo antes de correr un
+      # solo test: `test_despliegue.py` importa `model_evaluation`, que importa
+      # `model_training`, que necesita imbalanced-learn. La imagen no la lleva
+      # porque el endpoint no la usa; la suite si, porque prueba tambien el
+      # codigo de entrenamiento.
+      #
+      # Es ademas lo que el readme le dice a cualquiera que quiera correr las
+      # pruebas, de modo que el CI reproduce exactamente ese entorno.
       - name: Instalar dependencias
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements-api.txt
-          pip install pytest==8.4.2 pytest-cov==6.3.0 httpx==0.28.1
+          pip install -r requirements.txt
 
       - name: Correr la suite
         run: python -m pytest -q
 
-      - name: Publicar la cobertura como artefacto
+      - name: Publicar la cobertura
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: cobertura
           path: coverage.xml
-          if-no-files-found: warn
+          if-no-files-found: error
 
   sonar:
     name: SonarCloud
@@ -72,24 +80,18 @@ jobs:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - name: Preparar Python 3.11
-        uses: actions/setup-python@v5
+      # La cobertura se reutiliza del job anterior en vez de volver a correr la
+      # suite. El escaner de Sonar no necesita Python ni sus dependencias: lee el
+      # codigo fuente y coverage.xml. Reinstalar y repetir 182 tests solo para
+      # regenerar un archivo que ya existe duplicaria el tiempo del CI.
+      - name: Recuperar la cobertura
+        uses: actions/download-artifact@v8
         with:
-          python-version: "3.11"
-          cache: pip
-
-      - name: Instalar dependencias
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements-api.txt
-          pip install pytest==8.4.2 pytest-cov==6.3.0 httpx==0.28.1
-
-      - name: Generar coverage.xml
-        run: python -m pytest -q
+          name: cobertura
 
       - name: Avisar si falta el token
         if: ${{ env.SONAR_TOKEN == '' }}
@@ -97,4 +99,4 @@ jobs:
 
       - name: Analizar con SonarCloud
         if: ${{ env.SONAR_TOKEN != '' }}
-        uses: SonarSource/sonarqube-scan-action@v6
+        uses: SonarSource/sonarqube-scan-action@v8
