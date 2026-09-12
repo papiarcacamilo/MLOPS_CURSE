@@ -1,0 +1,293 @@
+{
+  "origen": "estratificado_train.csv",
+  "n": 8610,
+  "version_modelo": "0b9cf390cc9a",
+  "periodicidad": "semanal",
+  "umbrales_psi": {
+    "moderado": 0.1,
+    "importante": 0.25
+  },
+  "variables": {
+    "puntaje_datacredito": {
+      "tipo": "numerica",
+      "cortes": [
+        -Infinity,
+        600.0,
+        700.0,
+        750.0,
+        800.0,
+        850.0,
+        Infinity
+      ],
+      "distribucion": {
+        "(-inf, 600.0]": 0.002323,
+        "(600.0, 700.0]": 0.01928,
+        "(700.0, 750.0]": 0.181417,
+        "(750.0, 800.0]": 0.361208,
+        "(800.0, 850.0]": 0.301974,
+        "(850.0, inf]": 0.121603,
+        "SIN_DATO": 0.012195
+      }
+    },
+    "plazo_meses": {
+      "tipo": "numerica",
+      "cortes": [
+        -Infinity,
+        6.0,
+        18.0,
+        24.0,
+        Infinity
+      ],
+      "distribucion": {
+        "(-inf, 6.0]": 0.362834,
+        "(18.0, 24.0]": 0.045877,
+        "(24.0, inf]": 0.037631,
+        "(6.0, 18.0]": 0.553659,
+        "SIN_DATO": 0.0
+      }
+    },
+    "huella_consulta": {
+      "tipo": "numerica",
+      "cortes": [
+        -Infinity,
+        2.0,
+        3.0,
+        4.0,
+        6.0,
+        Infinity
+      ],
+      "distribucion": {
+        "(-inf, 2.0]": 0.315331,
+        "(2.0, 3.0]": 0.180023,
+        "(3.0, 4.0]": 0.13194,
+        "(4.0, 6.0]": 0.184669,
+        "(6.0, inf]": 0.188037,
+        "SIN_DATO": 0.0
+      }
+    },
+    "consultas_por_credito": {
+      "tipo": "numerica",
+      "cortes": [
+        -Infinity,
+        0.3,
+        0.5,
+        0.7142857142857143,
+        1.0909090909090908,
+        Infinity
+      ],
+      "distribucion": {
+        "(-inf, 0.3]": 0.207898,
+        "(0.3, 0.5]": 0.244599,
+        "(0.5, 0.714]": 0.149361,
+        "(0.714, 1.091]": 0.199071,
+        "(1.091, inf]": 0.199071,
+        "SIN_DATO": 0.0
+      }
+    },
+    "promedio_ingresos_datacredito": {
+      "tipo": "numerica",
+      "cortes": [
+        -Infinity,
+        916148.0,
+        1000000.0,
+        1500000.0,
+        2738056.0000000005,
+        Infinity
+      ],
+      "distribucion": {
+        "(-inf, 916148.0]": 0.153194,
+        "(1000000.0, 1500000.0]": 0.136585,
+        "(1500000.0, 2738056.0]": 0.142973,
+        "(2738056.0, inf]": 0.145528,
+        "(916148.0, 1000000.0]": 0.149129,
+        "SIN_DATO": 0.27259
+      }
+    },
+    "discrepancia_ingresos": {
+      "tipo": "numerica",
+      "cortes": [
+        -Infinity,
+        288096.4,
+        874983.8,
+        1806414.6,
+        3265803.200000006,
+        Infinity
+      ],
+      "distribucion": {
+        "(-inf, 288096.4]": 0.145528,
+        "(1806414.6, 3265803.2]": 0.145412,
+        "(288096.4, 874983.8]": 0.145412,
+        "(3265803.2, inf]": 0.145528,
+        "(874983.8, 1806414.6]": 0.145528,
+        "SIN_DATO": 0.27259
+      }
+    },
+    "edad_cliente": {
+      "tipo": "numerica",
+      "cortes": [
+        -Infinity,
+        32.0,
+        39.0,
+        45.0,
+        55.0,
+        Infinity
+      ],
+      "distribucion": {
+        "(-inf, 32.0]": 0.226481,
+        "(32.0, 39.0]": 0.200697,
+        "(39.0, 45.0]": 0.187689,
+        "(45.0, 55.0]": 0.203484,
+        "(55.0, inf]": 0.181649,
+        "SIN_DATO": 0.0
+      }
+    },
+    "tendencia_ingresos": {
+      "tipo": "categorica",
+      "categorias": [
+        "Creciente",
+        "Decreciente",
+        "Estable",
+        "Sin_dato"
+      ],
+      "distribucion": {
+        "Creciente": 0.491057,
+        "Decreciente": 0.123345,
+        "Estable": 0.112776,
+        "Sin_dato": 0.272822,
+        "SIN_DATO": 0.0
+      }
+    },
+    "tipo_credito_grp": {
+      "tipo": "categorica",
+      "categorias": [
+        "10",
+        "4",
+        "6",
+        "9",
+        "Otros"
+      ],
+      "distribucion": {
+        "10": 0.010105,
+        "4": 0.726597,
+        "6": 0.002091,
+        "9": 0.260976,
+        "Otros": 0.000232,
+        "SIN_DATO": 0.0
+      }
+    },
+    "capital_prestado": {
+      "tipo": "numerica",
+      "cortes": [
+        -Infinity,
+        1115976.0,
+        1628741.6000000003,
+        2287860.0,
+        3424531.8000000003,
+        Infinity
+      ],
+      "distribucion": {
+        "(-inf, 1115976.0]": 0.2,
+        "(1115976.0, 1628741.6]": 0.2,
+        "(1628741.6, 2287860.0]": 0.200232,
+        "(2287860.0, 3424531.8]": 0.199768,
+        "(3424531.8, inf]": 0.2,
+        "SIN_DATO": 0.0
+      }
+    },
+    "cuota_pactada": {
+      "tipo": "numerica",
+      "cortes": [
+        -Infinity,
+        109002.40000000001,
+        155163.2,
+        216701.2,
+        322938.0,
+        Infinity
+      ],
+      "distribucion": {
+        "(-inf, 109002.4]": 0.2,
+        "(109002.4, 155163.2]": 0.2,
+        "(155163.2, 216701.2]": 0.2,
+        "(216701.2, 322938.0]": 0.2,
+        "(322938.0, inf]": 0.2,
+        "SIN_DATO": 0.0
+      }
+    },
+    "salario_cliente": {
+      "tipo": "numerica",
+      "cortes": [
+        -Infinity,
+        1800000.0,
+        2500000.0,
+        3500000.0,
+        5000000.0,
+        Infinity
+      ],
+      "distribucion": {
+        "(-inf, 1800000.0]": 0.209292,
+        "(1800000.0, 2500000.0]": 0.201742,
+        "(2500000.0, 3500000.0]": 0.22137,
+        "(3500000.0, 5000000.0]": 0.215447,
+        "(5000000.0, inf]": 0.152149,
+        "SIN_DATO": 0.0
+      }
+    },
+    "total_otros_prestamos": {
+      "tipo": "numerica",
+      "cortes": [
+        -Infinity,
+        400000.0,
+        800000.0,
+        1200000.0,
+        2000000.0,
+        Infinity
+      ],
+      "distribucion": {
+        "(-inf, 400000.0]": 0.214053,
+        "(1200000.0, 2000000.0]": 0.229733,
+        "(2000000.0, inf]": 0.167712,
+        "(400000.0, 800000.0]": 0.227178,
+        "(800000.0, 1200000.0]": 0.161324,
+        "SIN_DATO": 0.0
+      }
+    }
+  },
+  "banderas": {
+    "edad_cliente_corregida": 0.011963,
+    "salario_cliente_corregido": 0.021719,
+    "tendencia_ingresos_reconstruida": 0.005459,
+    "total_otros_prestamos_sospechoso": 0.002904
+  },
+  "prediccion": {
+    "cortes": [
+      -Infinity,
+      0.013736860321660781,
+      0.019151223880169453,
+      0.02452608410007518,
+      0.029669310529247712,
+      0.03551632587198475,
+      0.04308072951693682,
+      0.05265921807001585,
+      0.0683587940077278,
+      0.09299352318626553,
+      Infinity
+    ],
+    "distribucion": {
+      "(-inf, 0.0137]": 0.1,
+      "(0.0137, 0.0192]": 0.1,
+      "(0.0192, 0.0245]": 0.1,
+      "(0.0245, 0.0297]": 0.1,
+      "(0.0297, 0.0355]": 0.1,
+      "(0.0355, 0.0431]": 0.1,
+      "(0.0431, 0.0527]": 0.1,
+      "(0.0527, 0.0684]": 0.1,
+      "(0.0684, 0.093]": 0.1,
+      "(0.093, inf]": 0.1,
+      "SIN_DATO": 0.0
+    },
+    "probabilidad_media": 0.0475,
+    "pct_rechazo": 21.25,
+    "umbral": 0.0661
+  },
+  "nota_cortes": "Los cortes de las 9 variables del binning se importan de receta_estratificado.json. Medir el PSI sobre otros tramos daria un numero que no corresponde a lo que el modelo ve."
+}
