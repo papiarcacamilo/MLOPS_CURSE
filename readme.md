@@ -27,13 +27,14 @@ comprensión y limpieza de los datos hasta el despliegue y monitoreo de un model
 12. [Modelamiento](#modelamiento)
 13. [Despliegue](#despliegue)
 14. [Monitoreo](#monitoreo)
-15. [Resultados](#resultados)
-16. [Conclusiones](#conclusiones)
-17. [Limitaciones](#limitaciones)
-18. [Estructura del repositorio](#estructura-del-repositorio)
-19. [Tecnologías utilizadas](#tecnologías-utilizadas)
-20. [Instrucciones de ejecución](#instrucciones-de-ejecución)
-21. [Referencias](#referencias)
+15. [Pruebas](#pruebas)
+16. [Resultados](#resultados)
+17. [Conclusiones](#conclusiones)
+18. [Limitaciones](#limitaciones)
+19. [Estructura del repositorio](#estructura-del-repositorio)
+20. [Tecnologías utilizadas](#tecnologías-utilizadas)
+21. [Instrucciones de ejecución](#instrucciones-de-ejecución)
+22. [Referencias](#referencias)
 
 ---
 
@@ -772,6 +773,9 @@ El enunciado pide una tabla con los datos pasados al endpoint junto con sus pron
 con una periodicidad definida para detectar cambios en la población. La tabla ya existía:
 `registro_endpoint.csv`, que el despliegue produce en cada llamada. El monitoreo la lee y mide.
 
+`model_monitoring.ipynb` presenta ese trabajo: importa el script, recalcula las medidas sin escribir
+ningún artefacto y comprueba que coinciden con `monitoreo.json`.
+
 ### Cómo se mide
 
 **Línea base:** `estratificado_train`, congelada en `data/models/linea_base_monitoreo.json`. Toda
@@ -833,13 +837,16 @@ solicitudes y se declaran como tales en lugar de publicar un número que nadie p
 | 2025-12 | 174 | 0,470 | `plazo_meses` | 31,61% |
 | 2026-01 | 127 | 0,450 | `plazo_meses` | 37,80% |
 
-Hay dos regímenes. Hasta mediados de 2025 la deriva es moderada y la reparten el score y el ingreso
-del buró. **Desde 2025-07 `plazo_meses` toma el control y crece hasta 0,470**, y el rechazo sube en
-paralelo del 21% previsto al 37,80%.
+Hay dos regímenes. Hasta 2025-06 las cosechas solo contienen la muestra de control y la prueba de
+humo, y su deriva, entre 0,12 y 0,26, la reparten el score, el ingreso del buró y el tipo de
+crédito: refleja la variación mes a mes dentro de la propia población de entrenamiento, no una
+población nueva. **Desde 2025-08 `plazo_meses` encabeza la deriva en cinco de seis cosechas y crece
+hasta 0,470**, y el rechazo sube del 21% previsto al 37,80%.
 
-`plazo_meses` es el coeficiente más alto del modelo (0,8573). Que sea justo esa variable la que se
-mueve significa que la entrada más influyente está recibiendo una población distinta de aquella
-sobre la que se ajustó. Es la señal accionable: no es ruido repartido, es la variable que más pesa.
+`plazo_meses` tiene el mayor coeficiente entre las variables WoE del modelo (0,8573). Que sea justo
+esa variable la que se mueve significa que una de las entradas más influyentes está recibiendo una
+población distinta de aquella sobre la que se ajustó. Es la señal accionable: no es ruido repartido,
+es la variable WoE que más pesa.
 
 ### Las cuatro señales, y cuándo llegan
 
@@ -882,6 +889,98 @@ nunca se pudo medir.
 |---|---|
 | `psi_por_variable.png` | PSI por variable, control y cohorte reciente lado a lado |
 | `evolucion_por_cosecha.png` | PSI máximo y volumen de rechazo a lo largo de las cosechas |
+
+
+## Pruebas
+
+El Stage 2 del entregable pide calidad, seguridad, cobertura, integridad y estilo Los tests
+responden por calidad y cobertura SonarCloud,  seguridad , integridad y estilo de tests 
+
+### Esto TEST existen ya que 
+
+El proyecto lleva encontrados y detectado ocho fallos, y ninguno lanzaba una excepciónla banda fantasma
+en 650, las fechas sin `dayfirst`, el WoE que se iba a cero, el saneamiento no idempotente, la
+línea base que se reconstruía, el PSI sobre solicitudes repetidas, el esquema inválido que salía
+como error 500, y el modelo que se releía en cada petición.
+
+Todos se encontraron como tal entonces La suite existe para que no haga falta mirar, y sobre todo para que
+no vuelvan. Y hay una razón principal y es que las verificaciones ya existían desde la Fase 4, pero vivían
+dentro de `main()`, de modo que solo corrían si alguien ejecutaba el script entero a mano.
+
+### Qué se probó
+
+| Archivo | Tests | Qué protege |
+|---|---|---|
+| `tests/test_contrato.py` | 60 | Bandas, reglas de validación y el parseo de fechas |
+| `tests/test_despliegue.py` | 41 | Saneamiento, idempotencia, decisiones y scorecard |
+| `tests/test_monitoreo.py` | 36 | PSI, línea base, muestreo y control de la medición |
+| `tests/test_endpoint.py` | 23 | Los cinco endpoints y los casos límite |
+| `tests/test_features.py` | 22 | WoE, atributos derivados, escalado y piso heurístico |
+| **Total** | **182** | **7 segundos** |
+
+### Validación de los tests 
+
+Una suite que nunca ha fallado no prueba que el código esté bien: prueba que los tests no
+discriminan. Por eso se hizo prueba de mutación el cual se daño el código a propósito.
+
+| Mutación introducida | ¿La suite se rompe? |
+|---|---|
+| El umbral pasa de 0,0661 a 0,10 | Sí |
+| `sanear` deja de ser idempotente | Sí |
+| El umbral del PSI pasa de 0,10 a 0,30 | Sí |
+| Un tramo del binning desaparece de la receta | Sí |
+| La política de sin score se desactiva | Sí |
+| El orden se invierte: validar antes de sanear | Sí, 2 tests |
+| La línea base vuelve a reconstruirse | Sí |
+| El deduplicado del muestreo se quita | Sí |
+
+La primera ronda dejó un problema y es que : tres tests comparaban cortes enteros contra flotantes
+en `_discretizar`, y en pandas 3.0.5 esa comparación da siempre igual. Se sustituyeron por el
+invariante que sí importa que toda etiqueta de tramo producida exista en la receta, comprobado a
+cinco tamaños de lote. Es la condición de la que depende que el WoE signifique algo, porque una
+etiqueta desconocida cae silenciosamente a riesgo promedio.
+
+### Cobertura
+
+| Módulo | Cobertura |
+|---|---|
+| `reglas_negocio.py` | 95,3% |
+| `app.py` | 93,9% |
+| `model_deploy.py` | 69,1% |
+| `hueristic_model.py` | 50,0% |
+| `model_monitoring.py` | 47,3% |
+| `ft_engineering.py` | 28,2% |
+| `model_evaluation.py` | 24,9% |
+| `model_training.py` | 23,0% |
+| **Total** | **43,0%** |
+
+El contrato y la API superan el 90%. En `model_deploy.py`, lo que falta cubrir es sobre todo
+`main()` y la construcción del artefacto, que corren antes de desplegar; `sanear`, `predecir_lote`
+y `decidir` están cubiertas. En `model_monitoring.py` falta sobre todo `main()`, las figuras y la
+construcción de la línea base; las funciones que miden la deriva están cubiertas casi por completo.
+Lo bajo es el código de entrenamiento y evaluación, que se ejecutó una
+vez y cuyo resultado está congelado en artefactos versionados. Cubrirlo al mismo nivel exigiría
+reentrenar el modelo en cada corrida de la suite, que tardaría minutos en lugar de segundos.
+
+### Los tests no tocan el registro de producción
+
+`predecir_lote` escribe en `registro_endpoint.csv`, que es el insumo de la Fase 5. Una suite que lo
+ensuciara con perfiles inventados falsearía la medición de deriva. Por eso todo lo que puntúa lo
+hace con `guardar_registro=False`, y el fixture del endpoint redirige la escritura a un directorio
+temporal. Quedo verificado el registro sigue en 4.204 filas y con cero rastros de prueba.
+
+### Integración continua
+
+`.github/workflows/ci.yml` corre la suite en cada push y en cada pull request hacia `master` o
+`develop`, y manda `coverage.xml` a SonarCloud. El análisis de Sonar depende de que los tests pasen
+primero.
+
+### Ejecución 
+
+```bash
+pip install -r requirements.txt
+python -m pytest
+```
 
 
 ## Resultados
@@ -983,8 +1082,8 @@ MLOPS_CURSE/
 │   ├── app.py                        # Fase 4: API del endpoint (añadido)
 │   ├── feature_engineering.ipynb     # Narrativa de la Fase 2 (añadido)
 │   ├── model_evaluation.ipynb        # Narrativa de la evaluación (añadido)
+│   ├── model_monitoring.ipynb        # Narrativa del monitoreo (añadido)
 │   └── hueristic_model.ipynb         # Narrativa del heurístico (añadido)
-├── config.json                       # Configuración del proyecto
 ├── data/
 │   └── processed/                    # Salida de la Fase 2
 │       ├── estratificado_train.csv        # 8.610 registros (datos particionados)
@@ -1020,16 +1119,26 @@ MLOPS_CURSE/
 ├── .dockerignore                     # Fase 4: qué no viaja al build (añadido)
 ├── requirements.txt                  # Dependencias con versiones fijadas
 ├── requirements-api.txt              # Subconjunto que instala la imagen (añadido)
+├── tests/                            # Stage 2: 182 tests en 5 archivos (añadido)
+├── .github/workflows/ci.yml          # Stage 2: tests y SonarCloud en cada push (añadido)
+├── pytest.ini                        # Stage 2: configuración de pytest (añadido)
+├── .coveragerc                       # Stage 2: alcance de la cobertura (añadido)
+├── sonar-project.properties          # Stage 2: proyecto de SonarCloud (añadido)
 ├── set_up.bat                        # Script de instalación de dependencias
 ├── .gitignore
 └── readme.md
 ```
 
-Esta estructura es la solicitada en el **Entregable 3**, cuyo enunciado advierte que la estructura de
-carpetas **no es modificable** porque el paso a producción se valida con Jenkins. Por eso
+Esta estructura sigue la solicitada en el **Entregable 3**, cuyo enunciado advierte que la estructura
+de carpetas **no es modificable** porque el paso a producción se valida con Jenkins. Por eso
 `hueristic_model.py` reproduce la errata del enunciado de forma deliberada: corregir la ortografía
 sería el error. Por la misma razón se conserva `set_up.bat` y no `setup.bat`: es el nombre que pide
 el enunciado.
+
+**Una diferencia con el árbol del enunciado:** los módulos están directamente en `mlops_pipeline/`,
+sin el nivel `src/`. Se mantiene así porque la imagen Docker, el CI, SonarCloud y las pruebas están
+construidos y verificados sobre estas rutas, y moverlos a días de la entrega arriesgaba romper lo
+verificado.
 
 ### Sobre versionar los datos generados
 
@@ -1053,9 +1162,11 @@ contenido. Versionarlo produciría un diff distinto cada vez sin ganar auditabil
 con `python mlops_pipeline/model_deploy.py`. `lote_ejemplo.csv` sí se versiona: es una muestra fija,
 con semilla, y sirve para probar el endpoint sin abrir la base de clientes.
 
-Los tres archivos marcados como *añadidos* no alteran la estructura exigida, porque añadir no es
-modificar. `reglas_negocio.py` publica el contrato del EDA que el resto del pipeline aplica; los dos
-notebooks aportan la narrativa de su `.py` correspondiente sin duplicar su lógica.
+Los archivos marcados como *añadidos* no alteran la estructura exigida, porque añadir no es
+modificar. `reglas_negocio.py` publica el contrato del EDA que el resto del pipeline aplica; los
+notebooks aportan la narrativa de su `.py` correspondiente sin duplicar su lógica; `app.py` y los
+archivos de Docker sirven el endpoint de la Fase 4, y los de pruebas e integración continua
+responden al Stage 2.
 
 ### Ramas
 
@@ -1082,6 +1193,8 @@ del diagrama del enunciado en lugar de aplanarse por *fast-forward*.
 | Jupyter | Notebooks de análisis |
 | FastAPI, uvicorn | App y endpoint de predicción por lote |
 | Docker | Imagen que contiene librerías, código y artefactos |
+| pytest, pytest-cov | Pruebas y cobertura (Stage 2) |
+| GitHub Actions, SonarCloud | Integración continua y análisis de calidad (Stage 2) |
 | Git / GitHub | Control de versiones (Gitflow, 4 ramas) |
 
 ## Instrucciones de ejecución
@@ -1146,8 +1259,9 @@ no arranca, porque el primero parece sano.
 python mlops_pipeline/model_monitoring.py
 ```
 
-Construye la línea base, hace pasar dos cohortes por el endpoint, lee el registro que esas llamadas
-dejaron y lo muestrea por semana de llegada y por mes de cosecha. Falla de forma explícita si el
+Lee la línea base congelada y solo la construye si falta; `--reconstruir-base` la rehace cuando cambia
+el modelo. Hace pasar dos cohortes por el endpoint, que se registran solo la primera vez, lee el
+registro y lo muestrea por semana de llegada y por mes de cosecha. Falla de forma explícita si el
 control supera el umbral de PSI, porque una medición que no discrimina no sirve para decidir nada.
 
 ## Fase 2 — Feature Engineering (completada)
@@ -1438,12 +1552,12 @@ vez sobre test, auditado en calibración y *fairness*, traducido a scorecard, se
 por lote dentro de una imagen Docker, y monitoreado por cosecha sobre el registro que ese endpoint
 produce.
 
-**Lo que el monitoreo dejó sobre la mesa.** Desde la cosecha de 2025-07, `plazo_meses` domina la
-deriva y llega a un PSI de 0,470, mientras el rechazo sube del 21% previsto al 37,80%. Es el
-coeficiente más alto del modelo, de modo que la entrada más influyente está recibiendo una población
-distinta de aquella sobre la que se ajustó. Con la cartera en ese estado, la decisión que sigue es
-reentrenar sobre datos recientes y volver a fijar el punto de operación, no ajustar el umbral a mano
-sobre la población que se quiere medir.
+**Lo que el monitoreo dejó sobre la mesa.** Desde la cosecha de 2025-08, `plazo_meses` encabeza la
+deriva y llega a un PSI de 0,470, mientras el rechazo sube del 21% previsto al 37,80%. Tiene el mayor
+coeficiente entre las variables WoE, de modo que una de las entradas más influyentes está recibiendo
+una población distinta de aquella sobre la que se ajustó. Con la cartera en ese estado, la decisión
+que sigue es reentrenar sobre datos recientes y volver a fijar el punto de operación, no ajustar el
+umbral a mano sobre la población que se quiere medir.
 
 ## Referencias
 

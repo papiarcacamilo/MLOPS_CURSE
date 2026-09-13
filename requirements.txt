@@ -35,3 +35,12 @@ ipykernel==7.3.0
 fastapi==0.121.2
 uvicorn[standard]==0.41.0
 python-multipart==0.0.20
+
+# --- Pruebas (Stage 2) ---
+# Tampoco entran en la imagen: una suite de tests dentro del contenedor de
+# produccion es peso muerto y superficie que hay que parchear.
+pytest==8.4.2
+pytest-cov==6.3.0
+httpx==0.28.1
+# El TestClient de FastAPI corre la app en proceso sobre httpx, sin levantar
+# uvicorn ni el contenedor.

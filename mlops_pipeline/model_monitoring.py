@@ -58,8 +58,8 @@ fases. Medido sobre el test temporal, no es lo que pasa:
 
 Los jovenes tienen el DOBLE de mora, no la mitad. La razon es que
 `madurez_incompleta` esta confundida con el plazo: un credito sigue vivo
-justamente porque se pacto a mas meses, y `plazo_meses` es el coeficiente mas
-alto del modelo (0.8573). El filtro de madurez no aisla el censurado, selecciona
+justamente porque se pacto a mas meses, y `plazo_meses` tiene el coeficiente
+mas alto entre las variables WoE del modelo (0.8573). El filtro de madurez no aisla el censurado, selecciona
 creditos cortos, que son estructuralmente menos riesgosos.
 
 Conclusion practica: NINGUNO de los dos subgrupos da una lectura limpia. El

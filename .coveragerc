@@ -1,0 +1,25 @@
+# Que entra en la medida de cobertura y que no.
+#
+# Los notebooks y los tests quedan fuera: medir la cobertura de los propios tests
+# infla el numero sin decir nada sobre el codigo que se entrega.
+#
+# Los bloques `if __name__ == "__main__"` tampoco cuentan: son el punto de
+# entrada del script, no logica que se pueda probar por separado.
+
+[run]
+source = mlops_pipeline
+omit =
+    */__pycache__/*
+    */tests/*
+
+[report]
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:
+    raise NotImplementedError
+    except ImportError
+precision = 1
+show_missing = True
+
+[xml]
+output = coverage.xml

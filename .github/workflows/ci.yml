@@ -1,0 +1,120 @@
+# =============================================================================
+# Integracion continua | MLOPS_CURSE
+# =============================================================================
+#
+# Corre la suite y manda la cobertura a SonarCloud en cada push y en cada PR.
+#
+# POR QUE IMPORTA QUE CORRA SOLO
+#
+# Las verificaciones de este proyecto existian desde la Fase 4, pero vivian
+# dentro de `main()`: solo corrian si alguien ejecutaba el script entero a mano.
+# Aqui corren sin que nadie se acuerde, que es la unica forma de que un fallo
+# silencioso no llegue a la rama principal.
+# =============================================================================
+
+name: CI
+
+on:
+  push:
+    branches: [master, develop, feature1, feature2]
+  pull_request:
+    branches: [master, develop]
+
+jobs:
+  pruebas:
+    name: Tests y cobertura
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Sonar necesita el historial completo para atribuir cada linea a su
+          # autor y calcular el codigo nuevo de la PR.
+          fetch-depth: 0
+
+      - name: Preparar Python 3.11
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      # requirements.txt y no requirements-api.txt. La primera version del CI
+      # instalaba el de la imagen, que es mas ligero, y fallo antes de correr un
+      # solo test: `test_despliegue.py` importa `model_evaluation`, que importa
+      # `model_training`, que necesita imbalanced-learn. La imagen no la lleva
+      # porque el endpoint no la usa; la suite si, porque prueba tambien el
+      # codigo de entrenamiento.
+      #
+      # Es ademas lo que el readme le dice a cualquiera que quiera correr las
+      # pruebas, de modo que el CI reproduce exactamente ese entorno.
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Correr la suite
+        run: python -m pytest -q
+
+      - name: Publicar la cobertura
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: cobertura
+          path: coverage.xml
+          if-no-files-found: error
+
+  sonar:
+    name: SonarCloud
+    runs-on: ubuntu-latest
+    needs: pruebas
+    # Las PR desde forks no reciben secretos: sin este filtro el job fallaria
+    # siempre en ellas.
+    if: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
+
+    # Sin el secreto configurado, el analisis se salta en lugar de fallar el CI:
+    # quien clone el repositorio sin token sigue teniendo los tests en verde.
+    #
+    # GitHub no permite leer `secrets` dentro de un `if`, de modo que el token se
+    # expone como variable de entorno del job y es el paso el que la consulta.
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # La cobertura se reutiliza del job anterior en vez de volver a correr la
+      # suite. El escaner de Sonar no necesita Python ni sus dependencias: lee el
+      # codigo fuente y coverage.xml. Reinstalar y repetir 182 tests solo para
+      # regenerar un archivo que ya existe duplicaria el tiempo del CI.
+      - name: Recuperar la cobertura
+        uses: actions/download-artifact@v8
+        with:
+          name: cobertura
+
+      - name: Avisar si falta el token
+        if: ${{ env.SONAR_TOKEN == '' }}
+        run: echo "::warning::SONAR_TOKEN no esta configurado; se omite el analisis de SonarCloud."
+
+      # Un token con un salto de linea o un espacio al final es el error mas
+      # comun al pegar un secreto, y el escaner no lo explica: falla con
+      # "Failed to query JRE metadata: invalid header value", porque el token
+      # viaja en una cabecera HTTP y ahi un salto de linea es ilegal. Asi fallo la
+      # segunda ejecucion de este CI.
+      #
+      # Se comprueba con el operador de bash y no con grep: grep trata el salto
+      # final como fin de linea y no como contenido, de modo que no lo veria.
+      # El valor nunca se imprime.
+      - name: Validar el token
+        if: ${{ env.SONAR_TOKEN != '' }}
+        shell: bash
+        run: |
+          if [[ "$SONAR_TOKEN" =~ [[:space:]] ]]; then
+            echo "::error::SONAR_TOKEN contiene espacios o saltos de linea. Vuelve a guardar el secreto en Settings > Secrets and variables > Actions sin ellos."
+            exit 1
+          fi
+
+      - name: Analizar con SonarCloud
+        if: ${{ env.SONAR_TOKEN != '' }}
+        uses: SonarSource/sonarqube-scan-action@v8
