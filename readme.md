@@ -837,13 +837,16 @@ solicitudes y se declaran como tales en lugar de publicar un número que nadie p
 | 2025-12 | 174 | 0,470 | `plazo_meses` | 31,61% |
 | 2026-01 | 127 | 0,450 | `plazo_meses` | 37,80% |
 
-Hay dos regímenes. Hasta mediados de 2025 la deriva es moderada y la reparten el score y el ingreso
-del buró. **Desde 2025-07 `plazo_meses` toma el control y crece hasta 0,470**, y el rechazo sube en
-paralelo del 21% previsto al 37,80%.
+Hay dos regímenes. Hasta 2025-06 las cosechas solo contienen la muestra de control y la prueba de
+humo, y su deriva, entre 0,12 y 0,26, la reparten el score, el ingreso del buró y el tipo de
+crédito: refleja la variación mes a mes dentro de la propia población de entrenamiento, no una
+población nueva. **Desde 2025-08 `plazo_meses` encabeza la deriva en cinco de seis cosechas y crece
+hasta 0,470**, y el rechazo sube del 21% previsto al 37,80%.
 
-`plazo_meses` es el coeficiente más alto del modelo (0,8573). Que sea justo esa variable la que se
-mueve significa que la entrada más influyente está recibiendo una población distinta de aquella
-sobre la que se ajustó. Es la señal accionable: no es ruido repartido, es la variable que más pesa.
+`plazo_meses` tiene el mayor coeficiente entre las variables WoE del modelo (0,8573). Que sea justo
+esa variable la que se mueve significa que una de las entradas más influyentes está recibiendo una
+población distinta de aquella sobre la que se ajustó. Es la señal accionable: no es ruido repartido,
+es la variable WoE que más pesa.
 
 ### Las cuatro señales, y cuándo llegan
 
@@ -953,7 +956,9 @@ etiqueta desconocida cae silenciosamente a riesgo promedio.
 
 El contrato y la API superan el 90%. En `model_deploy.py`, lo que falta cubrir es sobre todo
 `main()` y la construcción del artefacto, que corren antes de desplegar; `sanear`, `predecir_lote`
-y `decidir` están cubiertas. Lo bajo es el código de entrenamiento y evaluación, que se ejecutó una
+y `decidir` están cubiertas. En `model_monitoring.py` falta sobre todo `main()`, las figuras y la
+construcción de la línea base; las funciones que miden la deriva están cubiertas casi por completo.
+Lo bajo es el código de entrenamiento y evaluación, que se ejecutó una
 vez y cuyo resultado está congelado en artefactos versionados. Cubrirlo al mismo nivel exigiría
 reentrenar el modelo en cada corrida de la suite, que tardaría minutos en lugar de segundos.
 
@@ -1079,7 +1084,6 @@ MLOPS_CURSE/
 │   ├── model_evaluation.ipynb        # Narrativa de la evaluación (añadido)
 │   ├── model_monitoring.ipynb        # Narrativa del monitoreo (añadido)
 │   └── hueristic_model.ipynb         # Narrativa del heurístico (añadido)
-├── config.json                       # Configuración del proyecto
 ├── data/
 │   └── processed/                    # Salida de la Fase 2
 │       ├── estratificado_train.csv        # 8.610 registros (datos particionados)
@@ -1115,16 +1119,26 @@ MLOPS_CURSE/
 ├── .dockerignore                     # Fase 4: qué no viaja al build (añadido)
 ├── requirements.txt                  # Dependencias con versiones fijadas
 ├── requirements-api.txt              # Subconjunto que instala la imagen (añadido)
+├── tests/                            # Stage 2: 182 tests en 5 archivos (añadido)
+├── .github/workflows/ci.yml          # Stage 2: tests y SonarCloud en cada push (añadido)
+├── pytest.ini                        # Stage 2: configuración de pytest (añadido)
+├── .coveragerc                       # Stage 2: alcance de la cobertura (añadido)
+├── sonar-project.properties          # Stage 2: proyecto de SonarCloud (añadido)
 ├── set_up.bat                        # Script de instalación de dependencias
 ├── .gitignore
 └── readme.md
 ```
 
-Esta estructura es la solicitada en el **Entregable 3**, cuyo enunciado advierte que la estructura de
-carpetas **no es modificable** porque el paso a producción se valida con Jenkins. Por eso
+Esta estructura sigue la solicitada en el **Entregable 3**, cuyo enunciado advierte que la estructura
+de carpetas **no es modificable** porque el paso a producción se valida con Jenkins. Por eso
 `hueristic_model.py` reproduce la errata del enunciado de forma deliberada: corregir la ortografía
 sería el error. Por la misma razón se conserva `set_up.bat` y no `setup.bat`: es el nombre que pide
 el enunciado.
+
+**Una diferencia con el árbol del enunciado:** los módulos están directamente en `mlops_pipeline/`,
+sin el nivel `src/`. Se mantiene así porque la imagen Docker, el CI, SonarCloud y las pruebas están
+construidos y verificados sobre estas rutas, y moverlos a días de la entrega arriesgaba romper lo
+verificado.
 
 ### Sobre versionar los datos generados
 
@@ -1148,9 +1162,11 @@ contenido. Versionarlo produciría un diff distinto cada vez sin ganar auditabil
 con `python mlops_pipeline/model_deploy.py`. `lote_ejemplo.csv` sí se versiona: es una muestra fija,
 con semilla, y sirve para probar el endpoint sin abrir la base de clientes.
 
-Los tres archivos marcados como *añadidos* no alteran la estructura exigida, porque añadir no es
-modificar. `reglas_negocio.py` publica el contrato del EDA que el resto del pipeline aplica; los dos
-notebooks aportan la narrativa de su `.py` correspondiente sin duplicar su lógica.
+Los archivos marcados como *añadidos* no alteran la estructura exigida, porque añadir no es
+modificar. `reglas_negocio.py` publica el contrato del EDA que el resto del pipeline aplica; los
+notebooks aportan la narrativa de su `.py` correspondiente sin duplicar su lógica; `app.py` y los
+archivos de Docker sirven el endpoint de la Fase 4, y los de pruebas e integración continua
+responden al Stage 2.
 
 ### Ramas
 
@@ -1177,6 +1193,8 @@ del diagrama del enunciado en lugar de aplanarse por *fast-forward*.
 | Jupyter | Notebooks de análisis |
 | FastAPI, uvicorn | App y endpoint de predicción por lote |
 | Docker | Imagen que contiene librerías, código y artefactos |
+| pytest, pytest-cov | Pruebas y cobertura (Stage 2) |
+| GitHub Actions, SonarCloud | Integración continua y análisis de calidad (Stage 2) |
 | Git / GitHub | Control de versiones (Gitflow, 4 ramas) |
 
 ## Instrucciones de ejecución
@@ -1241,8 +1259,9 @@ no arranca, porque el primero parece sano.
 python mlops_pipeline/model_monitoring.py
 ```
 
-Construye la línea base, hace pasar dos cohortes por el endpoint, lee el registro que esas llamadas
-dejaron y lo muestrea por semana de llegada y por mes de cosecha. Falla de forma explícita si el
+Lee la línea base congelada y solo la construye si falta; `--reconstruir-base` la rehace cuando cambia
+el modelo. Hace pasar dos cohortes por el endpoint, que se registran solo la primera vez, lee el
+registro y lo muestrea por semana de llegada y por mes de cosecha. Falla de forma explícita si el
 control supera el umbral de PSI, porque una medición que no discrimina no sirve para decidir nada.
 
 ## Fase 2 — Feature Engineering (completada)
@@ -1533,12 +1552,12 @@ vez sobre test, auditado en calibración y *fairness*, traducido a scorecard, se
 por lote dentro de una imagen Docker, y monitoreado por cosecha sobre el registro que ese endpoint
 produce.
 
-**Lo que el monitoreo dejó sobre la mesa.** Desde la cosecha de 2025-07, `plazo_meses` domina la
-deriva y llega a un PSI de 0,470, mientras el rechazo sube del 21% previsto al 37,80%. Es el
-coeficiente más alto del modelo, de modo que la entrada más influyente está recibiendo una población
-distinta de aquella sobre la que se ajustó. Con la cartera en ese estado, la decisión que sigue es
-reentrenar sobre datos recientes y volver a fijar el punto de operación, no ajustar el umbral a mano
-sobre la población que se quiere medir.
+**Lo que el monitoreo dejó sobre la mesa.** Desde la cosecha de 2025-08, `plazo_meses` encabeza la
+deriva y llega a un PSI de 0,470, mientras el rechazo sube del 21% previsto al 37,80%. Tiene el mayor
+coeficiente entre las variables WoE, de modo que una de las entradas más influyentes está recibiendo
+una población distinta de aquella sobre la que se ajustó. Con la cartera en ese estado, la decisión
+que sigue es reentrenar sobre datos recientes y volver a fijar el punto de operación, no ajustar el
+umbral a mano sobre la población que se quiere medir.
 
 ## Referencias
 
