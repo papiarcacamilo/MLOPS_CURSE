@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import sys
 from pathlib import Path
 
@@ -63,7 +64,21 @@ def encontrar_raiz(marcador: str = "Base_de_datos.csv", max_niveles: int = 6) ->
 
     Se replica la estrategia usada en los notebooks: el script vive en
     mlops_pipeline/ y los datos en la raiz del repositorio.
+
+    La variable de entorno MLOPS_RAIZ tiene prioridad y existe por el
+    despliegue: la imagen de la Fase 4 lleva el modelo y los artefactos, pero
+    NO los datos de entrenamiento, de modo que el marcador no esta ahi. Sin
+    esta salida, importar el modulo dentro del contenedor fallaria; con ella, el
+    unico cambio es declarar MLOPS_RAIZ=/app en el Dockerfile. Fuera del
+    contenedor la variable no existe y el comportamiento es el de siempre.
     """
+    declarada = os.environ.get("MLOPS_RAIZ")
+    if declarada:
+        raiz = Path(declarada).resolve()
+        if not raiz.is_dir():
+            raise FileNotFoundError(f"MLOPS_RAIZ apunta a {raiz}, que no existe.")
+        return raiz
+
     try:
         actual = Path(__file__).resolve().parent
     except NameError:
@@ -386,8 +401,14 @@ def construir_derivadas(df: pd.DataFrame, fecha_corte_obs: pd.Timestamp) -> pd.D
     df["trimestre_prestamo"] = df[COLUMNA_FECHA].dt.quarter
 
     # Los tipos 7 y 68 tienen 2 y 1 registro en el dataset completo: como
-    # categorias propias no son estimables. El 6 se conserva separado por su
-    # tasa del 42.86% (OR ~15, p < 0.0001).
+    # categorias propias no son estimables.
+    #
+    # El 6 se conserva separado por su riesgo elevado, pero conviene no leer su
+    # tasa como un valor puntual: son 21 creditos con 9 en mora, y su intervalo
+    # de confianza al 95% va de 24.5% a 63.5%. La asociacion es solida
+    # (chi2, p = 1.77e-13) porque el limite inferior queda muy por encima del
+    # 4.75% de la cartera, pero la MAGNITUD es imprecisa. Se trata como senial a
+    # confirmar con mas volumen, no como una tasa medida.
     df["tipo_credito_grp"] = df["tipo_credito"].astype(str).where(
         df["tipo_credito"].isin([4, 6, 9, 10]), "Otros"
     )

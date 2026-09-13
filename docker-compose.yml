@@ -1,0 +1,34 @@
+# =============================================================================
+# MLOPS_CURSE | Levantar el endpoint con un solo comando
+# =============================================================================
+#
+#   docker compose up --build
+#   http://localhost:8000/docs
+#   docker compose down
+#
+# El Dockerfile por si solo ya basta. Este archivo existe por el volumen: monta
+# data/monitoring del repositorio dentro del contenedor, de modo que el registro
+# de solicitudes y pronosticos queda en el disco del anfitrion. Sin eso, cada
+# `docker run` empezaria con el registro vacio y la Fase 5 no tendria nada que
+# medir.
+# =============================================================================
+
+services:
+  api:
+    build: .
+    image: mlops-riesgo:1.0.0
+    container_name: mlops-riesgo
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data/monitoring:/app/data/monitoring
+    restart: unless-stopped
+    healthcheck:
+      # Parsea el JSON y exige el estado, no solo que responda: un servicio
+      # que contestara 200 con estado degradado se reportaria sano.
+      test: ["CMD", "python", "-c",
+             "import json,sys,urllib.request as u; sys.exit(0 if json.loads(u.urlopen('http://127.0.0.1:8000/salud').read())['estado'] == 'activo' else 1)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3

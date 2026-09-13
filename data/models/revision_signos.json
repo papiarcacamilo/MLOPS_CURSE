@@ -1,0 +1,77 @@
+{
+  "n_woe": 9,
+  "folds_con_todos_positivos": "5 de 5",
+  "positivos_en_test": 7,
+  "coinciden_en_signo": 7,
+  "invertidos_en_test": [
+    "woe_discrepancia_ingresos",
+    "woe_tipo_credito_grp"
+  ],
+  "correlacion_train_test": 0.4082,
+  "tabla": [
+    {
+      "variable": "woe_puntaje_datacredito",
+      "coef_train": 0.2966,
+      "coef_test": 0.3187,
+      "mismo_signo": true,
+      "positivo_en_test": true
+    },
+    {
+      "variable": "woe_plazo_meses",
+      "coef_train": 0.2267,
+      "coef_test": 0.3356,
+      "mismo_signo": true,
+      "positivo_en_test": true
+    },
+    {
+      "variable": "woe_huella_consulta",
+      "coef_train": 0.1785,
+      "coef_test": 0.1549,
+      "mismo_signo": true,
+      "positivo_en_test": true
+    },
+    {
+      "variable": "woe_consultas_por_credito",
+      "coef_train": 0.1782,
+      "coef_test": 0.3458,
+      "mismo_signo": true,
+      "positivo_en_test": true
+    },
+    {
+      "variable": "woe_promedio_ingresos_datacredito",
+      "coef_train": 0.2358,
+      "coef_test": 0.2753,
+      "mismo_signo": true,
+      "positivo_en_test": true
+    },
+    {
+      "variable": "woe_discrepancia_ingresos",
+      "coef_train": 0.1527,
+      "coef_test": -0.3976,
+      "mismo_signo": false,
+      "positivo_en_test": false
+    },
+    {
+      "variable": "woe_edad_cliente",
+      "coef_train": 0.1789,
+      "coef_test": 0.1283,
+      "mismo_signo": true,
+      "positivo_en_test": true
+    },
+    {
+      "variable": "woe_tendencia_ingresos",
+      "coef_train": 0.0935,
+      "coef_test": 0.2793,
+      "mismo_signo": true,
+      "positivo_en_test": true
+    },
+    {
+      "variable": "woe_tipo_credito_grp",
+      "coef_train": 0.1118,
+      "coef_test": -0.0066,
+      "mismo_signo": false,
+      "positivo_en_test": false
+    }
+  ],
+  "nota": "El test se usa aqui como diagnostico, no como criterio de seleccion: el modelo no se modifica por este resultado."
+}

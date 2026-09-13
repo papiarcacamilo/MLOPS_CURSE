@@ -1,0 +1,2323 @@
+{
+  "periodicidad": {
+    "llegada": "semanal",
+    "cosecha": "mensual por cosecha de desembolso"
+  },
+  "umbrales_psi": {
+    "moderado": 0.1,
+    "importante": 0.25
+  },
+  "linea_base": {
+    "origen": "estratificado_train.csv",
+    "n": 8610,
+    "version_modelo": "0b9cf390cc9a"
+  },
+  "registro_endpoint": {
+    "decisiones": 4204,
+    "versiones_modelo": [
+      "0b9cf390cc9a"
+    ],
+    "minimo_por_periodo": 100,
+    "nota_minimo": "El minimo se aplica sobre SOLICITUDES DISTINTAS, no sobre decisiones: una misma solicitud puntuada dos veces es una observacion de la poblacion, no dos."
+  },
+  "por_periodo": {
+    "llegada": {
+      "periodicidad": "semanal",
+      "periodos": {
+        "2026-09-13": {
+          "cohorte": "llegada 2026-09-13",
+          "n": 3801,
+          "suficiente": true,
+          "covariables": {
+            "psi_maximo": 0.0394,
+            "psi_medio": 0.0103,
+            "variables_alertadas": 0,
+            "tabla": [
+              {
+                "variable": "puntaje_datacredito",
+                "psi": 0.0394,
+                "estado": "estable"
+              },
+              {
+                "variable": "plazo_meses",
+                "psi": 0.0378,
+                "estado": "estable"
+              },
+              {
+                "variable": "total_otros_prestamos",
+                "psi": 0.0171,
+                "estado": "estable"
+              },
+              {
+                "variable": "promedio_ingresos_datacredito",
+                "psi": 0.0112,
+                "estado": "estable"
+              },
+              {
+                "variable": "cuota_pactada",
+                "psi": 0.0099,
+                "estado": "estable"
+              },
+              {
+                "variable": "capital_prestado",
+                "psi": 0.0061,
+                "estado": "estable"
+              },
+              {
+                "variable": "discrepancia_ingresos",
+                "psi": 0.0032,
+                "estado": "estable"
+              },
+              {
+                "variable": "tendencia_ingresos",
+                "psi": 0.0029,
+                "estado": "estable"
+              },
+              {
+                "variable": "edad_cliente",
+                "psi": 0.0022,
+                "estado": "estable"
+              },
+              {
+                "variable": "salario_cliente",
+                "psi": 0.0022,
+                "estado": "estable"
+              },
+              {
+                "variable": "tipo_credito_grp",
+                "psi": 0.0016,
+                "estado": "estable"
+              },
+              {
+                "variable": "huella_consulta",
+                "psi": 0.0004,
+                "estado": "estable"
+              },
+              {
+                "variable": "consultas_por_credito",
+                "psi": 0.0003,
+                "estado": "estable"
+              }
+            ]
+          },
+          "prediccion": {
+            "psi": 0.0054,
+            "estado": "estable",
+            "probabilidad_media": 0.049197,
+            "probabilidad_media_base": 0.0475,
+            "desplazamiento": 0.001697
+          },
+          "corte": {
+            "umbral": 0.0661,
+            "pct_rechazo_base": 21.25,
+            "pct_rechazo_cohorte": 22.86,
+            "desviacion_pp": 1.61,
+            "requiere_revision": false
+          },
+          "banderas": [
+            {
+              "bandera": "edad_cliente_corregida",
+              "tasa_base": 0.012,
+              "tasa_cohorte": 0.0005,
+              "casos": 2,
+              "razon": 0.04
+            },
+            {
+              "bandera": "salario_cliente_corregido",
+              "tasa_base": 0.0217,
+              "tasa_cohorte": 0.0008,
+              "casos": 3,
+              "razon": 0.04
+            },
+            {
+              "bandera": "tendencia_ingresos_reconstruida",
+              "tasa_base": 0.0055,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "total_otros_prestamos_sospechoso",
+              "tasa_base": 0.0029,
+              "tasa_cohorte": 0.0029,
+              "casos": 11,
+              "razon": 1.0
+            }
+          ],
+          "concepto": {
+            "medible": false,
+            "motivo": "la cohorte no trae la variable objetivo"
+          },
+          "veredicto": "SIN CAMBIO RELEVANTE",
+          "medible": true,
+          "n_decisiones": 4204,
+          "n_solicitudes": 3801
+        }
+      }
+    },
+    "cosecha": {
+      "periodicidad": "mensual por cosecha de desembolso",
+      "periodos": {
+        "2024-11-01": {
+          "n_decisiones": 27,
+          "n_solicitudes": 27,
+          "medible": false,
+          "motivo": "27 solicitudes distintas, bajo el minimo de 100"
+        },
+        "2024-12-01": {
+          "cohorte": "cosecha 2024-12-01",
+          "n": 248,
+          "suficiente": true,
+          "covariables": {
+            "psi_maximo": 0.259,
+            "psi_medio": 0.0828,
+            "variables_alertadas": 4,
+            "tabla": [
+              {
+                "variable": "promedio_ingresos_datacredito",
+                "psi": 0.259,
+                "estado": "cambio importante"
+              },
+              {
+                "variable": "puntaje_datacredito",
+                "psi": 0.1578,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "tendencia_ingresos",
+                "psi": 0.1567,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "tipo_credito_grp",
+                "psi": 0.1182,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "plazo_meses",
+                "psi": 0.0851,
+                "estado": "estable"
+              },
+              {
+                "variable": "cuota_pactada",
+                "psi": 0.0568,
+                "estado": "estable"
+              },
+              {
+                "variable": "salario_cliente",
+                "psi": 0.0557,
+                "estado": "estable"
+              },
+              {
+                "variable": "discrepancia_ingresos",
+                "psi": 0.0495,
+                "estado": "estable"
+              },
+              {
+                "variable": "total_otros_prestamos",
+                "psi": 0.0389,
+                "estado": "estable"
+              },
+              {
+                "variable": "huella_consulta",
+                "psi": 0.0321,
+                "estado": "estable"
+              },
+              {
+                "variable": "consultas_por_credito",
+                "psi": 0.0282,
+                "estado": "estable"
+              },
+              {
+                "variable": "edad_cliente",
+                "psi": 0.0226,
+                "estado": "estable"
+              },
+              {
+                "variable": "capital_prestado",
+                "psi": 0.0153,
+                "estado": "estable"
+              }
+            ]
+          },
+          "prediccion": {
+            "psi": 0.0246,
+            "estado": "estable",
+            "probabilidad_media": 0.050728,
+            "probabilidad_media_base": 0.0475,
+            "desplazamiento": 0.003228
+          },
+          "corte": {
+            "umbral": 0.0661,
+            "pct_rechazo_base": 21.25,
+            "pct_rechazo_cohorte": 22.58,
+            "desviacion_pp": 1.33,
+            "requiere_revision": false
+          },
+          "banderas": [
+            {
+              "bandera": "edad_cliente_corregida",
+              "tasa_base": 0.012,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "salario_cliente_corregido",
+              "tasa_base": 0.0217,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "tendencia_ingresos_reconstruida",
+              "tasa_base": 0.0055,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "total_otros_prestamos_sospechoso",
+              "tasa_base": 0.0029,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            }
+          ],
+          "concepto": {
+            "medible": false,
+            "motivo": "la cohorte no trae la variable objetivo"
+          },
+          "veredicto": "REENTRENAR: 1 variables con cambio importante",
+          "medible": true,
+          "n_decisiones": 249,
+          "n_solicitudes": 248
+        },
+        "2025-01-01": {
+          "cohorte": "cosecha 2025-01-01",
+          "n": 377,
+          "suficiente": true,
+          "covariables": {
+            "psi_maximo": 0.1414,
+            "psi_medio": 0.0492,
+            "variables_alertadas": 3,
+            "tabla": [
+              {
+                "variable": "puntaje_datacredito",
+                "psi": 0.1414,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "promedio_ingresos_datacredito",
+                "psi": 0.1371,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "tipo_credito_grp",
+                "psi": 0.1325,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "plazo_meses",
+                "psi": 0.0485,
+                "estado": "estable"
+              },
+              {
+                "variable": "tendencia_ingresos",
+                "psi": 0.0374,
+                "estado": "estable"
+              },
+              {
+                "variable": "total_otros_prestamos",
+                "psi": 0.0321,
+                "estado": "estable"
+              },
+              {
+                "variable": "discrepancia_ingresos",
+                "psi": 0.0291,
+                "estado": "estable"
+              },
+              {
+                "variable": "salario_cliente",
+                "psi": 0.0194,
+                "estado": "estable"
+              },
+              {
+                "variable": "cuota_pactada",
+                "psi": 0.0184,
+                "estado": "estable"
+              },
+              {
+                "variable": "consultas_por_credito",
+                "psi": 0.0157,
+                "estado": "estable"
+              },
+              {
+                "variable": "capital_prestado",
+                "psi": 0.0123,
+                "estado": "estable"
+              },
+              {
+                "variable": "edad_cliente",
+                "psi": 0.0111,
+                "estado": "estable"
+              },
+              {
+                "variable": "huella_consulta",
+                "psi": 0.0045,
+                "estado": "estable"
+              }
+            ]
+          },
+          "prediccion": {
+            "psi": 0.0558,
+            "estado": "estable",
+            "probabilidad_media": 0.040169,
+            "probabilidad_media_base": 0.0475,
+            "desplazamiento": -0.007331
+          },
+          "corte": {
+            "umbral": 0.0661,
+            "pct_rechazo_base": 21.25,
+            "pct_rechazo_cohorte": 15.12,
+            "desviacion_pp": -6.13,
+            "requiere_revision": false
+          },
+          "banderas": [
+            {
+              "bandera": "edad_cliente_corregida",
+              "tasa_base": 0.012,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "salario_cliente_corregido",
+              "tasa_base": 0.0217,
+              "tasa_cohorte": 0.0027,
+              "casos": 1,
+              "razon": 0.12
+            },
+            {
+              "bandera": "tendencia_ingresos_reconstruida",
+              "tasa_base": 0.0055,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "total_otros_prestamos_sospechoso",
+              "tasa_base": 0.0029,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            }
+          ],
+          "concepto": {
+            "medible": false,
+            "motivo": "la cohorte no trae la variable objetivo"
+          },
+          "veredicto": "VIGILAR: 3 variables con cambio moderado",
+          "medible": true,
+          "n_decisiones": 377,
+          "n_solicitudes": 377
+        },
+        "2025-02-01": {
+          "cohorte": "cosecha 2025-02-01",
+          "n": 181,
+          "suficiente": true,
+          "covariables": {
+            "psi_maximo": 0.1429,
+            "psi_medio": 0.0362,
+            "variables_alertadas": 1,
+            "tabla": [
+              {
+                "variable": "puntaje_datacredito",
+                "psi": 0.1429,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "consultas_por_credito",
+                "psi": 0.0836,
+                "estado": "estable"
+              },
+              {
+                "variable": "promedio_ingresos_datacredito",
+                "psi": 0.0409,
+                "estado": "estable"
+              },
+              {
+                "variable": "huella_consulta",
+                "psi": 0.036,
+                "estado": "estable"
+              },
+              {
+                "variable": "plazo_meses",
+                "psi": 0.0326,
+                "estado": "estable"
+              },
+              {
+                "variable": "tipo_credito_grp",
+                "psi": 0.0227,
+                "estado": "estable"
+              },
+              {
+                "variable": "salario_cliente",
+                "psi": 0.0219,
+                "estado": "estable"
+              },
+              {
+                "variable": "total_otros_prestamos",
+                "psi": 0.0189,
+                "estado": "estable"
+              },
+              {
+                "variable": "edad_cliente",
+                "psi": 0.0166,
+                "estado": "estable"
+              },
+              {
+                "variable": "capital_prestado",
+                "psi": 0.0161,
+                "estado": "estable"
+              },
+              {
+                "variable": "cuota_pactada",
+                "psi": 0.016,
+                "estado": "estable"
+              },
+              {
+                "variable": "discrepancia_ingresos",
+                "psi": 0.0132,
+                "estado": "estable"
+              },
+              {
+                "variable": "tendencia_ingresos",
+                "psi": 0.0086,
+                "estado": "estable"
+              }
+            ]
+          },
+          "prediccion": {
+            "psi": 0.0488,
+            "estado": "estable",
+            "probabilidad_media": 0.041461,
+            "probabilidad_media_base": 0.0475,
+            "desplazamiento": -0.006039
+          },
+          "corte": {
+            "umbral": 0.0661,
+            "pct_rechazo_base": 21.25,
+            "pct_rechazo_cohorte": 16.02,
+            "desviacion_pp": -5.23,
+            "requiere_revision": false
+          },
+          "banderas": [
+            {
+              "bandera": "edad_cliente_corregida",
+              "tasa_base": 0.012,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "salario_cliente_corregido",
+              "tasa_base": 0.0217,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "tendencia_ingresos_reconstruida",
+              "tasa_base": 0.0055,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "total_otros_prestamos_sospechoso",
+              "tasa_base": 0.0029,
+              "tasa_cohorte": 0.0055,
+              "casos": 1,
+              "razon": 1.9
+            }
+          ],
+          "concepto": {
+            "medible": false,
+            "motivo": "la cohorte no trae la variable objetivo"
+          },
+          "veredicto": "VIGILAR: 1 variables con cambio moderado",
+          "medible": true,
+          "n_decisiones": 183,
+          "n_solicitudes": 181
+        },
+        "2025-03-01": {
+          "cohorte": "cosecha 2025-03-01",
+          "n": 226,
+          "suficiente": true,
+          "covariables": {
+            "psi_maximo": 0.1228,
+            "psi_medio": 0.0413,
+            "variables_alertadas": 2,
+            "tabla": [
+              {
+                "variable": "puntaje_datacredito",
+                "psi": 0.1228,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "tendencia_ingresos",
+                "psi": 0.1039,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "total_otros_prestamos",
+                "psi": 0.0724,
+                "estado": "estable"
+              },
+              {
+                "variable": "promedio_ingresos_datacredito",
+                "psi": 0.0533,
+                "estado": "estable"
+              },
+              {
+                "variable": "discrepancia_ingresos",
+                "psi": 0.0394,
+                "estado": "estable"
+              },
+              {
+                "variable": "salario_cliente",
+                "psi": 0.032,
+                "estado": "estable"
+              },
+              {
+                "variable": "tipo_credito_grp",
+                "psi": 0.032,
+                "estado": "estable"
+              },
+              {
+                "variable": "huella_consulta",
+                "psi": 0.0202,
+                "estado": "estable"
+              },
+              {
+                "variable": "consultas_por_credito",
+                "psi": 0.0197,
+                "estado": "estable"
+              },
+              {
+                "variable": "plazo_meses",
+                "psi": 0.0124,
+                "estado": "estable"
+              },
+              {
+                "variable": "cuota_pactada",
+                "psi": 0.0106,
+                "estado": "estable"
+              },
+              {
+                "variable": "edad_cliente",
+                "psi": 0.0105,
+                "estado": "estable"
+              },
+              {
+                "variable": "capital_prestado",
+                "psi": 0.0079,
+                "estado": "estable"
+              }
+            ]
+          },
+          "prediccion": {
+            "psi": 0.0315,
+            "estado": "estable",
+            "probabilidad_media": 0.046935,
+            "probabilidad_media_base": 0.0475,
+            "desplazamiento": -0.000565
+          },
+          "corte": {
+            "umbral": 0.0661,
+            "pct_rechazo_base": 21.25,
+            "pct_rechazo_cohorte": 21.24,
+            "desviacion_pp": -0.01,
+            "requiere_revision": false
+          },
+          "banderas": [
+            {
+              "bandera": "edad_cliente_corregida",
+              "tasa_base": 0.012,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "salario_cliente_corregido",
+              "tasa_base": 0.0217,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "tendencia_ingresos_reconstruida",
+              "tasa_base": 0.0055,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "total_otros_prestamos_sospechoso",
+              "tasa_base": 0.0029,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            }
+          ],
+          "concepto": {
+            "medible": false,
+            "motivo": "la cohorte no trae la variable objetivo"
+          },
+          "veredicto": "VIGILAR: 2 variables con cambio moderado",
+          "medible": true,
+          "n_decisiones": 228,
+          "n_solicitudes": 226
+        },
+        "2025-04-01": {
+          "cohorte": "cosecha 2025-04-01",
+          "n": 180,
+          "suficiente": true,
+          "covariables": {
+            "psi_maximo": 0.17,
+            "psi_medio": 0.0529,
+            "variables_alertadas": 2,
+            "tabla": [
+              {
+                "variable": "puntaje_datacredito",
+                "psi": 0.17,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "promedio_ingresos_datacredito",
+                "psi": 0.1067,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "salario_cliente",
+                "psi": 0.0587,
+                "estado": "estable"
+              },
+              {
+                "variable": "discrepancia_ingresos",
+                "psi": 0.0557,
+                "estado": "estable"
+              },
+              {
+                "variable": "total_otros_prestamos",
+                "psi": 0.0509,
+                "estado": "estable"
+              },
+              {
+                "variable": "tipo_credito_grp",
+                "psi": 0.0476,
+                "estado": "estable"
+              },
+              {
+                "variable": "huella_consulta",
+                "psi": 0.0399,
+                "estado": "estable"
+              },
+              {
+                "variable": "tendencia_ingresos",
+                "psi": 0.0387,
+                "estado": "estable"
+              },
+              {
+                "variable": "capital_prestado",
+                "psi": 0.038,
+                "estado": "estable"
+              },
+              {
+                "variable": "consultas_por_credito",
+                "psi": 0.0319,
+                "estado": "estable"
+              },
+              {
+                "variable": "edad_cliente",
+                "psi": 0.018,
+                "estado": "estable"
+              },
+              {
+                "variable": "plazo_meses",
+                "psi": 0.0169,
+                "estado": "estable"
+              },
+              {
+                "variable": "cuota_pactada",
+                "psi": 0.0142,
+                "estado": "estable"
+              }
+            ]
+          },
+          "prediccion": {
+            "psi": 0.056,
+            "estado": "estable",
+            "probabilidad_media": 0.048914,
+            "probabilidad_media_base": 0.0475,
+            "desplazamiento": 0.001414
+          },
+          "corte": {
+            "umbral": 0.0661,
+            "pct_rechazo_base": 21.25,
+            "pct_rechazo_cohorte": 22.22,
+            "desviacion_pp": 0.97,
+            "requiere_revision": false
+          },
+          "banderas": [
+            {
+              "bandera": "edad_cliente_corregida",
+              "tasa_base": 0.012,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "salario_cliente_corregido",
+              "tasa_base": 0.0217,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "tendencia_ingresos_reconstruida",
+              "tasa_base": 0.0055,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "total_otros_prestamos_sospechoso",
+              "tasa_base": 0.0029,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            }
+          ],
+          "concepto": {
+            "medible": false,
+            "motivo": "la cohorte no trae la variable objetivo"
+          },
+          "veredicto": "VIGILAR: 2 variables con cambio moderado",
+          "medible": true,
+          "n_decisiones": 181,
+          "n_solicitudes": 180
+        },
+        "2025-05-01": {
+          "cohorte": "cosecha 2025-05-01",
+          "n": 208,
+          "suficiente": true,
+          "covariables": {
+            "psi_maximo": 0.1455,
+            "psi_medio": 0.0526,
+            "variables_alertadas": 3,
+            "tabla": [
+              {
+                "variable": "tipo_credito_grp",
+                "psi": 0.1455,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "puntaje_datacredito",
+                "psi": 0.1257,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "capital_prestado",
+                "psi": 0.1071,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "total_otros_prestamos",
+                "psi": 0.0521,
+                "estado": "estable"
+              },
+              {
+                "variable": "promedio_ingresos_datacredito",
+                "psi": 0.0439,
+                "estado": "estable"
+              },
+              {
+                "variable": "discrepancia_ingresos",
+                "psi": 0.0356,
+                "estado": "estable"
+              },
+              {
+                "variable": "tendencia_ingresos",
+                "psi": 0.0304,
+                "estado": "estable"
+              },
+              {
+                "variable": "huella_consulta",
+                "psi": 0.0292,
+                "estado": "estable"
+              },
+              {
+                "variable": "cuota_pactada",
+                "psi": 0.0284,
+                "estado": "estable"
+              },
+              {
+                "variable": "plazo_meses",
+                "psi": 0.0277,
+                "estado": "estable"
+              },
+              {
+                "variable": "edad_cliente",
+                "psi": 0.0256,
+                "estado": "estable"
+              },
+              {
+                "variable": "salario_cliente",
+                "psi": 0.0205,
+                "estado": "estable"
+              },
+              {
+                "variable": "consultas_por_credito",
+                "psi": 0.0122,
+                "estado": "estable"
+              }
+            ]
+          },
+          "prediccion": {
+            "psi": 0.06,
+            "estado": "estable",
+            "probabilidad_media": 0.04997,
+            "probabilidad_media_base": 0.0475,
+            "desplazamiento": 0.00247
+          },
+          "corte": {
+            "umbral": 0.0661,
+            "pct_rechazo_base": 21.25,
+            "pct_rechazo_cohorte": 22.6,
+            "desviacion_pp": 1.35,
+            "requiere_revision": false
+          },
+          "banderas": [
+            {
+              "bandera": "edad_cliente_corregida",
+              "tasa_base": 0.012,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "salario_cliente_corregido",
+              "tasa_base": 0.0217,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "tendencia_ingresos_reconstruida",
+              "tasa_base": 0.0055,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "total_otros_prestamos_sospechoso",
+              "tasa_base": 0.0029,
+              "tasa_cohorte": 0.0048,
+              "casos": 1,
+              "razon": 1.66
+            }
+          ],
+          "concepto": {
+            "medible": false,
+            "motivo": "la cohorte no trae la variable objetivo"
+          },
+          "veredicto": "VIGILAR: 3 variables con cambio moderado",
+          "medible": true,
+          "n_decisiones": 208,
+          "n_solicitudes": 208
+        },
+        "2025-06-01": {
+          "cohorte": "cosecha 2025-06-01",
+          "n": 129,
+          "suficiente": true,
+          "covariables": {
+            "psi_maximo": 0.2397,
+            "psi_medio": 0.0699,
+            "variables_alertadas": 3,
+            "tabla": [
+              {
+                "variable": "tipo_credito_grp",
+                "psi": 0.2397,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "puntaje_datacredito",
+                "psi": 0.1329,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "total_otros_prestamos",
+                "psi": 0.1012,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "salario_cliente",
+                "psi": 0.0854,
+                "estado": "estable"
+              },
+              {
+                "variable": "discrepancia_ingresos",
+                "psi": 0.0758,
+                "estado": "estable"
+              },
+              {
+                "variable": "capital_prestado",
+                "psi": 0.0579,
+                "estado": "estable"
+              },
+              {
+                "variable": "edad_cliente",
+                "psi": 0.0556,
+                "estado": "estable"
+              },
+              {
+                "variable": "promedio_ingresos_datacredito",
+                "psi": 0.0519,
+                "estado": "estable"
+              },
+              {
+                "variable": "huella_consulta",
+                "psi": 0.046,
+                "estado": "estable"
+              },
+              {
+                "variable": "tendencia_ingresos",
+                "psi": 0.0361,
+                "estado": "estable"
+              },
+              {
+                "variable": "consultas_por_credito",
+                "psi": 0.0114,
+                "estado": "estable"
+              },
+              {
+                "variable": "cuota_pactada",
+                "psi": 0.0103,
+                "estado": "estable"
+              },
+              {
+                "variable": "plazo_meses",
+                "psi": 0.0043,
+                "estado": "estable"
+              }
+            ]
+          },
+          "prediccion": {
+            "psi": 0.0671,
+            "estado": "estable",
+            "probabilidad_media": 0.044828,
+            "probabilidad_media_base": 0.0475,
+            "desplazamiento": -0.002672
+          },
+          "corte": {
+            "umbral": 0.0661,
+            "pct_rechazo_base": 21.25,
+            "pct_rechazo_cohorte": 17.05,
+            "desviacion_pp": -4.2,
+            "requiere_revision": false
+          },
+          "banderas": [
+            {
+              "bandera": "edad_cliente_corregida",
+              "tasa_base": 0.012,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "salario_cliente_corregido",
+              "tasa_base": 0.0217,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "tendencia_ingresos_reconstruida",
+              "tasa_base": 0.0055,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "total_otros_prestamos_sospechoso",
+              "tasa_base": 0.0029,
+              "tasa_cohorte": 0.0078,
+              "casos": 1,
+              "razon": 2.67
+            }
+          ],
+          "concepto": {
+            "medible": false,
+            "motivo": "la cohorte no trae la variable objetivo"
+          },
+          "veredicto": "VIGILAR: 3 variables con cambio moderado",
+          "medible": true,
+          "n_decisiones": 129,
+          "n_solicitudes": 129
+        },
+        "2025-07-01": {
+          "cohorte": "cosecha 2025-07-01",
+          "n": 466,
+          "suficiente": true,
+          "covariables": {
+            "psi_maximo": 0.1353,
+            "psi_medio": 0.0398,
+            "variables_alertadas": 2,
+            "tabla": [
+              {
+                "variable": "discrepancia_ingresos",
+                "psi": 0.1353,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "plazo_meses",
+                "psi": 0.1332,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "promedio_ingresos_datacredito",
+                "psi": 0.0575,
+                "estado": "estable"
+              },
+              {
+                "variable": "tendencia_ingresos",
+                "psi": 0.0329,
+                "estado": "estable"
+              },
+              {
+                "variable": "cuota_pactada",
+                "psi": 0.0323,
+                "estado": "estable"
+              },
+              {
+                "variable": "puntaje_datacredito",
+                "psi": 0.027,
+                "estado": "estable"
+              },
+              {
+                "variable": "total_otros_prestamos",
+                "psi": 0.0245,
+                "estado": "estable"
+              },
+              {
+                "variable": "consultas_por_credito",
+                "psi": 0.0215,
+                "estado": "estable"
+              },
+              {
+                "variable": "capital_prestado",
+                "psi": 0.0203,
+                "estado": "estable"
+              },
+              {
+                "variable": "salario_cliente",
+                "psi": 0.0192,
+                "estado": "estable"
+              },
+              {
+                "variable": "huella_consulta",
+                "psi": 0.0057,
+                "estado": "estable"
+              },
+              {
+                "variable": "edad_cliente",
+                "psi": 0.005,
+                "estado": "estable"
+              },
+              {
+                "variable": "tipo_credito_grp",
+                "psi": 0.0029,
+                "estado": "estable"
+              }
+            ]
+          },
+          "prediccion": {
+            "psi": 0.042,
+            "estado": "estable",
+            "probabilidad_media": 0.051195,
+            "probabilidad_media_base": 0.0475,
+            "desplazamiento": 0.003695
+          },
+          "corte": {
+            "umbral": 0.0661,
+            "pct_rechazo_base": 21.25,
+            "pct_rechazo_cohorte": 26.39,
+            "desviacion_pp": 5.14,
+            "requiere_revision": false
+          },
+          "banderas": [
+            {
+              "bandera": "edad_cliente_corregida",
+              "tasa_base": 0.012,
+              "tasa_cohorte": 0.0021,
+              "casos": 1,
+              "razon": 0.18
+            },
+            {
+              "bandera": "salario_cliente_corregido",
+              "tasa_base": 0.0217,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "tendencia_ingresos_reconstruida",
+              "tasa_base": 0.0055,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "total_otros_prestamos_sospechoso",
+              "tasa_base": 0.0029,
+              "tasa_cohorte": 0.0064,
+              "casos": 3,
+              "razon": 2.22
+            }
+          ],
+          "concepto": {
+            "medible": false,
+            "motivo": "la cohorte no trae la variable objetivo"
+          },
+          "veredicto": "VIGILAR: 2 variables con cambio moderado",
+          "medible": true,
+          "n_decisiones": 537,
+          "n_solicitudes": 466
+        },
+        "2025-08-01": {
+          "cohorte": "cosecha 2025-08-01",
+          "n": 555,
+          "suficiente": true,
+          "covariables": {
+            "psi_maximo": 0.2614,
+            "psi_medio": 0.0792,
+            "variables_alertadas": 3,
+            "tabla": [
+              {
+                "variable": "plazo_meses",
+                "psi": 0.2614,
+                "estado": "cambio importante"
+              },
+              {
+                "variable": "discrepancia_ingresos",
+                "psi": 0.174,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "puntaje_datacredito",
+                "psi": 0.1439,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "total_otros_prestamos",
+                "psi": 0.0842,
+                "estado": "estable"
+              },
+              {
+                "variable": "tipo_credito_grp",
+                "psi": 0.0691,
+                "estado": "estable"
+              },
+              {
+                "variable": "cuota_pactada",
+                "psi": 0.0664,
+                "estado": "estable"
+              },
+              {
+                "variable": "salario_cliente",
+                "psi": 0.0615,
+                "estado": "estable"
+              },
+              {
+                "variable": "promedio_ingresos_datacredito",
+                "psi": 0.0471,
+                "estado": "estable"
+              },
+              {
+                "variable": "huella_consulta",
+                "psi": 0.0442,
+                "estado": "estable"
+              },
+              {
+                "variable": "tendencia_ingresos",
+                "psi": 0.0383,
+                "estado": "estable"
+              },
+              {
+                "variable": "consultas_por_credito",
+                "psi": 0.0197,
+                "estado": "estable"
+              },
+              {
+                "variable": "capital_prestado",
+                "psi": 0.0179,
+                "estado": "estable"
+              },
+              {
+                "variable": "edad_cliente",
+                "psi": 0.0021,
+                "estado": "estable"
+              }
+            ]
+          },
+          "prediccion": {
+            "psi": 0.0157,
+            "estado": "estable",
+            "probabilidad_media": 0.046216,
+            "probabilidad_media_base": 0.0475,
+            "desplazamiento": -0.001284
+          },
+          "corte": {
+            "umbral": 0.0661,
+            "pct_rechazo_base": 21.25,
+            "pct_rechazo_cohorte": 20.18,
+            "desviacion_pp": -1.07,
+            "requiere_revision": false
+          },
+          "banderas": [
+            {
+              "bandera": "edad_cliente_corregida",
+              "tasa_base": 0.012,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "salario_cliente_corregido",
+              "tasa_base": 0.0217,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "tendencia_ingresos_reconstruida",
+              "tasa_base": 0.0055,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "total_otros_prestamos_sospechoso",
+              "tasa_base": 0.0029,
+              "tasa_cohorte": 0.0036,
+              "casos": 2,
+              "razon": 1.24
+            }
+          ],
+          "concepto": {
+            "medible": false,
+            "motivo": "la cohorte no trae la variable objetivo"
+          },
+          "veredicto": "REENTRENAR: 1 variables con cambio importante",
+          "medible": true,
+          "n_decisiones": 666,
+          "n_solicitudes": 555
+        },
+        "2025-09-01": {
+          "cohorte": "cosecha 2025-09-01",
+          "n": 362,
+          "suficiente": true,
+          "covariables": {
+            "psi_maximo": 0.2209,
+            "psi_medio": 0.0658,
+            "variables_alertadas": 4,
+            "tabla": [
+              {
+                "variable": "plazo_meses",
+                "psi": 0.2209,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "puntaje_datacredito",
+                "psi": 0.1375,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "total_otros_prestamos",
+                "psi": 0.1193,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "promedio_ingresos_datacredito",
+                "psi": 0.1127,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "discrepancia_ingresos",
+                "psi": 0.0992,
+                "estado": "estable"
+              },
+              {
+                "variable": "tendencia_ingresos",
+                "psi": 0.0398,
+                "estado": "estable"
+              },
+              {
+                "variable": "cuota_pactada",
+                "psi": 0.0387,
+                "estado": "estable"
+              },
+              {
+                "variable": "salario_cliente",
+                "psi": 0.0304,
+                "estado": "estable"
+              },
+              {
+                "variable": "consultas_por_credito",
+                "psi": 0.0209,
+                "estado": "estable"
+              },
+              {
+                "variable": "capital_prestado",
+                "psi": 0.0121,
+                "estado": "estable"
+              },
+              {
+                "variable": "huella_consulta",
+                "psi": 0.0112,
+                "estado": "estable"
+              },
+              {
+                "variable": "edad_cliente",
+                "psi": 0.008,
+                "estado": "estable"
+              },
+              {
+                "variable": "tipo_credito_grp",
+                "psi": 0.0051,
+                "estado": "estable"
+              }
+            ]
+          },
+          "prediccion": {
+            "psi": 0.0259,
+            "estado": "estable",
+            "probabilidad_media": 0.047992,
+            "probabilidad_media_base": 0.0475,
+            "desplazamiento": 0.000492
+          },
+          "corte": {
+            "umbral": 0.0661,
+            "pct_rechazo_base": 21.25,
+            "pct_rechazo_cohorte": 20.72,
+            "desviacion_pp": -0.53,
+            "requiere_revision": false
+          },
+          "banderas": [
+            {
+              "bandera": "edad_cliente_corregida",
+              "tasa_base": 0.012,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "salario_cliente_corregido",
+              "tasa_base": 0.0217,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "tendencia_ingresos_reconstruida",
+              "tasa_base": 0.0055,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "total_otros_prestamos_sospechoso",
+              "tasa_base": 0.0029,
+              "tasa_cohorte": 0.0028,
+              "casos": 1,
+              "razon": 0.95
+            }
+          ],
+          "concepto": {
+            "medible": false,
+            "motivo": "la cohorte no trae la variable objetivo"
+          },
+          "veredicto": "VIGILAR: 4 variables con cambio moderado",
+          "medible": true,
+          "n_decisiones": 435,
+          "n_solicitudes": 362
+        },
+        "2025-10-01": {
+          "cohorte": "cosecha 2025-10-01",
+          "n": 232,
+          "suficiente": true,
+          "covariables": {
+            "psi_maximo": 0.1786,
+            "psi_medio": 0.0756,
+            "variables_alertadas": 4,
+            "tabla": [
+              {
+                "variable": "plazo_meses",
+                "psi": 0.1786,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "total_otros_prestamos",
+                "psi": 0.128,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "puntaje_datacredito",
+                "psi": 0.1225,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "discrepancia_ingresos",
+                "psi": 0.1122,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "promedio_ingresos_datacredito",
+                "psi": 0.0874,
+                "estado": "estable"
+              },
+              {
+                "variable": "consultas_por_credito",
+                "psi": 0.0694,
+                "estado": "estable"
+              },
+              {
+                "variable": "tendencia_ingresos",
+                "psi": 0.0687,
+                "estado": "estable"
+              },
+              {
+                "variable": "salario_cliente",
+                "psi": 0.0548,
+                "estado": "estable"
+              },
+              {
+                "variable": "capital_prestado",
+                "psi": 0.0536,
+                "estado": "estable"
+              },
+              {
+                "variable": "cuota_pactada",
+                "psi": 0.0527,
+                "estado": "estable"
+              },
+              {
+                "variable": "edad_cliente",
+                "psi": 0.0323,
+                "estado": "estable"
+              },
+              {
+                "variable": "huella_consulta",
+                "psi": 0.0163,
+                "estado": "estable"
+              },
+              {
+                "variable": "tipo_credito_grp",
+                "psi": 0.0069,
+                "estado": "estable"
+              }
+            ]
+          },
+          "prediccion": {
+            "psi": 0.1083,
+            "estado": "cambio moderado",
+            "probabilidad_media": 0.058604,
+            "probabilidad_media_base": 0.0475,
+            "desplazamiento": 0.011104
+          },
+          "corte": {
+            "umbral": 0.0661,
+            "pct_rechazo_base": 21.25,
+            "pct_rechazo_cohorte": 29.74,
+            "desviacion_pp": 8.49,
+            "requiere_revision": true
+          },
+          "banderas": [
+            {
+              "bandera": "edad_cliente_corregida",
+              "tasa_base": 0.012,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "salario_cliente_corregido",
+              "tasa_base": 0.0217,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "tendencia_ingresos_reconstruida",
+              "tasa_base": 0.0055,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "total_otros_prestamos_sospechoso",
+              "tasa_base": 0.0029,
+              "tasa_cohorte": 0.0043,
+              "casos": 1,
+              "razon": 1.48
+            }
+          ],
+          "concepto": {
+            "medible": false,
+            "motivo": "la cohorte no trae la variable objetivo"
+          },
+          "veredicto": "REVISAR EL CORTE: rechaza 29.74% frente al 21.25% previsto",
+          "medible": true,
+          "n_decisiones": 276,
+          "n_solicitudes": 232
+        },
+        "2025-11-01": {
+          "cohorte": "cosecha 2025-11-01",
+          "n": 168,
+          "suficiente": true,
+          "covariables": {
+            "psi_maximo": 0.1618,
+            "psi_medio": 0.0793,
+            "variables_alertadas": 3,
+            "tabla": [
+              {
+                "variable": "promedio_ingresos_datacredito",
+                "psi": 0.1618,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "total_otros_prestamos",
+                "psi": 0.1566,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "capital_prestado",
+                "psi": 0.1139,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "puntaje_datacredito",
+                "psi": 0.0968,
+                "estado": "estable"
+              },
+              {
+                "variable": "discrepancia_ingresos",
+                "psi": 0.0938,
+                "estado": "estable"
+              },
+              {
+                "variable": "edad_cliente",
+                "psi": 0.0899,
+                "estado": "estable"
+              },
+              {
+                "variable": "cuota_pactada",
+                "psi": 0.079,
+                "estado": "estable"
+              },
+              {
+                "variable": "tipo_credito_grp",
+                "psi": 0.0614,
+                "estado": "estable"
+              },
+              {
+                "variable": "consultas_por_credito",
+                "psi": 0.0509,
+                "estado": "estable"
+              },
+              {
+                "variable": "plazo_meses",
+                "psi": 0.0505,
+                "estado": "estable"
+              },
+              {
+                "variable": "tendencia_ingresos",
+                "psi": 0.0344,
+                "estado": "estable"
+              },
+              {
+                "variable": "salario_cliente",
+                "psi": 0.0262,
+                "estado": "estable"
+              },
+              {
+                "variable": "huella_consulta",
+                "psi": 0.016,
+                "estado": "estable"
+              }
+            ]
+          },
+          "prediccion": {
+            "psi": 0.0615,
+            "estado": "estable",
+            "probabilidad_media": 0.049968,
+            "probabilidad_media_base": 0.0475,
+            "desplazamiento": 0.002468
+          },
+          "corte": {
+            "umbral": 0.0661,
+            "pct_rechazo_base": 21.25,
+            "pct_rechazo_cohorte": 25.0,
+            "desviacion_pp": 3.75,
+            "requiere_revision": false
+          },
+          "banderas": [
+            {
+              "bandera": "edad_cliente_corregida",
+              "tasa_base": 0.012,
+              "tasa_cohorte": 0.006,
+              "casos": 1,
+              "razon": 0.5
+            },
+            {
+              "bandera": "salario_cliente_corregido",
+              "tasa_base": 0.0217,
+              "tasa_cohorte": 0.0119,
+              "casos": 2,
+              "razon": 0.55
+            },
+            {
+              "bandera": "tendencia_ingresos_reconstruida",
+              "tasa_base": 0.0055,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "total_otros_prestamos_sospechoso",
+              "tasa_base": 0.0029,
+              "tasa_cohorte": 0.006,
+              "casos": 1,
+              "razon": 2.05
+            }
+          ],
+          "concepto": {
+            "medible": false,
+            "motivo": "la cohorte no trae la variable objetivo"
+          },
+          "veredicto": "VIGILAR: 3 variables con cambio moderado",
+          "medible": true,
+          "n_decisiones": 201,
+          "n_solicitudes": 168
+        },
+        "2025-12-01": {
+          "cohorte": "cosecha 2025-12-01",
+          "n": 174,
+          "suficiente": true,
+          "covariables": {
+            "psi_maximo": 0.4697,
+            "psi_medio": 0.1533,
+            "variables_alertadas": 7,
+            "tabla": [
+              {
+                "variable": "plazo_meses",
+                "psi": 0.4697,
+                "estado": "cambio importante"
+              },
+              {
+                "variable": "discrepancia_ingresos",
+                "psi": 0.3453,
+                "estado": "cambio importante"
+              },
+              {
+                "variable": "capital_prestado",
+                "psi": 0.2273,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "salario_cliente",
+                "psi": 0.1916,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "promedio_ingresos_datacredito",
+                "psi": 0.1911,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "puntaje_datacredito",
+                "psi": 0.1618,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "total_otros_prestamos",
+                "psi": 0.1552,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "tendencia_ingresos",
+                "psi": 0.0752,
+                "estado": "estable"
+              },
+              {
+                "variable": "cuota_pactada",
+                "psi": 0.0544,
+                "estado": "estable"
+              },
+              {
+                "variable": "huella_consulta",
+                "psi": 0.0418,
+                "estado": "estable"
+              },
+              {
+                "variable": "edad_cliente",
+                "psi": 0.0319,
+                "estado": "estable"
+              },
+              {
+                "variable": "tipo_credito_grp",
+                "psi": 0.0306,
+                "estado": "estable"
+              },
+              {
+                "variable": "consultas_por_credito",
+                "psi": 0.0165,
+                "estado": "estable"
+              }
+            ]
+          },
+          "prediccion": {
+            "psi": 0.167,
+            "estado": "cambio moderado",
+            "probabilidad_media": 0.058694,
+            "probabilidad_media_base": 0.0475,
+            "desplazamiento": 0.011194
+          },
+          "corte": {
+            "umbral": 0.0661,
+            "pct_rechazo_base": 21.25,
+            "pct_rechazo_cohorte": 31.61,
+            "desviacion_pp": 10.36,
+            "requiere_revision": true
+          },
+          "banderas": [
+            {
+              "bandera": "edad_cliente_corregida",
+              "tasa_base": 0.012,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "salario_cliente_corregido",
+              "tasa_base": 0.0217,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "tendencia_ingresos_reconstruida",
+              "tasa_base": 0.0055,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "total_otros_prestamos_sospechoso",
+              "tasa_base": 0.0029,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            }
+          ],
+          "concepto": {
+            "medible": false,
+            "motivo": "la cohorte no trae la variable objetivo"
+          },
+          "veredicto": "REENTRENAR: 2 variables con cambio importante",
+          "medible": true,
+          "n_decisiones": 212,
+          "n_solicitudes": 174
+        },
+        "2026-01-01": {
+          "cohorte": "cosecha 2026-01-01",
+          "n": 127,
+          "suficiente": true,
+          "covariables": {
+            "psi_maximo": 0.4498,
+            "psi_medio": 0.1278,
+            "variables_alertadas": 7,
+            "tabla": [
+              {
+                "variable": "plazo_meses",
+                "psi": 0.4498,
+                "estado": "cambio importante"
+              },
+              {
+                "variable": "capital_prestado",
+                "psi": 0.2235,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "total_otros_prestamos",
+                "psi": 0.216,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "puntaje_datacredito",
+                "psi": 0.2139,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "cuota_pactada",
+                "psi": 0.1318,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "salario_cliente",
+                "psi": 0.129,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "discrepancia_ingresos",
+                "psi": 0.1254,
+                "estado": "cambio moderado"
+              },
+              {
+                "variable": "promedio_ingresos_datacredito",
+                "psi": 0.0759,
+                "estado": "estable"
+              },
+              {
+                "variable": "tendencia_ingresos",
+                "psi": 0.0299,
+                "estado": "estable"
+              },
+              {
+                "variable": "tipo_credito_grp",
+                "psi": 0.0214,
+                "estado": "estable"
+              },
+              {
+                "variable": "huella_consulta",
+                "psi": 0.0207,
+                "estado": "estable"
+              },
+              {
+                "variable": "consultas_por_credito",
+                "psi": 0.0137,
+                "estado": "estable"
+              },
+              {
+                "variable": "edad_cliente",
+                "psi": 0.01,
+                "estado": "estable"
+              }
+            ]
+          },
+          "prediccion": {
+            "psi": 0.2316,
+            "estado": "cambio moderado",
+            "probabilidad_media": 0.063324,
+            "probabilidad_media_base": 0.0475,
+            "desplazamiento": 0.015824
+          },
+          "corte": {
+            "umbral": 0.0661,
+            "pct_rechazo_base": 21.25,
+            "pct_rechazo_cohorte": 37.8,
+            "desviacion_pp": 16.55,
+            "requiere_revision": true
+          },
+          "banderas": [
+            {
+              "bandera": "edad_cliente_corregida",
+              "tasa_base": 0.012,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "salario_cliente_corregido",
+              "tasa_base": 0.0217,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "tendencia_ingresos_reconstruida",
+              "tasa_base": 0.0055,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            },
+            {
+              "bandera": "total_otros_prestamos_sospechoso",
+              "tasa_base": 0.0029,
+              "tasa_cohorte": 0.0,
+              "casos": 0,
+              "razon": 0.0
+            }
+          ],
+          "concepto": {
+            "medible": false,
+            "motivo": "la cohorte no trae la variable objetivo"
+          },
+          "veredicto": "REENTRENAR: 1 variables con cambio importante",
+          "medible": true,
+          "n_decisiones": 139,
+          "n_solicitudes": 127
+        },
+        "2026-02-01": {
+          "n_decisiones": 94,
+          "n_solicitudes": 76,
+          "medible": false,
+          "motivo": "76 solicitudes distintas, bajo el minimo de 100"
+        },
+        "2026-03-01": {
+          "n_decisiones": 49,
+          "n_solicitudes": 40,
+          "medible": false,
+          "motivo": "40 solicitudes distintas, bajo el minimo de 100"
+        },
+        "2026-04-01": {
+          "n_decisiones": 13,
+          "n_solicitudes": 11,
+          "medible": false,
+          "motivo": "11 solicitudes distintas, bajo el minimo de 100"
+        }
+      }
+    }
+  },
+  "contraste": {
+    "control (muestra de train)": {
+      "cohorte": "control (muestra de train)",
+      "n": 2000,
+      "suficiente": true,
+      "covariables": {
+        "psi_maximo": 0.0031,
+        "psi_medio": 0.0012,
+        "variables_alertadas": 0,
+        "tabla": [
+          {
+            "variable": "cuota_pactada",
+            "psi": 0.0031,
+            "estado": "estable"
+          },
+          {
+            "variable": "edad_cliente",
+            "psi": 0.0019,
+            "estado": "estable"
+          },
+          {
+            "variable": "tipo_credito_grp",
+            "psi": 0.0018,
+            "estado": "estable"
+          },
+          {
+            "variable": "puntaje_datacredito",
+            "psi": 0.0016,
+            "estado": "estable"
+          },
+          {
+            "variable": "promedio_ingresos_datacredito",
+            "psi": 0.0012,
+            "estado": "estable"
+          },
+          {
+            "variable": "consultas_por_credito",
+            "psi": 0.0012,
+            "estado": "estable"
+          },
+          {
+            "variable": "total_otros_prestamos",
+            "psi": 0.0012,
+            "estado": "estable"
+          },
+          {
+            "variable": "tendencia_ingresos",
+            "psi": 0.0008,
+            "estado": "estable"
+          },
+          {
+            "variable": "plazo_meses",
+            "psi": 0.0008,
+            "estado": "estable"
+          },
+          {
+            "variable": "discrepancia_ingresos",
+            "psi": 0.0007,
+            "estado": "estable"
+          },
+          {
+            "variable": "capital_prestado",
+            "psi": 0.0006,
+            "estado": "estable"
+          },
+          {
+            "variable": "salario_cliente",
+            "psi": 0.0006,
+            "estado": "estable"
+          },
+          {
+            "variable": "huella_consulta",
+            "psi": 0.0005,
+            "estado": "estable"
+          }
+        ]
+      },
+      "prediccion": {
+        "psi": 0.0037,
+        "estado": "estable",
+        "probabilidad_media": 0.047137,
+        "probabilidad_media_base": 0.0475,
+        "desplazamiento": -0.000363
+      },
+      "corte": {
+        "umbral": 0.0661,
+        "pct_rechazo_base": 21.25,
+        "pct_rechazo_cohorte": 20.9,
+        "desviacion_pp": -0.35,
+        "requiere_revision": false
+      },
+      "banderas": [
+        {
+          "bandera": "edad_cliente_corregida",
+          "tasa_base": 0.012,
+          "tasa_cohorte": 0.009,
+          "casos": 18,
+          "razon": 0.75
+        },
+        {
+          "bandera": "salario_cliente_corregido",
+          "tasa_base": 0.0217,
+          "tasa_cohorte": 0.0215,
+          "casos": 43,
+          "razon": 0.99
+        },
+        {
+          "bandera": "tendencia_ingresos_reconstruida",
+          "tasa_base": 0.0055,
+          "tasa_cohorte": 0.0065,
+          "casos": 13,
+          "razon": 1.19
+        },
+        {
+          "bandera": "total_otros_prestamos_sospechoso",
+          "tasa_base": 0.0029,
+          "tasa_cohorte": 0.002,
+          "casos": 4,
+          "razon": 0.69
+        }
+      ],
+      "concepto": {
+        "medible": true,
+        "cohorte_completa": {
+          "n": 2000,
+          "moras": 91,
+          "tasa_mora": 0.0455,
+          "auc_pr": 0.1334,
+          "lift_vs_azar": 2.93,
+          "ks": 0.3335,
+          "gini": 0.3841,
+          "recall": 0.4725
+        },
+        "madurez_incompleta_pct": 20.1,
+        "solo_vencidos": {
+          "n": 1599,
+          "moras": 60,
+          "tasa_mora": 0.0375,
+          "auc_pr": 0.0676,
+          "lift_vs_azar": 1.8,
+          "ks": 0.29,
+          "gini": 0.2818,
+          "recall": 0.3667,
+          "plazo_medio": 8.4
+        },
+        "solo_jovenes": {
+          "n": 401,
+          "moras": 31,
+          "tasa_mora": 0.0773,
+          "auc_pr": 0.2664,
+          "lift_vs_azar": 3.45,
+          "ks": 0.3882,
+          "gini": 0.5081,
+          "recall": 0.6774,
+          "plazo_medio": 19.0
+        },
+        "sesgo_de_madurez": {
+          "diferencia_plazo_meses": 10.6,
+          "razon_mora": 2.06,
+          "nota": "El filtro de madurez selecciona creditos mas cortos, no solo creditos vencidos. Ninguno de los dos subgrupos da una lectura sin sesgo."
+        }
+      },
+      "veredicto": "SIN CAMBIO RELEVANTE"
+    },
+    "reciente (temporal_test)": {
+      "cohorte": "reciente (temporal_test)",
+      "n": 2154,
+      "suficiente": true,
+      "covariables": {
+        "psi_maximo": 0.1509,
+        "psi_medio": 0.0329,
+        "variables_alertadas": 1,
+        "tabla": [
+          {
+            "variable": "plazo_meses",
+            "psi": 0.1509,
+            "estado": "cambio moderado"
+          },
+          {
+            "variable": "total_otros_prestamos",
+            "psi": 0.0862,
+            "estado": "estable"
+          },
+          {
+            "variable": "promedio_ingresos_datacredito",
+            "psi": 0.0514,
+            "estado": "estable"
+          },
+          {
+            "variable": "cuota_pactada",
+            "psi": 0.0414,
+            "estado": "estable"
+          },
+          {
+            "variable": "capital_prestado",
+            "psi": 0.0333,
+            "estado": "estable"
+          },
+          {
+            "variable": "discrepancia_ingresos",
+            "psi": 0.0134,
+            "estado": "estable"
+          },
+          {
+            "variable": "tendencia_ingresos",
+            "psi": 0.0129,
+            "estado": "estable"
+          },
+          {
+            "variable": "salario_cliente",
+            "psi": 0.0114,
+            "estado": "estable"
+          },
+          {
+            "variable": "puntaje_datacredito",
+            "psi": 0.0088,
+            "estado": "estable"
+          },
+          {
+            "variable": "tipo_credito_grp",
+            "psi": 0.0076,
+            "estado": "estable"
+          },
+          {
+            "variable": "edad_cliente",
+            "psi": 0.0073,
+            "estado": "estable"
+          },
+          {
+            "variable": "consultas_por_credito",
+            "psi": 0.0021,
+            "estado": "estable"
+          },
+          {
+            "variable": "huella_consulta",
+            "psi": 0.0014,
+            "estado": "estable"
+          }
+        ]
+      },
+      "prediccion": {
+        "psi": 0.0166,
+        "estado": "estable",
+        "probabilidad_media": 0.051377,
+        "probabilidad_media_base": 0.0475,
+        "desplazamiento": 0.003877
+      },
+      "corte": {
+        "umbral": 0.0661,
+        "pct_rechazo_base": 21.25,
+        "pct_rechazo_cohorte": 25.07,
+        "desviacion_pp": 3.82,
+        "requiere_revision": false
+      },
+      "banderas": [
+        {
+          "bandera": "edad_cliente_corregida",
+          "tasa_base": 0.012,
+          "tasa_cohorte": 0.0149,
+          "casos": 32,
+          "razon": 1.24
+        },
+        {
+          "bandera": "salario_cliente_corregido",
+          "tasa_base": 0.0217,
+          "tasa_cohorte": 0.0223,
+          "casos": 48,
+          "razon": 1.03
+        },
+        {
+          "bandera": "tendencia_ingresos_reconstruida",
+          "tasa_base": 0.0055,
+          "tasa_cohorte": 0.0046,
+          "casos": 10,
+          "razon": 0.85
+        },
+        {
+          "bandera": "total_otros_prestamos_sospechoso",
+          "tasa_base": 0.0029,
+          "tasa_cohorte": 0.0037,
+          "casos": 8,
+          "razon": 1.28
+        }
+      ],
+      "concepto": {
+        "medible": true,
+        "cohorte_completa": {
+          "n": 2154,
+          "moras": 69,
+          "tasa_mora": 0.032,
+          "auc_pr": 0.0739,
+          "lift_vs_azar": 2.31,
+          "ks": 0.2657,
+          "gini": 0.3359,
+          "recall": 0.4203
+        },
+        "madurez_incompleta_pct": 53.4,
+        "solo_vencidos": {
+          "n": 1003,
+          "moras": 21,
+          "tasa_mora": 0.0209,
+          "auc_pr": 0.0359,
+          "lift_vs_azar": 1.71,
+          "ks": 0.3576,
+          "gini": 0.3071,
+          "recall": 0.2857,
+          "plazo_medio": 6.0
+        },
+        "solo_jovenes": {
+          "n": 1151,
+          "moras": 48,
+          "tasa_mora": 0.0417,
+          "auc_pr": 0.0968,
+          "lift_vs_azar": 2.32,
+          "ks": 0.2807,
+          "gini": 0.3194,
+          "recall": 0.4792,
+          "plazo_medio": 15.8
+        },
+        "sesgo_de_madurez": {
+          "diferencia_plazo_meses": 9.8,
+          "razon_mora": 2.0,
+          "nota": "El filtro de madurez selecciona creditos mas cortos, no solo creditos vencidos. Ninguno de los dos subgrupos da una lectura sin sesgo."
+        }
+      },
+      "veredicto": "VIGILAR: 1 variables con cambio moderado"
+    }
+  },
+  "nota_concepto": "La deriva de concepto se reporta sobre la cohorte completa y sobre el subgrupo vencido por separado. El filtro de madurez no aisla el censurado: esta confundido con el plazo, de modo que selecciona creditos mas cortos y menos riesgosos. Ninguno de los dos subgrupos da una lectura sin sesgo."
+}

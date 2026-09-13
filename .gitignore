@@ -216,3 +216,26 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ------------------------------------------------------------------------------
+# Artefactos del proyecto
+# ------------------------------------------------------------------------------
+# Binario de PowerPoint. Ningun script lo consume, y versionarlo ensucia los
+# diffs sin aportar nada: su sitio es la plataforma del curso.
+PRESENTACION.pptx
+
+# Base_de_datos_limpia.csv NO se ignora, y es deliberado. config.json lo declara
+# como `clean_path` y es la entrada de ft_engineering.py y de tres notebooks.
+# Sacarlo del repositorio dejaria un clon nuevo sin poder ejecutar el pipeline
+# hasta correr las 104 celdas de comprension_eda.ipynb. Es un dato generado, si,
+# pero el proyecto versiona los datos generados a proposito para que los
+# resultados sean auditables sin reejecutar nada, igual que data/processed/.
+
+# El registro del endpoint (Fase 4) se regenera en cada llamada y lleva marca de
+# tiempo, de modo que no hay dos ejecuciones con el mismo contenido: versionarlo
+# produciria un diff distinto cada vez sin ganar auditabilidad. Se reconstruye
+# con `python mlops_pipeline/model_deploy.py`, y es lo que la Fase 5 consume.
+#
+# `lote_ejemplo.csv` si se versiona: es una muestra fija, con semilla, y sirve
+# para probar el endpoint sin tener que abrir la base de clientes.
+data/monitoring/registro_endpoint.csv

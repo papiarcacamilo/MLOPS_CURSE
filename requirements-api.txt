@@ -1,0 +1,22 @@
+# MLOPS_CURSE - Dependencias de la imagen de despliegue (Fase 4)
+#
+# Es un subconjunto de requirements.txt, con las MISMAS versiones fijadas. La
+# imagen no lleva jupyter, matplotlib, seaborn ni imbalanced-learn: sirven para
+# analizar y entrenar, no para responder una peticion. Instalarlas aqui haria la
+# imagen mucho mas pesada y aumentaria la superficie que hay que parchear sin
+# que el endpoint las llegue a importar nunca.
+#
+#   pip install -r requirements-api.txt
+
+# --- Inferencia ---
+pandas==3.0.5
+numpy==2.4.6
+scipy==1.17.1
+scikit-learn==1.9.0
+joblib==1.5.3
+
+# --- API ---
+fastapi==0.121.2
+uvicorn[standard]==0.41.0
+python-multipart==0.0.20
+# Necesaria para POST /predecir/archivo: sin ella FastAPI rechaza la subida.
