@@ -773,6 +773,9 @@ El enunciado pide una tabla con los datos pasados al endpoint junto con sus pron
 con una periodicidad definida para detectar cambios en la población. La tabla ya existía:
 `registro_endpoint.csv`, que el despliegue produce en cada llamada. El monitoreo la lee y mide.
 
+`model_monitoring.ipynb` presenta ese trabajo: importa el script, recalcula las medidas sin escribir
+ningún artefacto y comprueba que coinciden con `monitoreo.json`.
+
 ### Cómo se mide
 
 **Línea base:** `estratificado_train`, congelada en `data/models/linea_base_monitoreo.json`. Toda
@@ -1074,6 +1077,7 @@ MLOPS_CURSE/
 │   ├── app.py                        # Fase 4: API del endpoint (añadido)
 │   ├── feature_engineering.ipynb     # Narrativa de la Fase 2 (añadido)
 │   ├── model_evaluation.ipynb        # Narrativa de la evaluación (añadido)
+│   ├── model_monitoring.ipynb        # Narrativa del monitoreo (añadido)
 │   └── hueristic_model.ipynb         # Narrativa del heurístico (añadido)
 ├── config.json                       # Configuración del proyecto
 ├── data/
