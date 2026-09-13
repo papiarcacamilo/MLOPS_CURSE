@@ -948,9 +948,10 @@ etiqueta desconocida cae silenciosamente a riesgo promedio.
 | `model_training.py` | 23,0% |
 | **Total** | **43,0%** |
 
-Lo que corre en producción está cubierto
-por encima del 90%, y lo bajo es el código de entrenamiento y evaluación, que se ejecutó una vez
-y cuyo resultado está congelado en artefactos versionados. Cubrirlo al mismo nivel exigiría
+El contrato y la API superan el 90%. En `model_deploy.py`, lo que falta cubrir es sobre todo
+`main()` y la construcción del artefacto, que corren antes de desplegar; `sanear`, `predecir_lote`
+y `decidir` están cubiertas. Lo bajo es el código de entrenamiento y evaluación, que se ejecutó una
+vez y cuyo resultado está congelado en artefactos versionados. Cubrirlo al mismo nivel exigiría
 reentrenar el modelo en cada corrida de la suite, que tardaría minutos en lugar de segundos.
 
 ### Los tests no tocan el registro de producción
