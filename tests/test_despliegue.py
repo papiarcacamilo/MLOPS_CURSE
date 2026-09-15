@@ -4,12 +4,13 @@ El motor de inferencia
 Cubre model_deploy.py. Aqui vive la garantia central de la Fase 4: que un cliente
 nuevo atraviese exactamente las mismas transformaciones que el entrenamiento.
 
-Cuatro de estos tests los pidio danielCH26 en la revision de la PR4:
+Tres de estos tests los pidio danielCH26 en la revision de la PR4, y el cuarto
+en la de la PR6:
 
-    esquema invalido               -> error claro, no reventar
     puntaje = 0                    -> bandera activada y score a nulo
     el scorecard reproduce el modelo
     el orden de la cadena          -> sanear antes de validar
+    varias anomalias a la vez      -> que regla domina sobre cual
 
 Los demas fijan los fallos que la auditoria encontro, para que no vuelvan.
 
@@ -64,6 +65,12 @@ def test_las_constantes_de_saneamiento_estan_congeladas():
     Recalcularlas sobre el lote entrante seria la forma mas facil de introducir
     train-serving skew sin que nada falle: una mediana sobre 50 solicitudes no
     es la mediana con la que el modelo aprendio.
+
+    SI ESTE TEST FALLA, no se actualiza la cifra para que pase. Un cambio
+    legitimo exige reestimar la constante sobre la base limpia, regenerar el
+    artefacto con model_deploy.py y publicar una version nueva del modelo, porque
+    el endpoint ya no reproduciria lo que se evaluo. Si nadie decidio ese cambio,
+    es un bug.
     """
     c = md.SANEAMIENTO
     assert c["edad_umbral"] == 90
@@ -168,6 +175,63 @@ def test_una_deuda_negativa_si_da_rechazo_tecnico(solicitud):
     salida = md.predecir_lote(pd.DataFrame([solicitud]), origen="test",
                               guardar_registro=False)
     assert salida["decision"].iloc[0] == md.DECISION_TECNICO
+
+
+# ==============================================================================
+# EL CASO QUE PIDIO DANIEL EN LA PR6: VARIAS ANOMALIAS EN UNA SOLICITUD
+# ==============================================================================
+
+
+def test_dos_anomalias_con_tratamiento_activan_ambas_banderas(solicitud):
+    """Sin score y con deuda sobre el techo: se tratan las dos y se puntua.
+
+    Ninguna de las dos es motivo de rechazo tecnico, de modo que la solicitud
+    llega al modelo con ambas banderas puestas, igual que en el entrenamiento.
+    """
+    solicitud["puntaje_datacredito"] = 0
+    solicitud["total_otros_prestamos"] = 2_000_000_000
+    datos = pd.DataFrame([solicitud])
+
+    saneado = md.sanear(datos)
+    assert bool(saneado["sin_historial_crediticio"].iloc[0])
+    assert bool(saneado["total_otros_prestamos_sospechoso"].iloc[0])
+
+    salida = md.predecir_lote(datos, origen="test", guardar_registro=False)
+    assert salida["decision"].iloc[0] != md.DECISION_TECNICO
+    assert not pd.isna(salida["probabilidad_mora"].iloc[0])
+
+
+def test_una_anomalia_sin_tratamiento_domina_sobre_la_falta_de_score(solicitud):
+    """El rechazo tecnico va antes que la politica de sin score.
+
+    Una edad de 12 anios no tiene regla que aplicar, asi que no se puntua: la
+    respuesta nombra la edad y no la ausencia de score.
+    """
+    solicitud["puntaje_datacredito"] = 0
+    solicitud["edad_cliente"] = 12
+    salida = md.predecir_lote(pd.DataFrame([solicitud]), origen="test",
+                              guardar_registro=False)
+    assert salida["decision"].iloc[0] == md.DECISION_TECNICO
+    assert "edad_cliente" in salida["motivo"].iloc[0]
+    assert pd.isna(salida["probabilidad_mora"].iloc[0])
+
+
+def test_con_varias_violaciones_el_motivo_nombra_la_primera_del_contrato(solicitud):
+    """Limitacion conocida: se reporta una violacion por solicitud.
+
+    Es la primera segun el orden de REGLAS_ENDPOINT. Corregida esa, el endpoint
+    senialaria la siguiente. Se fija aqui para que un cambio de este
+    comportamiento sea deliberado y no un efecto secundario.
+    """
+    solicitud["edad_cliente"] = 12
+    solicitud["plazo_meses"] = 0
+    motivo = md.validar_filas(pd.DataFrame([solicitud])).iloc[0]
+
+    orden = list(md.REGLAS_ENDPOINT)
+    primera = min(("edad_cliente", "plazo_meses"), key=orden.index)
+    segunda = max(("edad_cliente", "plazo_meses"), key=orden.index)
+    assert motivo.startswith(primera)
+    assert segunda not in motivo
 
 
 # ==============================================================================
