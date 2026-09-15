@@ -20,6 +20,11 @@ exclude_lines =
     except ImportError
 precision = 1
 show_missing = True
+# Si la cobertura total baja de este minimo, pytest falla y el CI queda en rojo.
+# Sin el, la suite seguiria en verde aunque alguien borrara la mitad de los
+# tests. Esta unos puntos por debajo del valor actual para no romper el CI por
+# un cambio pequenio.
+fail_under = 40
 
 [xml]
 output = coverage.xml
