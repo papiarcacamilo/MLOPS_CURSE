@@ -912,11 +912,12 @@ dentro de `main()`, de modo que solo corrían si alguien ejecutaba el script ent
 | Archivo | Tests | Qué protege |
 |---|---|---|
 | `tests/test_contrato.py` | 60 | Bandas, reglas de validación y el parseo de fechas |
-| `tests/test_despliegue.py` | 41 | Saneamiento, idempotencia, decisiones y scorecard |
+| `tests/test_despliegue.py` | 44 | Saneamiento, idempotencia, decisiones, scorecard e interacción entre reglas |
 | `tests/test_monitoreo.py` | 36 | PSI, línea base, muestreo y control de la medición |
 | `tests/test_endpoint.py` | 23 | Los cinco endpoints y los casos límite |
 | `tests/test_features.py` | 22 | WoE, atributos derivados, escalado y piso heurístico |
-| **Total** | **182** | **7 segundos** |
+| `tests/test_evaluacion.py` | 13 | Métrica, selección del modelo, calibración y umbral |
+| **Total** | **198** | **Menos de 30 segundos** |
 
 ### Validación de los tests 
 
@@ -940,6 +941,11 @@ invariante que sí importa que toda etiqueta de tramo producida exista en la rec
 cinco tamaños de lote. Es la condición de la que depende que el WoE signifique algo, porque una
 etiqueta desconocida cae silenciosamente a riesgo promedio.
 
+Tras la revisión de la PR6 se añadió `test_evaluacion.py`, sobre las funciones que tomaron las
+decisiones del modelo, y se validó de la misma forma. De 6 errores introducidos en ellas (el margen
+de empate, el KS, el recall@k, el cuantil del umbral, la calibración por intervalos fijos y un
+desempate que prefiere SMOTE), la suite detectó los 6.
+
 ### Cobertura
 
 | Módulo | Cobertura |
@@ -950,16 +956,19 @@ etiqueta desconocida cae silenciosamente a riesgo promedio.
 | `hueristic_model.py` | 50,0% |
 | `model_monitoring.py` | 47,3% |
 | `ft_engineering.py` | 28,2% |
-| `model_evaluation.py` | 24,9% |
-| `model_training.py` | 23,0% |
-| **Total** | **43,0%** |
+| `model_evaluation.py` | 33,2% |
+| `model_training.py` | 25,4% |
+| **Total** | **44,3%** |
 
 El contrato y la API superan el 90%. En `model_deploy.py`, lo que falta cubrir es sobre todo
 `main()` y la construcción del artefacto, que corren antes de desplegar; `sanear`, `predecir_lote`
 y `decidir` están cubiertas. En `model_monitoring.py` falta sobre todo `main()`, las figuras y la
 construcción de la línea base; las funciones que miden la deriva están cubiertas casi por completo.
 Lo bajo es el código de entrenamiento y evaluación, que se ejecutó una
-vez y cuyo resultado está congelado en artefactos versionados. Cubrirlo al mismo nivel exigiría
+vez y cuyo resultado está congelado en artefactos versionados. Sus funciones puras, las que eligen
+el modelo, fijan el umbral y miden la calibración, sí tienen tests. Lo que queda sin cubrir es sobre
+todo `main()`, el reentrenamiento, la construcción del scorecard, la evaluación final y las métricas
+de fairness, que dependen del modelo entrenado y de los datos. Cubrirlo al mismo nivel exigiría
 reentrenar el modelo en cada corrida de la suite, que tardaría minutos en lugar de segundos.
 
 ### Los tests no tocan el registro de producción
@@ -975,11 +984,25 @@ temporal. Quedo verificado el registro sigue en 4.204 filas y con cero rastros d
 `develop`, y manda `coverage.xml` a SonarCloud. El análisis de Sonar depende de que los tests pasen
 primero.
 
+La cobertura tiene un mínimo: si el total baja de 40%, pytest falla y el CI queda en rojo. Sin él,
+la suite seguiría en verde aunque alguien borrara la mitad de los tests.
+
 ### Ejecución 
 
 ```bash
 pip install -r requirements.txt
 python -m pytest
+```
+
+No hace falta pasar opciones. `pytest.ini` indica dónde están los tests, las rutas de los módulos y
+que siempre se mida la cobertura; `.coveragerc` define qué código entra en esa medida y el mínimo
+de 40%. El resultado queda en la terminal y en `coverage.xml`, que es el archivo que lee SonarCloud.
+
+Para correr un solo archivo hay que desactivar la medida, porque un archivo aislado nunca alcanza
+el mínimo del proyecto completo:
+
+```bash
+python -m pytest tests/test_evaluacion.py --no-cov
 ```
 
 
@@ -1119,12 +1142,13 @@ MLOPS_CURSE/
 ├── .dockerignore                     # Fase 4: qué no viaja al build (añadido)
 ├── requirements.txt                  # Dependencias con versiones fijadas
 ├── requirements-api.txt              # Subconjunto que instala la imagen (añadido)
-├── tests/                            # Stage 2: 182 tests en 5 archivos (añadido)
+├── tests/                            # Stage 2: 198 tests en 6 archivos (añadido)
 ├── .github/workflows/ci.yml          # Stage 2: tests y SonarCloud en cada push (añadido)
 ├── pytest.ini                        # Stage 2: configuración de pytest (añadido)
 ├── .coveragerc                       # Stage 2: alcance de la cobertura (añadido)
 ├── sonar-project.properties          # Stage 2: proyecto de SonarCloud (añadido)
 ├── set_up.bat                        # Script de instalación de dependencias
+├── CHANGELOG.md                      # Qué trae cada versión entregada (añadido)
 ├── .gitignore
 └── readme.md
 ```
@@ -1263,6 +1287,27 @@ Lee la línea base congelada y solo la construye si falta; `--reconstruir-base` 
 el modelo. Hace pasar dos cohortes por el endpoint, que se registran solo la primera vez, lee el
 registro y lo muestrea por semana de llegada y por mes de cosecha. Falla de forma explícita si el
 control supera el umbral de PSI, porque una medición que no discrimina no sirve para decidir nada.
+
+### Volver a una versión anterior
+
+Cada versión entregada queda etiquetada en `master` y descrita en `CHANGELOG.md`. Volver a una es
+desplegar desde su etiqueta:
+
+```bash
+git fetch --tags
+git checkout v2.0.0
+docker compose up --build -d
+```
+
+Tres cosas a tener en cuenta:
+
+- `v2.0.0` es la primera versión con endpoint. `v1.0.0` no tiene imagen que desplegar.
+- El registro de monitoreo se conserva, porque vive en el volumen `data/monitoring`. Cada fila
+  guarda `version_modelo`, así que las decisiones de cada versión se siguen distinguiendo.
+- La línea base del monitoreo pertenece al modelo que la generó. Al volver a una versión con otro
+  modelo, la deriva se mide contra la `linea_base_monitoreo.json` de esa misma etiqueta.
+
+Para regresar a la última versión: `git checkout master` y volver a construir la imagen.
 
 ## Fase 2 — Feature Engineering (completada)
 
