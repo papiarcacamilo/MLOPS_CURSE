@@ -86,7 +86,7 @@ jobs:
 
       # La cobertura se reutiliza del job anterior en vez de volver a correr la
       # suite. El escaner de Sonar no necesita Python ni sus dependencias: lee el
-      # codigo fuente y coverage.xml. Reinstalar y repetir 182 tests solo para
+      # codigo fuente y coverage.xml. Reinstalar y repetir toda la suite solo para
       # regenerar un archivo que ya existe duplicaria el tiempo del CI.
       - name: Recuperar la cobertura
         uses: actions/download-artifact@v8
