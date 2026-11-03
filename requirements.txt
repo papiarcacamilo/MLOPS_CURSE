@@ -29,6 +29,10 @@ seaborn==0.13.2
 jupyter==1.1.1
 ipykernel==7.3.0
 
+# --- Datos en BigQuery ---
+# Lo usa Cargar_datos.ipynb. La imagen no lo lleva: el endpoint no consulta BigQuery.
+pandas-gbq==0.35.3
+
 # --- Despliegue (Fase 4) ---
 # La imagen NO instala este archivo sino requirements-api.txt, que lleva solo lo
 # que el endpoint importa. Aqui estan para poder levantar la app en local.

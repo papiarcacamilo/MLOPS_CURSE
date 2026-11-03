@@ -10,6 +10,7 @@ donde está el detalle y la verificación. El formato se basa en
 ### Cambiado
 
 - Los módulos y notebooks pasan a `mlops_pipeline/src/`, la estructura que pide el enunciado y que validará Jenkins.
+- `requirements.txt` incluye `pandas-gbq`, que `Cargar_datos.ipynb` necesita para leer BigQuery.
 
 ## [2.0.1] - 2026-09-14
 
