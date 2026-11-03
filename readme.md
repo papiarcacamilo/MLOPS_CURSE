@@ -105,7 +105,7 @@ cliente** (ver [Limitaciones](#limitaciones)).
 ## Diccionario de datos
 
 El diccionario está implementado como estructura de código en
-`mlops_pipeline/comprension_eda.ipynb`
+`mlops_pipeline/src/comprension_eda.ipynb`
 (constante `DICCIONARIO_DATOS`), de la cual el resto del análisis deriva sus listas de variables.
 Esto evita inferir el tipo estadístico desde el tipo de dato técnico.
 
@@ -374,7 +374,7 @@ producción queden señalados en lugar de pasar silenciosamente.
 > VALOR"), no construirlos. Se calculan en un DataFrame independiente (`derivadas = df.copy()`)
 > solo para medir su poder predictivo; **ninguno se incorpora a `Base_de_datos_limpia.csv`**.
 > Su implementación definitiva corresponde a la Fase 2
-> (`mlops_pipeline/ft_engineering.py`, hoy vacío).
+> (`mlops_pipeline/src/ft_engineering.py`, hoy vacío).
 
 Se propusieron y evaluaron 9 atributos derivados dentro del notebook, midiendo su relación con la
 variable objetivo mediante **dos medidas complementarias**: correlación de Pearson (relación
@@ -618,9 +618,9 @@ El enunciado pide tres piezas, y cada una vive en su archivo.
 
 | Pieza | Archivo | Qué hace |
 |---|---|---|
-| La app | `mlops_pipeline/app.py` | API con los endpoints, capa HTTP únicamente |
+| La app | `mlops_pipeline/src/app.py` | API con los endpoints, capa HTTP únicamente |
 | La imagen | `Dockerfile` | Librerías, código y artefactos, sin datos de entrenamiento |
-| El motor | `mlops_pipeline/model_deploy.py` | Cadena de inferencia y decisión |
+| El motor | `mlops_pipeline/src/model_deploy.py` | Cadena de inferencia y decisión |
 
 ### Cadena de inferencia
 
@@ -1093,20 +1093,21 @@ para depurar el score (insight 4), pero su tasa de mora no constituye un hallazg
 ```
 MLOPS_CURSE/
 ├── mlops_pipeline/
-│   ├── Cargar_datos.ipynb            # Ingesta y compuerta de calidad (COMPLETADO)
-│   ├── comprension_eda.ipynb         # Fase 1: diccionario, limpieza, EDA (COMPLETADO)
-│   ├── ft_engineering.py             # Fase 2: Feature Engineering (COMPLETADO)
-│   ├── hueristic_model.py            # Piso de referencia sin modelo (COMPLETADO)
-│   ├── model_training.py             # Fase 3: entrenamiento y selección (COMPLETADO)
-│   ├── model_evaluation.py           # Fase 3: evaluación y test final (COMPLETADO)
-│   ├── model_deploy.py               # Fase 4: motor de inferencia (COMPLETADO)
-│   ├── model_monitoring.py           # Fase 5: monitoreo y data drift (COMPLETADO)
-│   ├── reglas_negocio.py             # Contrato derivado del EDA (añadido)
-│   ├── app.py                        # Fase 4: API del endpoint (añadido)
-│   ├── feature_engineering.ipynb     # Narrativa de la Fase 2 (añadido)
-│   ├── model_evaluation.ipynb        # Narrativa de la evaluación (añadido)
-│   ├── model_monitoring.ipynb        # Narrativa del monitoreo (añadido)
-│   └── hueristic_model.ipynb         # Narrativa del heurístico (añadido)
+│   └── src/
+│       ├── Cargar_datos.ipynb            # Ingesta y compuerta de calidad (COMPLETADO)
+│       ├── comprension_eda.ipynb         # Fase 1: diccionario, limpieza, EDA (COMPLETADO)
+│       ├── ft_engineering.py             # Fase 2: Feature Engineering (COMPLETADO)
+│       ├── hueristic_model.py            # Piso de referencia sin modelo (COMPLETADO)
+│       ├── model_training.py             # Fase 3: entrenamiento y selección (COMPLETADO)
+│       ├── model_evaluation.py           # Fase 3: evaluación y test final (COMPLETADO)
+│       ├── model_deploy.py               # Fase 4: motor de inferencia (COMPLETADO)
+│       ├── model_monitoring.py           # Fase 5: monitoreo y data drift (COMPLETADO)
+│       ├── reglas_negocio.py             # Contrato derivado del EDA (añadido)
+│       ├── app.py                        # Fase 4: API del endpoint (añadido)
+│       ├── feature_engineering.ipynb     # Narrativa de la Fase 2 (añadido)
+│       ├── model_evaluation.ipynb        # Narrativa de la evaluación (añadido)
+│       ├── model_monitoring.ipynb        # Narrativa del monitoreo (añadido)
+│       └── hueristic_model.ipynb         # Narrativa del heurístico (añadido)
 ├── data/
 │   └── processed/                    # Salida de la Fase 2
 │       ├── estratificado_train.csv        # 8.610 registros (datos particionados)
@@ -1159,10 +1160,9 @@ de carpetas **no es modificable** porque el paso a producción se valida con Jen
 sería el error. Por la misma razón se conserva `set_up.bat` y no `setup.bat`: es el nombre que pide
 el enunciado.
 
-**Una diferencia con el árbol del enunciado:** los módulos están directamente en `mlops_pipeline/`,
-sin el nivel `src/`. Se mantiene así porque la imagen Docker, el CI, SonarCloud y las pruebas están
-construidos y verificados sobre estas rutas, y moverlos a días de la entrega arriesgaba romper lo
-verificado.
+**Sobre el árbol del enunciado:** los módulos viven en `mlops_pipeline/src/`, como pide el enunciado, y un
+validador los comprueba en cada corrida de Jenkins. `config.json`, `Base_de_datos.csv` y `requirements.txt`
+quedan en la raíz: el árbol del enunciado no es claro en ese punto, y es donde los esperan Docker y el CI.
 
 ### Sobre versionar los datos generados
 
@@ -1183,7 +1183,7 @@ solo ensucia los diffs.
 `data/monitoring/registro_endpoint.csv` también queda fuera, y por una razón distinta: crece en cada
 llamada al endpoint y lleva marca de tiempo, de modo que no hay dos ejecuciones con el mismo
 contenido. Versionarlo produciría un diff distinto cada vez sin ganar auditabilidad. Se reconstruye
-con `python mlops_pipeline/model_deploy.py`. `lote_ejemplo.csv` sí se versiona: es una muestra fija,
+con `python mlops_pipeline/src/model_deploy.py`. `lote_ejemplo.csv` sí se versiona: es una muestra fija,
 con semilla, y sirve para probar el endpoint sin abrir la base de clientes.
 
 Los archivos marcados como *añadidos* no alteran la estructura exigida, porque añadir no es
@@ -1235,7 +1235,7 @@ set_up.bat
 pip install -r requirements.txt
 
 # 3. Ejecutar el análisis
-jupyter notebook mlops_pipeline/comprension_eda.ipynb
+jupyter notebook mlops_pipeline/src/comprension_eda.ipynb
 #    (o abrir la carpeta MLOPS_CURSE en VS Code y usar "Run All")
 ```
 
@@ -1245,7 +1245,7 @@ jupyter notebook mlops_pipeline/comprension_eda.ipynb
 mientras que los CSV viven en la raíz. En lugar de fijar `'../../../'` a mano —frágil ante
 cambios de ubicación o de directorio de trabajo del kernel— el notebook localiza la raíz del
 proyecto con la función `encontrar_raiz()`, que sube por el árbol de directorios hasta encontrar
-`Base_de_datos.csv`. Verificado: funciona desde la raíz del repo, y desde `mlops_pipeline/`. Los scripts de las fases 2 a 5 deben
+`Base_de_datos.csv`. Verificado: funciona desde la raíz del repo, y desde `mlops_pipeline/src/`. Los scripts de las fases 2 a 5 deben
 resolver las rutas de la misma forma.
 
 El archivo crudo nunca se modifica; la salida `Base_de_datos_limpia.csv` se regenera en cada
@@ -1255,10 +1255,10 @@ ejecución completa.
 
 ```bash
 # 1. Construir los artefactos de despliegue y correr las verificaciones
-python mlops_pipeline/model_deploy.py
+python mlops_pipeline/src/model_deploy.py
 
 # 2a. En local, sin contenedor
-uvicorn app:app --app-dir mlops_pipeline --port 8000
+uvicorn app:app --app-dir mlops_pipeline/src --port 8000
 
 # 2b. O en contenedor, que es como se entrega
 docker compose up --build
@@ -1280,7 +1280,7 @@ no arranca, porque el primero parece sano.
 ### Medir la deriva (Fase 5)
 
 ```bash
-python mlops_pipeline/model_monitoring.py
+python mlops_pipeline/src/model_monitoring.py
 ```
 
 Lee la línea base congelada y solo la construye si falta; `--reconstruir-base` la rehace cuando cambia

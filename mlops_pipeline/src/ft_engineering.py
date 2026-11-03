@@ -63,7 +63,7 @@ def encontrar_raiz(marcador: str = "Base_de_datos.csv", max_niveles: int = 6) ->
     """Sube por el arbol de directorios hasta encontrar el archivo marcador.
 
     Se replica la estrategia usada en los notebooks: el script vive en
-    mlops_pipeline/ y los datos en la raiz del repositorio.
+    mlops_pipeline/src/ y los datos en la raiz del repositorio.
 
     La variable de entorno MLOPS_RAIZ tiene prioridad y existe por el
     despliegue: la imagen de la Fase 4 lleva el modelo y los artefactos, pero

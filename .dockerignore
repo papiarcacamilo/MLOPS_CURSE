@@ -19,12 +19,12 @@ data/models/seleccion_variables.json
 data/models/pipeline_features_*.joblib
 
 # --- Analisis y entrenamiento: no participan en la inferencia ---
-mlops_pipeline/*.ipynb
-mlops_pipeline/comprension_eda.py
-mlops_pipeline/hueristic_model.py
-mlops_pipeline/model_training.py
-mlops_pipeline/model_evaluation.py
-mlops_pipeline/model_monitoring.py
+mlops_pipeline/src/*.ipynb
+mlops_pipeline/src/comprension_eda.py
+mlops_pipeline/src/hueristic_model.py
+mlops_pipeline/src/model_training.py
+mlops_pipeline/src/model_evaluation.py
+mlops_pipeline/src/model_monitoring.py
 
 # --- Entorno y control de versiones ---
 .git/

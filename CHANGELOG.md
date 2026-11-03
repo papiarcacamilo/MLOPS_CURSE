@@ -5,6 +5,12 @@ donde está el detalle y la verificación. El formato se basa en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y las versiones siguen
 [versionado semántico](https://semver.org/lang/es/).
 
+## [Sin publicar]
+
+### Cambiado
+
+- Los módulos y notebooks pasan a `mlops_pipeline/src/`, la estructura que pide el enunciado y que validará Jenkins.
+
 ## [2.0.1] - 2026-09-14
 
 Incorpora la revisión de `danielCH26` sobre las PR6 y PR7. No cambia el modelo ni la imagen.
