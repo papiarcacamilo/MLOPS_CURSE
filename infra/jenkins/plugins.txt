@@ -1,0 +1,7 @@
+# Plugins de Jenkins que necesita el pipeline, con version fija para que la imagen
+# sea reproducible. Sus dependencias se resuelven solas.
+workflow-aggregator:608.v67378e9d3db_1
+git:5.11.0
+docker-workflow:653.v2f2c08eff0ec
+pipeline-stage-view:2.41
+email-ext:2038.v7b_8817a_499d9

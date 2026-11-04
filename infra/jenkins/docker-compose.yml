@@ -1,0 +1,41 @@
+# =============================================================================
+# MLOPS_CURSE | Levantar Jenkins
+# =============================================================================
+#
+#   cd infra/jenkins
+#   docker compose up -d --build
+#   http://localhost:8081
+#
+# Este archivo esta aparte porque el docker-compose.yml de la raiz es el de la API.
+#
+# Diferencias con la guia del curso:
+#   - Puerto 8081: el 8080 esta ocupado en este equipo.
+#   - Solo escucha en 127.0.0.1: con root y el socket de Docker, Jenkins controla
+#     todo el motor de Docker, asi que no debe quedar visible en la red local.
+#   - No monta el repositorio en el workspace: el pipeline debe clonarlo, y con ese
+#     montaje el clon quedaria dentro del propio repositorio.
+#
+# Se mantiene user: root porque el socket de Docker lo exige en Docker Desktop. Es
+# aceptable en un equipo local; en una empresa las tareas correrian en agentes aparte.
+# =============================================================================
+
+name: mlops-jenkins
+
+services:
+  jenkins:
+    build: .
+    image: mlops-jenkins:2.580.2
+    container_name: jenkins
+    user: root
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8081:8080"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - TZ=America/Bogota
+      - JAVA_OPTS=-Duser.timezone=America/Bogota
+
+volumes:
+  jenkins_home: {}
