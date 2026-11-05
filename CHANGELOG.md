@@ -11,7 +11,7 @@ donde está el detalle y la verificación. El formato se basa en
 
 - `infra/jenkins/`: Jenkins local con versión fija, en Docker.
 - `ci/validar_estructura.py` y `ci/validar_metricas.py`: compuertas que Jenkins ejecutará para aprobar o rechazar una corrida.
-- `Jenkinsfile`: pipeline de aprobación que clona, valida y, en `master`, pide la aprobación de una persona.
+- `Jenkinsfile`: pipeline de aprobación que clona, valida, en `master` pide la aprobación de una persona y notifica por correo.
 
 ### Cambiado
 

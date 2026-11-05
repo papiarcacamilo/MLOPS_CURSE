@@ -91,6 +91,8 @@ pipeline {
                 timeout(time: 1, unit: 'HOURS')
             }
             steps {
+                // Sin este aviso nadie sabria que la corrida esta esperando.
+                notificar('ESPERA APROBACION', 'Paso las validaciones y espera tu aprobacion por 1 hora.')
                 input message: "Aprobar el commit ${env.COMMIT} para produccion?",
                       ok: 'Aprobar',
                       submitter: 'camilo'
@@ -100,13 +102,41 @@ pipeline {
 
     post {
         success {
-            echo "APROBADO: ${env.RAMA}, commit ${env.COMMIT}"
+            notificar('APROBADO', 'Paso todas las etapas.')
         }
         failure {
-            echo "RECHAZADO: ${env.RAMA}, commit ${env.COMMIT}. Revisar la etapa que fallo."
+            notificar('RECHAZADO', 'Una etapa fallo. La causa esta en el log.')
         }
         aborted {
-            echo "SIN APROBAR: ${env.RAMA}, commit ${env.COMMIT}. Se cancelo o vencio la espera."
+            notificar('SIN APROBAR', 'Se cancelo o vencio la espera de aprobacion.')
         }
+    }
+}
+
+// El destinatario y el servidor de correo se configuran en Jenkins: el repositorio
+// es publico y aqui no debe quedar ninguna direccion ni credencial.
+def notificar(String veredicto, String detalle) {
+    String rama = env.RAMA ?: 'sin clonar'
+    String commit = env.COMMIT ?: 'sin clonar'
+    echo "${veredicto}: ${rama}, commit ${commit}. ${detalle}"
+    try {
+        emailext(
+            to: '$DEFAULT_RECIPIENTS',
+            subject: "[Jenkins] ${veredicto}: ${env.JOB_NAME} #${env.BUILD_NUMBER} (${rama})",
+            mimeType: 'text/plain',
+            body: """${detalle}
+
+Rama: ${rama}
+Commit: ${commit}
+Duracion hasta este aviso: ${currentBuild.durationString}
+Corrida: ${env.BUILD_URL}
+
+Ultimas lineas del log:
+\${BUILD_LOG, maxLines=30}
+"""
+        )
+    } catch (Exception error) {
+        // Un correo fallido no debe cambiar el veredicto de la corrida.
+        echo "No se pudo enviar el correo: ${error.message}"
     }
 }
