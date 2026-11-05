@@ -7,7 +7,9 @@
 # entrada del script, no logica que se pueda probar por separado.
 
 [run]
-source = mlops_pipeline/src
+source =
+    mlops_pipeline/src
+    ci
 omit =
     */__pycache__/*
     */tests/*

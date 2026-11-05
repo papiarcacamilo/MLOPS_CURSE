@@ -7,6 +7,11 @@ donde está el detalle y la verificación. El formato se basa en
 
 ## [Sin publicar]
 
+### Añadido
+
+- `infra/jenkins/`: Jenkins local con versión fija, en Docker.
+- `ci/validar_estructura.py` y `ci/validar_metricas.py`: compuertas que Jenkins ejecutará para aprobar o rechazar una corrida.
+
 ### Cambiado
 
 - Los módulos y notebooks pasan a `mlops_pipeline/src/`, la estructura que pide el enunciado y que validará Jenkins.

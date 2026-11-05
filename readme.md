@@ -917,7 +917,8 @@ dentro de `main()`, de modo que solo corrían si alguien ejecutaba el script ent
 | `tests/test_endpoint.py` | 23 | Los cinco endpoints y los casos límite |
 | `tests/test_features.py` | 22 | WoE, atributos derivados, escalado y piso heurístico |
 | `tests/test_evaluacion.py` | 13 | Métrica, selección del modelo, calibración y umbral |
-| **Total** | **198** | **Menos de 30 segundos** |
+| `tests/test_validadores.py` | 51 | Las compuertas de Jenkins: cada regla debe rechazar por sí sola |
+| **Total** | **249** | **Cerca de 1 minuto en local** |
 
 ### Validación de los tests 
 
@@ -958,7 +959,8 @@ desempate que prefiere SMOTE), la suite detectó los 6.
 | `ft_engineering.py` | 28,2% |
 | `model_evaluation.py` | 33,2% |
 | `model_training.py` | 25,4% |
-| **Total** | **44,3%** |
+| `ci/validar_estructura.py` y `ci/validar_metricas.py` | 100% |
+| **Total** | **48,2%** |
 
 El contrato y la API superan el 90%. En `model_deploy.py`, lo que falta cubrir es sobre todo
 `main()` y la construcción del artefacto, que corren antes de desplegar; `sanear`, `predecir_lote`
@@ -1143,7 +1145,9 @@ MLOPS_CURSE/
 ├── .dockerignore                     # Fase 4: qué no viaja al build (añadido)
 ├── requirements.txt                  # Dependencias con versiones fijadas
 ├── requirements-api.txt              # Subconjunto que instala la imagen (añadido)
-├── tests/                            # Stage 2: 198 tests en 6 archivos (añadido)
+├── tests/                            # Stage 2: 249 tests en 7 archivos (añadido)
+├── ci/                               # Compuertas que ejecuta Jenkins: estructura y métricas (añadido)
+├── infra/jenkins/                    # Jenkins local con versión fija (añadido)
 ├── .github/workflows/ci.yml          # Stage 2: tests y SonarCloud en cada push (añadido)
 ├── pytest.ini                        # Stage 2: configuración de pytest (añadido)
 ├── .coveragerc                       # Stage 2: alcance de la cobertura (añadido)
