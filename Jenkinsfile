@@ -58,6 +58,12 @@ pipeline {
                         sh 'python ci/validar_estructura.py'
                     }
                 }
+                stage('Validar metricas') {
+                    // Tampoco necesita instalar nada: un modelo peor se rechaza en segundos.
+                    steps {
+                        sh 'python ci/validar_metricas.py'
+                    }
+                }
                 stage('Preparar entorno') {
                     steps {
                         sh 'pip install --quiet -r requirements.txt'
@@ -71,11 +77,6 @@ pipeline {
                         always {
                             junit testResults: 'reporte_pruebas.xml', allowEmptyResults: true
                         }
-                    }
-                }
-                stage('Validar metricas') {
-                    steps {
-                        sh 'python ci/validar_metricas.py'
                     }
                 }
             }
