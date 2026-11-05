@@ -1148,6 +1148,7 @@ MLOPS_CURSE/
 ├── tests/                            # Stage 2: 249 tests en 7 archivos (añadido)
 ├── ci/                               # Compuertas que ejecuta Jenkins: estructura y métricas (añadido)
 ├── infra/jenkins/                    # Jenkins local con versión fija (añadido)
+├── Jenkinsfile                       # Pipeline de aprobación después del merge (añadido)
 ├── .github/workflows/ci.yml          # Stage 2: tests y SonarCloud en cada push (añadido)
 ├── pytest.ini                        # Stage 2: configuración de pytest (añadido)
 ├── .coveragerc                       # Stage 2: alcance de la cobertura (añadido)
