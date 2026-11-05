@@ -106,7 +106,7 @@ pipeline {
             notificar('APROBADO', 'Paso todas las etapas.')
         }
         failure {
-            notificar('RECHAZADO', 'Una etapa fallo. La causa esta en el log.')
+            notificar('RECHAZADO', 'Una etapa fallo. La causa esta abajo y el log completo en el enlace.')
         }
         aborted {
             notificar('SIN APROBAR', 'Se cancelo o vencio la espera de aprobacion.')
@@ -132,8 +132,8 @@ Commit: ${commit}
 Duracion hasta este aviso: ${currentBuild.durationString}
 Corrida: ${env.BUILD_URL}
 
-Ultimas lineas del log:
-\${BUILD_LOG, maxLines=30}
+Lineas clave del log:
+\${BUILD_LOG_REGEX, regex="^(.FALLA.|.AVISO.|RECHAZADO|APROBADO|FAIL|ERROR|[0-9]+ (failed|passed))", maxMatches=40, showTruncatedLines=false}
 """
         )
     } catch (Exception error) {
