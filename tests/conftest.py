@@ -41,7 +41,7 @@ import pandas as pd
 import pytest
 
 RAIZ = Path(__file__).resolve().parents[1]
-PIPELINE = RAIZ / "mlops_pipeline"
+PIPELINE = RAIZ / "mlops_pipeline" / "src"
 if str(PIPELINE) not in sys.path:
     sys.path.insert(0, str(PIPELINE))
 

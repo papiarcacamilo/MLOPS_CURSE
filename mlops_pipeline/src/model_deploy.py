@@ -591,7 +591,7 @@ def cargar_artefacto() -> dict:
     if not RUTA_ARTEFACTO.exists():
         raise FileNotFoundError(
             f"No existe {RUTA_ARTEFACTO.name}. Ejecuta primero:\n"
-            f"    python mlops_pipeline/model_deploy.py")
+            f"    python mlops_pipeline/src/model_deploy.py")
     with open(RUTA_ARTEFACTO, encoding="utf-8") as f:
         return json.load(f)
 
@@ -909,7 +909,7 @@ def main() -> dict:
                              encoding=fe.ENCODING)))
 
     log.info("=" * 72)
-    log.info("Levantar la app:  uvicorn app:app --app-dir mlops_pipeline --port 8000")
+    log.info("Levantar la app:  uvicorn app:app --app-dir mlops_pipeline/src --port 8000")
     log.info("=" * 72)
 
     return {"verificacion": verificacion, "artefacto": artefacto,

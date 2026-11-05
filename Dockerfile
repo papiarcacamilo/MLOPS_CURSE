@@ -45,13 +45,13 @@ RUN pip install --upgrade pip && pip install -r requirements-api.txt
 # Codigo de inferencia. Solo los cuatro modulos que el endpoint importa:
 # app -> model_deploy -> ft_engineering -> reglas_negocio.
 COPY config.json .
-COPY mlops_pipeline/reglas_negocio.py mlops_pipeline/
-COPY mlops_pipeline/ft_engineering.py mlops_pipeline/
-COPY mlops_pipeline/model_deploy.py   mlops_pipeline/
-COPY mlops_pipeline/app.py            mlops_pipeline/
+COPY mlops_pipeline/src/reglas_negocio.py mlops_pipeline/src/
+COPY mlops_pipeline/src/ft_engineering.py mlops_pipeline/src/
+COPY mlops_pipeline/src/model_deploy.py mlops_pipeline/src/
+COPY mlops_pipeline/src/app.py mlops_pipeline/src/
 
 # Artefactos del modelo. `artefacto_despliegue.json` lo produce
-# `python mlops_pipeline/model_deploy.py`, que debe ejecutarse antes del build.
+# `python mlops_pipeline/src/model_deploy.py`, que debe ejecutarse antes del build.
 COPY data/models/modelo_seleccionado.joblib   data/models/
 COPY data/models/evaluacion.json              data/models/
 COPY data/models/artefacto_despliegue.json    data/models/
@@ -80,5 +80,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
     CMD python -c "import json,sys,urllib.request as u; sys.exit(0 if json.loads(u.urlopen('http://127.0.0.1:8000/salud').read())['estado'] == 'activo' else 1)"
 
-CMD ["uvicorn", "app:app", "--app-dir", "mlops_pipeline", \
+CMD ["uvicorn", "app:app", "--app-dir", "mlops_pipeline/src", \
      "--host", "0.0.0.0", "--port", "8000"]
