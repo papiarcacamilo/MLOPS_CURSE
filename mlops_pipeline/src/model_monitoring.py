@@ -202,7 +202,7 @@ def cargar_registro(ruta: Path = None) -> pd.DataFrame:
     if not ruta.exists():
         raise FileNotFoundError(
             f"No existe {ruta.name}. El monitoreo se alimenta del endpoint: "
-            f"ejecuta primero\n    python mlops_pipeline/model_deploy.py")
+            f"ejecuta primero\n    python mlops_pipeline/src/model_deploy.py")
 
     registro = pd.read_csv(ruta, sep=fe.SEPARADOR, encoding=fe.ENCODING)
     registro["momento"] = pd.to_datetime(registro["momento"], format="ISO8601")

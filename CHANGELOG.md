@@ -5,6 +5,19 @@ donde está el detalle y la verificación. El formato se basa en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y las versiones siguen
 [versionado semántico](https://semver.org/lang/es/).
 
+## [Sin publicar]
+
+### Añadido
+
+- `infra/jenkins/`: Jenkins local con versión fija, en Docker.
+- `ci/validar_estructura.py` y `ci/validar_metricas.py`: compuertas que Jenkins ejecutará para aprobar o rechazar una corrida.
+- `Jenkinsfile`: pipeline de aprobación que clona, valida, en `master` pide la aprobación de una persona y notifica por correo.
+
+### Cambiado
+
+- Los módulos y notebooks pasan a `mlops_pipeline/src/`, la estructura que pide el enunciado y que validará Jenkins.
+- `requirements.txt` incluye `pandas-gbq`, que `Cargar_datos.ipynb` necesita para leer BigQuery.
+
 ## [2.0.1] - 2026-09-14
 
 Incorpora la revisión de `danielCH26` sobre las PR6 y PR7. No cambia el modelo ni la imagen.
