@@ -918,7 +918,8 @@ dentro de `main()`, de modo que solo corrían si alguien ejecutaba el script ent
 | `tests/test_features.py` | 22 | WoE, atributos derivados, escalado y piso heurístico |
 | `tests/test_evaluacion.py` | 13 | Métrica, selección del modelo, calibración y umbral |
 | `tests/test_validadores.py` | 51 | Las compuertas de Jenkins: cada regla debe rechazar por sí sola |
-| **Total** | **249** | **Cerca de 1 minuto en local** |
+| `tests/test_vertex_datos.py` | 13 | La tabla para Vertex AI: mismo test que Python y sin columnas de más |
+| **Total** | **262** | **Cerca de 1 minuto en local** |
 
 ### Validación de los tests 
 
@@ -960,7 +961,8 @@ desempate que prefiere SMOTE), la suite detectó los 6.
 | `model_evaluation.py` | 33,2% |
 | `model_training.py` | 25,4% |
 | `ci/validar_estructura.py` y `ci/validar_metricas.py` | 100% |
-| **Total** | **48,2%** |
+| `vertex_datos.py` | 100% |
+| **Total** | **50,3%** |
 
 El contrato y la API superan el 90%. En `model_deploy.py`, lo que falta cubrir es sobre todo
 `main()` y la construcción del artefacto, que corren antes de desplegar; `sanear`, `predecir_lote`
@@ -1109,6 +1111,7 @@ MLOPS_CURSE/
 │       ├── model_monitoring.py           # Fase 5: monitoreo y data drift (COMPLETADO)
 │       ├── reglas_negocio.py             # Contrato derivado del EDA (añadido)
 │       ├── app.py                        # Fase 4: API del endpoint (añadido)
+│       ├── vertex_datos.py               # Entregable 5: tabla para Vertex AI (añadido)
 │       ├── feature_engineering.ipynb     # Narrativa de la Fase 2 (añadido)
 │       ├── model_evaluation.ipynb        # Narrativa de la evaluación (añadido)
 │       ├── model_monitoring.ipynb        # Narrativa del monitoreo (añadido)
@@ -1142,13 +1145,13 @@ MLOPS_CURSE/
 │       └── registro_endpoint.csv          # Entradas y pronósticos (no versionado)
 ├── Base_de_datos.csv                 # Datos crudos originales (no modificar)
 ├── Base_de_datos_limpia.csv          # Salida de la Fase 1, entrada de la Fase 2
-├── config.json                       # Separador, codificación, semilla y target
+├── config.json                       # Separador, codificación, semilla, target y destino en Vertex AI
 ├── Dockerfile                        # Fase 4: imagen del endpoint (añadido)
 ├── docker-compose.yml                # Fase 4: levantar con volumen (añadido)
 ├── .dockerignore                     # Fase 4: qué no viaja al build (añadido)
 ├── requirements.txt                  # Dependencias con versiones fijadas
 ├── requirements-api.txt              # Subconjunto que instala la imagen (añadido)
-├── tests/                            # Stage 2: 249 tests en 7 archivos (añadido)
+├── tests/                            # Stage 2: 262 tests en 8 archivos (añadido)
 ├── ci/                               # Compuertas que ejecuta Jenkins: estructura y métricas (añadido)
 ├── infra/jenkins/                    # Jenkins local con versión fija (añadido)
 ├── Jenkinsfile                       # Pipeline de aprobación después del merge (añadido)

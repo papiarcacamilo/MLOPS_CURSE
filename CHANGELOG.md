@@ -13,6 +13,7 @@ donde está el detalle y la verificación. El formato se basa en
 - `ci/validar_estructura.py` y `ci/validar_metricas.py`: compuertas que Jenkins ejecutará para aprobar o rechazar una corrida.
 - `Jenkinsfile`: pipeline de aprobación que clona, valida, en `master` pide la aprobación de una persona y notifica por correo.
 - Sección del readme sobre cómo levantar Jenkins, crear sus jobs y configurar el correo.
+- `vertex_datos.py`: arma la tabla de BigQuery para comparar con AutoML, con el mismo test que el modelo de Python. 13 tests.
 
 ### Cambiado
 

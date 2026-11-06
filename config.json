@@ -8,5 +8,12 @@
     "encoding": "utf-8-sig"
   },
   "target_variable": "Pago_atiempo",
-  "random_state": 42
+  "random_state": 42,
+  "vertex": {
+    "proyecto": "nb-rsk-scoring-dev",
+    "region": "us-central1",
+    "dataset": "modelado",
+    "tabla": "creditos_comparacion",
+    "proporcion_validacion": 0.1
+  }
 }
