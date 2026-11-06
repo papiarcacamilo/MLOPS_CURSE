@@ -14,6 +14,8 @@ donde está el detalle y la verificación. El formato se basa en
 - `Jenkinsfile`: pipeline de aprobación que clona, valida, en `master` pide la aprobación de una persona y notifica por correo.
 - Sección del readme sobre cómo levantar Jenkins, crear sus jobs y configurar el correo.
 - `vertex_datos.py`: arma la tabla de BigQuery para comparar con AutoML, con el mismo test que el modelo de Python. 13 tests.
+- `vertex_automl.py`: lanza AutoML Tabular con el plan de la comparación y lo revisa antes de gastar. Sin `--lanzar` solo muestra el plan. 14 tests.
+- `requirements-vertex.txt`: el SDK de Vertex AI, aparte para que el CI y Jenkins no lo instalen.
 
 ### Cambiado
 
