@@ -919,8 +919,8 @@ dentro de `main()`, de modo que solo corrían si alguien ejecutaba el script ent
 | `tests/test_evaluacion.py` | 13 | Métrica, selección del modelo, calibración y umbral |
 | `tests/test_validadores.py` | 51 | Las compuertas de Jenkins: cada regla debe rechazar por sí sola |
 | `tests/test_vertex_datos.py` | 13 | La tabla para Vertex AI: mismo test que Python y sin columnas de más |
-| `tests/test_vertex_automl.py` | 14 | El plan de AutoML: entradas, tipos, objetivo y presupuesto antes de gastar |
-| **Total** | **276** | **Cerca de 1 minuto en local** |
+| `tests/test_vertex_automl.py` | 15 | El plan de AutoML: entradas, tipos, objetivo y presupuesto antes de gastar |
+| **Total** | **277** | **Cerca de 1 minuto en local** |
 
 ### Validación de los tests 
 
@@ -963,7 +963,7 @@ desempate que prefiere SMOTE), la suite detectó los 6.
 | `model_training.py` | 25,4% |
 | `ci/validar_estructura.py` y `ci/validar_metricas.py` | 100% |
 | `vertex_datos.py` y `vertex_automl.py` | 100% |
-| **Total** | **51,7%** |
+| **Total** | **51,8%** |
 
 El contrato y la API superan el 90%. En `model_deploy.py`, lo que falta cubrir es sobre todo
 `main()` y la construcción del artefacto, que corren antes de desplegar; `sanear`, `predecir_lote`
@@ -1154,7 +1154,7 @@ MLOPS_CURSE/
 ├── requirements.txt                  # Dependencias con versiones fijadas
 ├── requirements-api.txt              # Subconjunto que instala la imagen (añadido)
 ├── requirements-vertex.txt           # SDK de Vertex AI, solo para entrenar en la nube (añadido)
-├── tests/                            # Stage 2: 276 tests en 9 archivos (añadido)
+├── tests/                            # Stage 2: 277 tests en 9 archivos (añadido)
 ├── ci/                               # Compuertas que ejecuta Jenkins: estructura y métricas (añadido)
 ├── infra/jenkins/                    # Jenkins local con versión fija (añadido)
 ├── Jenkinsfile                       # Pipeline de aprobación después del merge (añadido)

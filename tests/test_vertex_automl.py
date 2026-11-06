@@ -108,12 +108,19 @@ def test_main_no_lanza_un_plan_rechazado(monkeypatch, capsys):
     assert "RECHAZADO" in capsys.readouterr().out
 
 
-def test_lanzar_crea_el_dataset_y_el_entrenamiento_con_el_plan(monkeypatch, plan_real):
-    registro = {}
+@pytest.fixture
+def vertex_falso(monkeypatch):
+    """Reemplaza Vertex AI y registra cada llamada."""
+    registro = {"existentes": []}
 
     class Dataset:
         name = "987"
         resource_name = "projects/p/locations/us-central1/datasets/987"
+
+        @staticmethod
+        def list(filter):
+            registro["filtro"] = filter
+            return registro["existentes"]
 
         @staticmethod
         def create(**opciones):
@@ -135,6 +142,21 @@ def test_lanzar_crea_el_dataset_y_el_entrenamiento_con_el_plan(monkeypatch, plan
         gapic=types.SimpleNamespace(PipelineServiceClient=Cliente))
     monkeypatch.setattr(google.cloud, "aiplatform", falso, raising=False)
     monkeypatch.setitem(sys.modules, "google.cloud.aiplatform", falso)
+    registro["clase_dataset"] = Dataset
+    return registro
+
+
+def test_preparar_dataset_reutiliza_el_existente(vertex_falso, plan_real):
+    existente = types.SimpleNamespace(name="111")
+    vertex_falso["existentes"].append(existente)
+    assert va.preparar_dataset(plan_real) is existente
+    assert vertex_falso["filtro"] == 'display_name="creditos_comparacion-e5"'
+    assert "dataset" not in vertex_falso
+
+
+def test_lanzar_crea_el_dataset_y_el_entrenamiento_con_el_plan(vertex_falso, plan_real):
+    registro = vertex_falso
+    Dataset = registro["clase_dataset"]
 
     assert va.lanzar(plan_real) == (Dataset.resource_name, "trainingPipelines/555")
     assert registro["init"] == {"project": "nb-rsk-scoring-dev", "location": "us-central1"}

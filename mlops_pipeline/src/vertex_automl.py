@@ -105,14 +105,25 @@ def verificar_plan(p: dict, entradas: list[str]) -> list[str]:
     return problemas
 
 
+def preparar_dataset(p: dict):
+    """Devuelve el dataset de Vertex AI; lo crea solo si no existe, para no duplicarlo."""
+    from google.cloud import aiplatform
+
+    aiplatform.init(project=p["proyecto"], location=p["region"])
+    existentes = aiplatform.TabularDataset.list(
+        filter=f'display_name="{p["dataset_vertex"]}"')
+    if existentes:
+        return existentes[0]
+    return aiplatform.TabularDataset.create(
+        display_name=p["dataset_vertex"], bq_source=p["origen"], labels=ETIQUETAS)
+
+
 def lanzar(p: dict) -> tuple[str, str]:
-    """Crea el dataset de Vertex AI y el entrenamiento, sin esperar a que termine."""
+    """Crea el entrenamiento sin esperar a que termine."""
     from google.cloud import aiplatform
     from google.protobuf import json_format, struct_pb2
 
-    aiplatform.init(project=p["proyecto"], location=p["region"])
-    dataset = aiplatform.TabularDataset.create(
-        display_name=p["dataset_vertex"], bq_source=p["origen"], labels=ETIQUETAS)
+    dataset = preparar_dataset(p)
 
     entrenamiento = dict(p["entrenamiento"])
     entrenamiento["training_task_inputs"] = json_format.ParseDict(
