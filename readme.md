@@ -989,6 +989,9 @@ primero.
 La cobertura tiene un mínimo: si el total baja de 40%, pytest falla y el CI queda en rojo. Sin él,
 la suite seguiría en verde aunque alguien borrara la mitad de los tests.
 
+Después del merge actúa Jenkins, descrito en
+[Pipeline de aprobación en Jenkins](#pipeline-de-aprobación-en-jenkins).
+
 ### Ejecución 
 
 ```bash
@@ -1292,6 +1295,43 @@ Lee la línea base congelada y solo la construye si falta; `--reconstruir-base` 
 el modelo. Hace pasar dos cohortes por el endpoint, que se registran solo la primera vez, lee el
 registro y lo muestrea por semana de llegada y por mes de cosecha. Falla de forma explícita si el
 control supera el umbral de PSI, porque una medición que no discrimina no sirve para decidir nada.
+
+### Pipeline de aprobación en Jenkins
+
+GitHub Actions revisa cada pull request. Jenkins actúa después del merge: clona el repositorio,
+valida la estructura y las métricas, corre los tests y, en `master`, espera la aprobación de una
+persona. El resultado llega por correo.
+
+```bash
+cd infra/jenkins
+docker compose up -d --build
+```
+
+Jenkins queda en `http://localhost:8081`. La primera vez pide una clave inicial, que se lee con
+`docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword`. Después se crea el usuario
+administrador. El `Jenkinsfile` solo acepta la aprobación del usuario `camilo`; con otro usuario hay
+que cambiar `submitter`.
+
+Esta configuración no está en el repositorio, porque es local o secreta:
+
+| Qué | Dónde, en Jenkins | Valor |
+|---|---|---|
+| Job de `develop` | New Item, tipo Pipeline | Nombre `mlops-curse-aprobacion`. "Pipeline script from SCM", Git, URL del repositorio, rama `*/develop` y script `Jenkinsfile` |
+| Job de `master` | New Item, "Duplicate an existing item" | Nombre `mlops-curse-aprobacion-master`, copia del anterior con la rama `*/master` |
+| Servidor de correo | Manage Jenkins, System, Extended E-mail Notification | `smtp.gmail.com`, puerto 587 con TLS, credencial con una contraseña de aplicación de Gmail y destinatario en Default Recipients |
+| Remitente | Manage Jenkins, System, Jenkins Location | Dirección del administrador |
+
+Cada job se lanza una vez a mano con "Construir ahora". Desde ahí revisa su rama cada 5 minutos y
+corre solo cuando llega un commit. Un job de Pipeline revisa la rama de su última corrida, así que
+también hace falta lanzarlo a mano después de cambiarle la rama.
+
+Tres cosas a tener en cuenta:
+
+- Jenkins solo detecta cambios mientras está encendido. Al volver a encenderlo, revisa lo pendiente.
+- Si la corrida falla antes de leer el `Jenkinsfile`, por ejemplo porque la rama ya no existe, no
+  envía correo.
+- `docker compose down -v` borra el volumen y, con él, los jobs, el usuario y la credencial del
+  correo.
 
 ### Volver a una versión anterior
 
