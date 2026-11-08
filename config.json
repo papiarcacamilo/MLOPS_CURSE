@@ -26,7 +26,8 @@
     "pipeline": {
       "bucket": "nb-rsk-scoring-dev-vertex",
       "cuenta_servicio": "sa-entrenamiento@nb-rsk-scoring-dev.iam.gserviceaccount.com",
-      "modelo": "python-woe-pipeline-e5"
+      "modelo": "python-woe-pipeline-e5",
+      "corrida": "projects/875698717037/locations/us-central1/pipelineJobs/mlops-mora-pipeline-e5-20261107212012"
     }
   }
 }

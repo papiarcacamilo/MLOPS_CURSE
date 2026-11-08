@@ -920,9 +920,9 @@ dentro de `main()`, de modo que solo corrían si alguien ejecutaba el script ent
 | `tests/test_validadores.py` | 51 | Las compuertas de Jenkins: cada regla debe rechazar por sí sola |
 | `tests/test_vertex_datos.py` | 21 | Las tablas para Vertex AI: mismo test que Python, sin fuga y sin columnas de más |
 | `tests/test_vertex_automl.py` | 15 | El plan de AutoML: entradas, tipos, objetivo y presupuesto antes de gastar |
-| `tests/test_vertex_evaluacion.py` | 14 | La comparación: mismos créditos, mismo volumen de rechazo y veredicto contra el ruido |
+| `tests/test_vertex_evaluacion.py` | 20 | La comparación de los tres: mismos créditos, mismo volumen de rechazo, veredicto contra el ruido y reproducibilidad del pipeline |
 | `tests/test_vertex_pipeline.py` | 28 | El pipeline propio: reproduce el 0,1479, compila, declara sus dependencias, registra solo sobre el mínimo y se lanza desde un commit publicado |
-| **Total** | **327** | **Cerca de 1 minuto en local** |
+| **Total** | **333** | **Cerca de 1 minuto en local** |
 
 ### Validación de los tests 
 
@@ -965,7 +965,7 @@ desempate que prefiere SMOTE), la suite detectó los 6.
 | `model_training.py` | 25,4% |
 | `ci/validar_estructura.py` y `ci/validar_metricas.py` | 100% |
 | Módulos `vertex_*.py` del Entregable 5 | 100% |
-| **Total** | **61,8%** |
+| **Total** | **62,2%** |
 
 El contrato y la API superan el 90%. En `model_deploy.py`, lo que falta cubrir es sobre todo
 `main()` y la construcción del artefacto, que corren antes de desplegar; `sanear`, `predecir_lote`
@@ -1116,7 +1116,7 @@ MLOPS_CURSE/
 │       ├── app.py                        # Fase 4: API del endpoint (añadido)
 │       ├── vertex_datos.py               # Entregable 5: tablas para Vertex AI (añadido)
 │       ├── vertex_automl.py              # Entregable 5: lanza AutoML Tabular (añadido)
-│       ├── vertex_evaluacion.py          # Entregable 5: AutoML contra Python (añadido)
+│       ├── vertex_evaluacion.py          # Entregable 5: Python, pipeline y AutoML (añadido)
 │       ├── vertex_pasos.py               # Entregable 5: lógica de las etapas del pipeline (añadido)
 │       ├── vertex_pipeline.py            # Entregable 5: pipeline propio en Vertex AI (añadido)
 │       ├── feature_engineering.ipynb     # Narrativa de la Fase 2 (añadido)
@@ -1146,8 +1146,8 @@ MLOPS_CURSE/
 │   │   ├── scorecard.csv                  # Tabla de puntos publicada
 │   │   ├── linea_base_monitoreo.json      # Referencia congelada de la Fase 5
 │   │   ├── monitoreo.json                 # Deriva por cohorte y por cosecha
-│   │   ├── comparacion_vertex.json        # AutoML contra Python, misma medición
-│   │   ├── predicciones_test_comparacion.csv  # Las dos probabilidades sobre el test
+│   │   ├── comparacion_vertex.json        # Python, pipeline y AutoML, misma medición
+│   │   ├── predicciones_test_comparacion.csv  # Las tres probabilidades sobre el test
 │   │   └── figuras/                       # Gráficos por partición, de monitoreo y de Vertex AI
 │   └── monitoring/
 │       ├── lote_ejemplo.csv               # 50 solicitudes para probar el endpoint
@@ -1161,7 +1161,7 @@ MLOPS_CURSE/
 ├── requirements.txt                  # Dependencias con versiones fijadas
 ├── requirements-api.txt              # Subconjunto que instala la imagen (añadido)
 ├── requirements-vertex.txt           # SDK de Vertex AI, solo para entrenar en la nube (añadido)
-├── tests/                            # Stage 2: 327 tests en 11 archivos (añadido)
+├── tests/                            # Stage 2: 333 tests en 11 archivos (añadido)
 ├── ci/                               # Compuertas que ejecuta Jenkins: estructura y métricas (añadido)
 ├── infra/jenkins/                    # Jenkins local con versión fija (añadido)
 ├── infra/vertex/                     # Pipeline propio compilado, el que se envía a Vertex AI (añadido)
@@ -1364,7 +1364,7 @@ python mlops_pipeline/src/vertex_datos.py --tabla pipeline --subir
 # 2. Ver el plan de AutoML; con --lanzar lo crea y cuesta cerca de USD 21
 python mlops_pipeline/src/vertex_automl.py
 
-# 3. Medir AutoML contra Python; --descargar rehace las predicciones desde BigQuery
+# 3. Medir Python, el pipeline y AutoML; --descargar rehace las predicciones desde la nube
 python mlops_pipeline/src/vertex_evaluacion.py
 
 # 4. Compilar el pipeline propio; con --lanzar sube el código del commit y crea la corrida
@@ -1372,17 +1372,24 @@ python mlops_pipeline/src/vertex_pipeline.py
 ```
 
 Resultado sobre el mismo test estratificado, con 2.153 créditos y 102 moras, rechazando el 20,9% de
-mayor riesgo según cada modelo:
+mayor riesgo según cada modelo. El tiempo es solo el del entrenamiento:
 
-| Modelo | AUC-PR | ROC-AUC | KS | Brier | F1 | Moras detectadas |
-|---|---|---|---|---|---|---|
-| Python, logística sobre WoE | 0,1479 | 0,6849 | 0,2742 | 0,04337 | 0,1449 | 40 de 102 |
-| AutoML Tabular | 0,1952 | 0,6931 | 0,3192 | 0,04256 | 0,1630 | 45 de 102 |
+| Modelo | AUC-PR | ROC-AUC | KS | Brier | F1 | Moras detectadas | Entrenamiento | Costo |
+|---|---|---|---|---|---|---|---|---|
+| Python, logística sobre WoE | 0,1479 | 0,6849 | 0,2742 | 0,04337 | 0,1449 | 40 de 102 | 1,2 s en local | USD 0 |
+| Pipeline propio en Vertex AI | 0,1479 | 0,6849 | 0,2742 | 0,04337 | 0,1449 | 40 de 102 | 12 min 53 s | Centavos |
+| AutoML Tabular | 0,1952 | 0,6931 | 0,3192 | 0,04256 | 0,1630 | 45 de 102 | 2 h 10 min | USD 21,25 |
 
-AutoML supera a Python en AUC-PR por 0,047, más que la variación entre pliegues de 0,0159. La
-ventaja se concentra en los créditos de mayor riesgo; desde un recall de 0,2, las dos curvas
-precision-recall se superponen y las ROC son casi iguales. La figura está en
-`data/models/figuras/vertex/comparacion_automl_python.png`.
+- **El pipeline reproduce a Python:** las mismas métricas, con una diferencia máxima de probabilidad
+  menor que 1e-15. Entrenar en la nube, con los datos de BigQuery, da el mismo modelo.
+- **AutoML supera a Python en AUC-PR por 0,047,** más que la variación entre pliegues de 0,0159. La
+  ventaja se concentra en los créditos de mayor riesgo: desde un recall de 0,2 las curvas
+  precision-recall se superponen y las ROC son casi iguales.
+- **El modelo servido sigue siendo la logística.** Es interpretable con su scorecard y da la razón de
+  cada rechazo, se reentrena en segundos y cuesta centavos en la nube. AutoML queda como referencia
+  de cuánto rendimiento hay todavía por capturar.
+
+La figura está en `data/models/figuras/vertex/comparacion_modelos.png`.
 
 ### Volver a una versión anterior
 

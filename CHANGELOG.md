@@ -19,6 +19,7 @@ donde está el detalle y la verificación. El formato se basa en
 - `vertex_datos.py --tabla pipeline`: sube las particiones procesadas para reentrenar el modelo de Python en la nube, con el mismo contrato de test y sin fuga. 8 tests.
 - `vertex_pipeline.py` y `vertex_pasos.py`: pipeline propio en Vertex AI Pipelines. Prepara el código del commit, carga los datos de BigQuery, entrena la misma receta, la evalúa como a AutoML y la registra solo si supera el mínimo de Jenkins. El YAML compilado queda en `infra/vertex/`. 25 tests.
 - `kfp` en `requirements.txt`, para que el CI compile el pipeline en cada push.
+- `vertex_evaluacion.py` compara los tres enfoques: suma las predicciones de la corrida del pipeline y comprueba que reproduce a Python, con una diferencia máxima de probabilidad menor que 1e-15. La figura pasa a `comparacion_modelos.png`. 6 tests.
 
 ### Corregido
 
