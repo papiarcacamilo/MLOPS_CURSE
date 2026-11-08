@@ -921,9 +921,9 @@ dentro de `main()`, de modo que solo corrían si alguien ejecutaba el script ent
 | `tests/test_vertex_datos.py` | 21 | Las tablas para Vertex AI: mismo test que Python, sin fuga y sin columnas de más |
 | `tests/test_vertex_automl.py` | 15 | El plan de AutoML: entradas, tipos, objetivo y presupuesto antes de gastar |
 | `tests/test_vertex_evaluacion.py` | 20 | La comparación de los tres: mismos créditos, mismo volumen de rechazo, veredicto contra el ruido y reproducibilidad del pipeline |
-| `tests/test_vertex_estabilidad.py` | 12 | El bootstrap y las particiones: pareado, con la tasa de mora fija, reproducible y bien leído |
+| `tests/test_vertex_estabilidad.py` | 16 | Bootstrap, particiones y tiempo: pareado, con la tasa de mora fija, sin mirar el futuro y bien leído |
 | `tests/test_vertex_pipeline.py` | 28 | El pipeline propio: reproduce el 0,1479, compila, declara sus dependencias, registra solo sobre el mínimo y se lanza desde un commit publicado |
-| **Total** | **345** | **Cerca de 1 minuto en local** |
+| **Total** | **349** | **Cerca de 1 minuto en local** |
 
 ### Validación de los tests 
 
@@ -966,7 +966,7 @@ desempate que prefiere SMOTE), la suite detectó los 6.
 | `model_training.py` | 25,4% |
 | `ci/validar_estructura.py` y `ci/validar_metricas.py` | 100% |
 | Módulos `vertex_*.py` del Entregable 5 | 100% |
-| **Total** | **64,0%** |
+| **Total** | **64,8%** |
 
 El contrato y la API superan el 90%. En `model_deploy.py`, lo que falta cubrir es sobre todo
 `main()` y la construcción del artefacto, que corren antes de desplegar; `sanear`, `predecir_lote`
@@ -1118,7 +1118,7 @@ MLOPS_CURSE/
 │       ├── vertex_datos.py               # Entregable 5: tablas para Vertex AI (añadido)
 │       ├── vertex_automl.py              # Entregable 5: lanza AutoML Tabular (añadido)
 │       ├── vertex_evaluacion.py          # Entregable 5: Python, pipeline y AutoML (añadido)
-│       ├── vertex_estabilidad.py         # Entregable 5: bootstrap pareado y varias particiones (añadido)
+│       ├── vertex_estabilidad.py         # Entregable 5: bootstrap, particiones y tiempo (añadido)
 │       ├── vertex_pasos.py               # Entregable 5: lógica de las etapas del pipeline (añadido)
 │       ├── vertex_pipeline.py            # Entregable 5: pipeline propio en Vertex AI (añadido)
 │       ├── feature_engineering.ipynb     # Narrativa de la Fase 2 (añadido)
@@ -1150,7 +1150,7 @@ MLOPS_CURSE/
 │   │   ├── monitoreo.json                 # Deriva por cohorte y por cosecha
 │   │   ├── comparacion_vertex.json        # Python, pipeline y AutoML, misma medición
 │   │   ├── predicciones_test_comparacion.csv  # Las tres probabilidades sobre el test
-│   │   ├── estabilidad_vertex.json        # Bootstrap pareado y variación entre particiones
+│   │   ├── estabilidad_vertex.json        # Bootstrap, particiones y consistencia en el tiempo
 │   │   └── figuras/                       # Gráficos por partición, de monitoreo y de Vertex AI
 │   └── monitoring/
 │       ├── lote_ejemplo.csv               # 50 solicitudes para probar el endpoint
@@ -1164,7 +1164,7 @@ MLOPS_CURSE/
 ├── requirements.txt                  # Dependencias con versiones fijadas
 ├── requirements-api.txt              # Subconjunto que instala la imagen (añadido)
 ├── requirements-vertex.txt           # SDK de Vertex AI, solo para entrenar en la nube (añadido)
-├── tests/                            # Stage 2: 345 tests en 12 archivos (añadido)
+├── tests/                            # Stage 2: 349 tests en 12 archivos (añadido)
 ├── ci/                               # Compuertas que ejecuta Jenkins: estructura y métricas (añadido)
 ├── infra/jenkins/                    # Jenkins local con versión fija (añadido)
 ├── infra/vertex/                     # Pipeline propio compilado, el que se envía a Vertex AI (añadido)
@@ -1415,7 +1415,23 @@ particiones Python supera el 0,195 de AutoML. Por eso la comparación válida es
 mismo test: comparar AUC-PR medidos en tests distintos llevaría a conclusiones falsas. A AutoML no
 se le repitió en otras particiones porque cada corrida cuesta USD 21,25.
 
-Los dos análisis se reproducen con `python mlops_pipeline/src/vertex_estabilidad.py`.
+**¿Aguanta el modelo el paso del tiempo?** En la partición temporal el AUC-PR cae de 0,148 a 0,065,
+pero buena parte de esa caída no es del modelo. El 53% de ese test todavía no había vencido, y un
+crédito que no vence no puede estar en mora: la tasa baja a 3,2% y el AUC-PR baja con ella. Con
+ventanas móviles, entrenando con todo lo anterior y probando en los dos meses siguientes, el
+desempeño se sostiene:
+
+| Ventana de prueba | Moras | Lift sobre el azar | ROC-AUC | Sin vencer |
+|---|---|---|---|---|
+| Marzo y abril de 2025 | 126 | 3,10 | 0,716 | 9,9% |
+| Mayo y junio de 2025 | 72 | 4,40 | 0,739 | 17,7% |
+| Julio y agosto de 2025 | 40 | 4,11 | 0,742 | 30,7% |
+
+Reentrenado con datos recientes, el modelo es consistente; lo que se degrada es usarlo diez meses
+sin reentrenar y evaluarlo con créditos que aún no maduran. Las ventanas tienen pocas moras, así
+que sus cifras son ruidosas.
+
+Los tres análisis se reproducen con `python mlops_pipeline/src/vertex_estabilidad.py`.
 
 ### Volver a una versión anterior
 

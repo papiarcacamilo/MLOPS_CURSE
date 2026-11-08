@@ -6,6 +6,7 @@ Entrada  : data/models/predicciones_test_comparacion.csv y las particiones proce
 Salida   : data/models/estabilidad_vertex.json
            data/models/figuras/vertex/estabilidad_bootstrap.png
            data/models/figuras/vertex/estabilidad_semillas.png
+           data/models/figuras/vertex/estabilidad_tiempo.png
 
 Bootstrap pareado: se arman muchos tests nuevos sacando creditos del test real
 con reposicion, y en cada uno se miden los dos modelos sobre LOS MISMOS
@@ -25,9 +26,15 @@ reentrena la misma receta. Mide cuanto depende el AUC-PR de Python de como se
 separaron los datos. A AutoML no se le hace lo mismo: cada corrida cuesta
 USD 21,25.
 
+Consistencia en el tiempo: compara la particion estratificada con la temporal
+usando medidas que no dependen de la tasa de mora, mide solo los creditos que
+ya vencieron y entrena con el pasado para probar en ventanas de dos meses.
+Un credito que aun no vence no puede estar en mora: en el test temporal el 53%
+no habia vencido, asi que su tasa de mora esta subestimada.
+
 Uso:
     python mlops_pipeline/src/vertex_estabilidad.py                       los dos analisis
-    python mlops_pipeline/src/vertex_estabilidad.py --analisis semillas   solo uno
+    python mlops_pipeline/src/vertex_estabilidad.py --analisis tiempo     solo uno
 ================================================================================
 """
 
@@ -52,6 +59,12 @@ import vertex_evaluacion as ve
 NOMBRE_JSON = "estabilidad_vertex.json"
 NOMBRE_FIGURA = Path("figuras") / "vertex" / "estabilidad_bootstrap.png"
 NOMBRE_FIGURA_SEMILLAS = Path("figuras") / "vertex" / "estabilidad_semillas.png"
+NOMBRE_FIGURA_TIEMPO = Path("figuras") / "vertex" / "estabilidad_tiempo.png"
+COLUMNA_FECHA = "fecha_prestamo"
+# Ventanas de dos meses en las que la mayoria de creditos ya vencio. Despues de
+# agosto de 2025 casi todos siguen vigentes y la mora no se puede observar.
+VENTANAS = (("2025-03-01", "2025-05-01"), ("2025-05-01", "2025-07-01"),
+            ("2025-07-01", "2025-09-01"))
 # La 42 es la de la particion original; aqui se prueban otras 20.
 SEMILLAS = tuple(range(1, 21))
 REMUESTREOS = 1000
@@ -212,10 +225,98 @@ def graficar_semillas(resumen: dict, ruta: Path) -> None:
     plt.close(fig)
 
 
+# ==============================================================================
+# 5.3 | CONSISTENCIA EN EL TIEMPO
+# ==============================================================================
+
+
+def resumen_particion(evaluacion: dict, particion: str) -> dict:
+    """Metricas de una particion que no dependen de su tasa de mora, mas la tasa."""
+    final = evaluacion["evaluacion_final"][particion]
+    m = final["metricas"]
+    resumen = {
+        "creditos": final["n_test"], "moras": final["eventos_test"], "tasa": m["tasa_base"],
+        "auc_pr": m["auc_pr"], "lift": m["lift_vs_azar"],
+        "roc_auc": round((m["gini"] + 1) / 2, 4), "ks": m["ks"],
+        "ventaja_sobre_el_piso": final["ventaja_sobre_el_piso"],
+        "pct_sin_vencer": final["madurez_incompleta_pct"],
+    }
+    maduros = final["solo_maduros"]
+    resumen["solo_vencidos"] = {"creditos": maduros["n"], "moras": maduros["eventos"],
+                                "tasa": maduros["metricas"]["tasa_base"],
+                                "auc_pr": maduros["metricas"]["auc_pr"],
+                                "lift": maduros["metricas"]["lift_vs_azar"],
+                                "ks": maduros["metricas"]["ks"]}
+    return resumen
+
+
+def medir_ventana(datos: pd.DataFrame, inicio: str, fin: str, objetivo: str) -> dict:
+    """Entrena con todo lo anterior a `inicio` y mide en [inicio, fin)."""
+    fecha = pd.to_datetime(datos[COLUMNA_FECHA])
+    train = datos[fecha < inicio]
+    test = datos[(fecha >= inicio) & (fecha < fin)]
+    receta = clone(joblib.load(ve.RUTA_MODELOS / "modelo_seleccionado.joblib"))
+    receta.fit(train.drop(columns=[objetivo]), (1 - train[objetivo]).to_numpy())
+    y = (1 - test[objetivo]).to_numpy()
+    p = receta.predict_proba(test.drop(columns=[objetivo]))[:, 1]
+    auc_pr = float(average_precision_score(y, p))
+    return {"ventana": f"{inicio} a {fin}", "creditos_train": int(len(train)),
+            "creditos": int(len(test)), "moras": int(y.sum()),
+            "tasa": round(float(y.mean()), 4), "auc_pr": round(auc_pr, 4),
+            "lift": round(auc_pr / float(y.mean()), 2),
+            "roc_auc": round(float(roc_auc_score(y, p)), 4),
+            "pct_sin_vencer": round(float(test["madurez_incompleta"].mean()) * 100, 1)}
+
+
+def graficar_tiempo(resumen: dict, ruta: Path) -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    ventanas = resumen["ventanas"]
+    etiquetas = [v["ventana"].replace(" a ", "\na ") for v in ventanas]
+    fig, (izq, der) = plt.subplots(1, 2, figsize=(11, 4.5))
+    x = range(len(ventanas))
+    izq.plot(x, [v["lift"] for v in ventanas], marker="o", color="#1f6fb4", label="Lift en la ventana")
+    izq.axhline(resumen["estratificado"]["lift"], color="grey", linestyle="--",
+                label=f"Lift en el test estratificado ({resumen['estratificado']['lift']})")
+    izq.axhline(1, color="black", linewidth=1, label="Azar")
+    for i, v in zip(x, ventanas):
+        izq.annotate(f"{v['moras']} moras", (i, v["lift"]), textcoords="offset points",
+                     xytext=(0, 8), ha="center", fontsize=8)
+    izq.set(title="Lift sobre el azar, ventanas moviles", xticks=list(x), ylabel="AUC-PR / tasa",
+            ylim=(0, max(v["lift"] for v in ventanas) * 1.3))
+    izq.set_xticklabels(etiquetas, fontsize=8)
+    # Eje de ROC-AUC fijo: con la escala automatica, 0,03 de diferencia parece enorme.
+    der.plot(x, [v["roc_auc"] for v in ventanas], marker="o", color="#2a9d5c", label="ROC-AUC")
+    der.axhline(resumen["estratificado"]["roc_auc"], color="grey", linestyle="--",
+                label=f"ROC-AUC en el test estratificado ({resumen['estratificado']['roc_auc']})")
+    der2 = der.twinx()
+    der2.bar(x, [v["pct_sin_vencer"] for v in ventanas], alpha=0.2, color="#d1641b",
+             label="% sin vencer, eje derecho")
+    der.set(title="ROC-AUC y creditos sin vencer", xticks=list(x), ylabel="ROC-AUC",
+            ylim=(0.5, 0.8))
+    der2.set(ylabel="% de creditos sin vencer", ylim=(0, 100))
+    der.set_xticklabels(etiquetas, fontsize=8)
+    der.set_zorder(der2.get_zorder() + 1)
+    der.patch.set_visible(False)
+    izq.legend(loc="lower right", fontsize=8)
+    lineas, nombres = der.get_legend_handles_labels()
+    barras, nombres_barras = der2.get_legend_handles_labels()
+    der.legend(lineas + barras, nombres + nombres_barras, loc="lower right", fontsize=8)
+    for eje in (izq, der):
+        eje.grid(alpha=0.3)
+    fig.suptitle("La misma receta, entrenada con el pasado y probada en los meses siguientes")
+    fig.tight_layout()
+    ruta.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(ruta, dpi=150)
+    plt.close(fig)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[1])
-    parser.add_argument("--analisis", choices=("todos", "bootstrap", "semillas"),
-                        default="todos", help="que analisis correr; por defecto los dos")
+    parser.add_argument("--analisis", choices=("todos", "bootstrap", "semillas", "tiempo"),
+                        default="todos", help="que analisis correr; por defecto todos")
     parser.add_argument("--salida", type=Path, default=ve.RUTA_MODELOS,
                         help="carpeta de salida; por defecto data/models")
     args = parser.parse_args(argv)
@@ -256,6 +357,28 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"La particion original ({referencia}) supera al "
               f"{r['pct_particiones_bajo_la_referencia']}% de las otras; AutoML ({automl}) "
               f"supera a todas: {r['automl_supera_todas']}")
+
+    if args.analisis in ("todos", "tiempo"):
+        config = vd.cargar_config()
+        with open(ve.RUTA_MODELOS / "evaluacion.json", encoding="utf-8") as f:
+            evaluacion = json.load(f)
+        datos = datos_procesados(config)
+        resultado["tiempo"] = {
+            "estratificado": resumen_particion(evaluacion, "estratificado"),
+            "temporal": resumen_particion(evaluacion, "temporal"),
+            "ventanas": [medir_ventana(datos, inicio, fin, config["target_variable"])
+                         for inicio, fin in VENTANAS],
+        }
+        graficar_tiempo(resultado["tiempo"], args.salida / NOMBRE_FIGURA_TIEMPO)
+        t = resultado["tiempo"]
+        for nombre in ("estratificado", "temporal"):
+            r = t[nombre]
+            print(f"{nombre}: AUC-PR {r['auc_pr']} con tasa {r['tasa']} | lift {r['lift']} | "
+                  f"ROC-AUC {r['roc_auc']} | {r['pct_sin_vencer']}% sin vencer | solo vencidos: "
+                  f"lift {r['solo_vencidos']['lift']} con {r['solo_vencidos']['moras']} moras")
+        for v in t["ventanas"]:
+            print(f"ventana {v['ventana']}: {v['moras']} moras | lift {v['lift']} | "
+                  f"ROC-AUC {v['roc_auc']} | {v['pct_sin_vencer']}% sin vencer")
 
     with open(ruta_json, "w", encoding="utf-8") as f:
         json.dump(resultado, f, indent=2, ensure_ascii=False)

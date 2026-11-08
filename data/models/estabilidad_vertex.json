@@ -192,5 +192,80 @@
         "roc_auc": 0.6508
       }
     ]
+  },
+  "tiempo": {
+    "estratificado": {
+      "creditos": 2153,
+      "moras": 102,
+      "tasa": 0.0474,
+      "auc_pr": 0.1479,
+      "lift": 3.12,
+      "roc_auc": 0.6848,
+      "ks": 0.2742,
+      "ventaja_sobre_el_piso": 1.78,
+      "pct_sin_vencer": 20.2,
+      "solo_vencidos": {
+        "creditos": 1718,
+        "moras": 75,
+        "tasa": 0.0437,
+        "auc_pr": 0.0957,
+        "lift": 2.19,
+        "ks": 0.2557
+      }
+    },
+    "temporal": {
+      "creditos": 2154,
+      "moras": 69,
+      "tasa": 0.032,
+      "auc_pr": 0.0647,
+      "lift": 2.02,
+      "roc_auc": 0.6208,
+      "ks": 0.2026,
+      "ventaja_sobre_el_piso": 1.45,
+      "pct_sin_vencer": 53.4,
+      "solo_vencidos": {
+        "creditos": 1003,
+        "moras": 21,
+        "tasa": 0.0209,
+        "auc_pr": 0.0358,
+        "lift": 1.71,
+        "ks": 0.3243
+      }
+    },
+    "ventanas": [
+      {
+        "ventana": "2025-03-01 a 2025-05-01",
+        "creditos_train": 4413,
+        "creditos": 2217,
+        "moras": 126,
+        "tasa": 0.0568,
+        "auc_pr": 0.1761,
+        "lift": 3.1,
+        "roc_auc": 0.7161,
+        "pct_sin_vencer": 9.9
+      },
+      {
+        "ventana": "2025-05-01 a 2025-07-01",
+        "creditos_train": 6630,
+        "creditos": 1748,
+        "moras": 72,
+        "tasa": 0.0412,
+        "auc_pr": 0.1811,
+        "lift": 4.4,
+        "roc_auc": 0.7393,
+        "pct_sin_vencer": 17.7
+      },
+      {
+        "ventana": "2025-07-01 a 2025-09-01",
+        "creditos_train": 8378,
+        "creditos": 1199,
+        "moras": 40,
+        "tasa": 0.0334,
+        "auc_pr": 0.1372,
+        "lift": 4.11,
+        "roc_auc": 0.7417,
+        "pct_sin_vencer": 30.7
+      }
+    ]
   }
 }

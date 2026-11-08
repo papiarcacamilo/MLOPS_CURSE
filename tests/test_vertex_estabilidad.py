@@ -139,3 +139,45 @@ def test_el_resultado_versionado_dice_que_la_ventaja_en_auc_pr_es_firme():
     assert roc_auc["ventaja_firme"] is False
     predicciones = pd.read_csv(ve.RUTA_MODELOS / ve.NOMBRE_CSV)
     assert len(predicciones) == vd.TEST_ESPERADO
+
+
+# --- 5.3 Consistencia en el tiempo --------------------------------------------------
+
+
+def test_el_resumen_de_cada_particion_sale_de_la_evaluacion_publicada():
+    evaluacion = json.loads((ve.RUTA_MODELOS / "evaluacion.json").read_text(encoding="utf-8"))
+    estratificado = es.resumen_particion(evaluacion, "estratificado")
+    temporal = es.resumen_particion(evaluacion, "temporal")
+    assert estratificado["auc_pr"] == 0.1479 and estratificado["lift"] == 3.12
+    assert estratificado["roc_auc"] == 0.6848
+    assert temporal["tasa"] < estratificado["tasa"]
+    assert temporal["pct_sin_vencer"] == 53.4
+    assert temporal["solo_vencidos"]["moras"] == 21
+
+
+def test_una_ventana_entrena_solo_con_el_pasado():
+    datos = es.datos_procesados(vd.cargar_config())
+    fecha = pd.to_datetime(datos[es.COLUMNA_FECHA])
+    v = es.medir_ventana(datos, "2025-03-01", "2025-05-01", "Pago_atiempo")
+    assert v["creditos_train"] == int((fecha < "2025-03-01").sum())
+    assert v["creditos"] == int(((fecha >= "2025-03-01") & (fecha < "2025-05-01")).sum())
+    assert v["moras"] == 126
+    assert v["lift"] == pytest.approx(v["auc_pr"] / v["tasa"], abs=0.05)
+
+
+def test_tiempo_agrega_su_analisis_sin_borrar_los_otros(tmp_path, monkeypatch, capsys):
+    (tmp_path / es.NOMBRE_JSON).write_text(json.dumps({"semillas": {"previo": True}}))
+    monkeypatch.setattr(es, "VENTANAS", (("2025-05-01", "2025-07-01"),))
+    assert es.main(["--analisis", "tiempo", "--salida", str(tmp_path)]) == 0
+    resultado = json.loads((tmp_path / es.NOMBRE_JSON).read_text(encoding="utf-8"))
+    assert resultado["semillas"] == {"previo": True}
+    assert len(resultado["tiempo"]["ventanas"]) == 1
+    assert (tmp_path / es.NOMBRE_FIGURA_TIEMPO).exists()
+    assert "sin vencer" in capsys.readouterr().out
+
+
+def test_el_resultado_versionado_en_el_tiempo():
+    t = json.loads((ve.RUTA_MODELOS / es.NOMBRE_JSON).read_text(encoding="utf-8"))["tiempo"]
+    assert [v["moras"] for v in t["ventanas"]] == [126, 72, 40]
+    assert all(v["lift"] > 1 and v["roc_auc"] > 0.7 for v in t["ventanas"])
+    assert t["temporal"]["lift"] < t["estratificado"]["lift"]
