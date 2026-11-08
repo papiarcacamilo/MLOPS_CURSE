@@ -131,3 +131,62 @@ def test_main_rechaza_y_no_sube_si_la_tabla_falla(monkeypatch, capsys):
     assert vd.main(["--subir"]) == 1
     assert llamadas == []
     assert "RECHAZADO" in capsys.readouterr().out
+
+
+# --- Tabla del pipeline propio ---------------------------------------------------
+
+
+@pytest.fixture
+def tabla_pipeline_real():
+    config = vd.cargar_config()
+    return vd.construir_tabla_pipeline(vd.leer_particion("estratificado_train", config),
+                                       vd.leer_particion("estratificado_test", config))
+
+
+def test_la_tabla_del_pipeline_conserva_las_particiones_procesadas(tabla_pipeline_real):
+    config = vd.cargar_config()
+    test = vd.leer_particion("estratificado_test", config)
+    parte_test = tabla_pipeline_real[tabla_pipeline_real[vd.PARTICION] == "TEST"]
+    assert list(tabla_pipeline_real.columns) == [vd.ID, *test.columns, vd.PARTICION]
+    assert parte_test[vd.ID].iloc[0] == "te00000"
+    assert parte_test.drop(columns=[vd.ID, vd.PARTICION]).reset_index(drop=True).equals(test)
+
+
+def test_la_tabla_real_del_pipeline_cumple_el_contrato(tabla_pipeline_real):
+    excluidas = vd.variables_excluidas()
+    assert len(excluidas) == 8 and "saldo_mora" in excluidas
+    assert vd.verificar_tabla_pipeline(tabla_pipeline_real, "Pago_atiempo", excluidas) == []
+
+
+@pytest.mark.parametrize("defecto, mensaje", [
+    ("fuga", "columnas con fuga"),
+    ("particion", "particion no validos"),
+    ("ids", "repetidos"),
+    ("test", "el test no es el de Python"),
+    ("train", "el train no es el de Python"),
+])
+def test_cada_defecto_de_la_tabla_del_pipeline_se_detecta(tabla_pipeline_real, defecto, mensaje):
+    tabla = tabla_pipeline_real
+    if defecto == "fuga":
+        tabla = tabla.assign(saldo_mora=0)
+    elif defecto == "particion":
+        tabla.loc[0, vd.PARTICION] = "VALIDATE"
+    elif defecto == "ids":
+        tabla.loc[1, vd.ID] = tabla.loc[0, vd.ID]
+    elif defecto == "test":
+        tabla = tabla.iloc[:-1]
+    else:
+        tabla = tabla.iloc[1:]
+    problemas = vd.verificar_tabla_pipeline(tabla, "Pago_atiempo", vd.variables_excluidas())
+    assert any(mensaje in p for p in problemas)
+
+
+def test_main_sube_la_tabla_del_pipeline_con_su_nombre(monkeypatch, capsys):
+    llamadas = []
+    falso = types.SimpleNamespace(to_gbq=lambda *a, **k: llamadas.append((a, k)))
+    monkeypatch.setitem(sys.modules, "pandas_gbq", falso)
+    assert vd.main(["--tabla", "pipeline", "--subir"]) == 0
+    (tabla, nombre), _ = llamadas[0]
+    assert nombre == "modelado.creditos_pipeline"
+    assert len(tabla) == vd.TEST_ESPERADO + vd.TRAIN_ESPERADO
+    assert "APROBADO" in capsys.readouterr().out

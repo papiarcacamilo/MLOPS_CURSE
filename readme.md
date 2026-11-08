@@ -918,10 +918,10 @@ dentro de `main()`, de modo que solo corrían si alguien ejecutaba el script ent
 | `tests/test_features.py` | 22 | WoE, atributos derivados, escalado y piso heurístico |
 | `tests/test_evaluacion.py` | 13 | Métrica, selección del modelo, calibración y umbral |
 | `tests/test_validadores.py` | 51 | Las compuertas de Jenkins: cada regla debe rechazar por sí sola |
-| `tests/test_vertex_datos.py` | 13 | La tabla para Vertex AI: mismo test que Python y sin columnas de más |
+| `tests/test_vertex_datos.py` | 21 | Las tablas para Vertex AI: mismo test que Python, sin fuga y sin columnas de más |
 | `tests/test_vertex_automl.py` | 15 | El plan de AutoML: entradas, tipos, objetivo y presupuesto antes de gastar |
 | `tests/test_vertex_evaluacion.py` | 14 | La comparación: mismos créditos, mismo volumen de rechazo y veredicto contra el ruido |
-| **Total** | **291** | **Cerca de 1 minuto en local** |
+| **Total** | **299** | **Cerca de 1 minuto en local** |
 
 ### Validación de los tests 
 
@@ -964,7 +964,7 @@ desempate que prefiere SMOTE), la suite detectó los 6.
 | `model_training.py` | 25,4% |
 | `ci/validar_estructura.py` y `ci/validar_metricas.py` | 100% |
 | `vertex_datos.py`, `vertex_automl.py` y `vertex_evaluacion.py` | 100% |
-| **Total** | **54,4%** |
+| **Total** | **55,2%** |
 
 El contrato y la API superan el 90%. En `model_deploy.py`, lo que falta cubrir es sobre todo
 `main()` y la construcción del artefacto, que corren antes de desplegar; `sanear`, `predecir_lote`
@@ -1113,7 +1113,7 @@ MLOPS_CURSE/
 │       ├── model_monitoring.py           # Fase 5: monitoreo y data drift (COMPLETADO)
 │       ├── reglas_negocio.py             # Contrato derivado del EDA (añadido)
 │       ├── app.py                        # Fase 4: API del endpoint (añadido)
-│       ├── vertex_datos.py               # Entregable 5: tabla para Vertex AI (añadido)
+│       ├── vertex_datos.py               # Entregable 5: tablas para Vertex AI (añadido)
 │       ├── vertex_automl.py              # Entregable 5: lanza AutoML Tabular (añadido)
 │       ├── vertex_evaluacion.py          # Entregable 5: AutoML contra Python (añadido)
 │       ├── feature_engineering.ipynb     # Narrativa de la Fase 2 (añadido)
@@ -1158,7 +1158,7 @@ MLOPS_CURSE/
 ├── requirements.txt                  # Dependencias con versiones fijadas
 ├── requirements-api.txt              # Subconjunto que instala la imagen (añadido)
 ├── requirements-vertex.txt           # SDK de Vertex AI, solo para entrenar en la nube (añadido)
-├── tests/                            # Stage 2: 291 tests en 10 archivos (añadido)
+├── tests/                            # Stage 2: 299 tests en 10 archivos (añadido)
 ├── ci/                               # Compuertas que ejecuta Jenkins: estructura y métricas (añadido)
 ├── infra/jenkins/                    # Jenkins local con versión fija (añadido)
 ├── Jenkinsfile                       # Pipeline de aprobación después del merge (añadido)
@@ -1353,8 +1353,9 @@ si el plan se aparta de las reglas de la comparación.
 pip install -r requirements.txt -r requirements-vertex.txt
 gcloud auth application-default login
 
-# 1. Armar la tabla, verificarla y subirla a BigQuery
+# 1. Armar las tablas, verificarlas y subirlas a BigQuery
 python mlops_pipeline/src/vertex_datos.py --subir
+python mlops_pipeline/src/vertex_datos.py --tabla pipeline --subir
 
 # 2. Ver el plan de AutoML; con --lanzar lo crea y cuesta cerca de USD 21
 python mlops_pipeline/src/vertex_automl.py
