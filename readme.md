@@ -921,8 +921,9 @@ dentro de `main()`, de modo que solo corrían si alguien ejecutaba el script ent
 | `tests/test_vertex_datos.py` | 21 | Las tablas para Vertex AI: mismo test que Python, sin fuga y sin columnas de más |
 | `tests/test_vertex_automl.py` | 15 | El plan de AutoML: entradas, tipos, objetivo y presupuesto antes de gastar |
 | `tests/test_vertex_evaluacion.py` | 20 | La comparación de los tres: mismos créditos, mismo volumen de rechazo, veredicto contra el ruido y reproducibilidad del pipeline |
+| `tests/test_vertex_estabilidad.py` | 7 | El bootstrap: pareado, con la tasa de mora fija, reproducible y bien leído |
 | `tests/test_vertex_pipeline.py` | 28 | El pipeline propio: reproduce el 0,1479, compila, declara sus dependencias, registra solo sobre el mínimo y se lanza desde un commit publicado |
-| **Total** | **333** | **Cerca de 1 minuto en local** |
+| **Total** | **340** | **Cerca de 1 minuto en local** |
 
 ### Validación de los tests 
 
@@ -965,7 +966,7 @@ desempate que prefiere SMOTE), la suite detectó los 6.
 | `model_training.py` | 25,4% |
 | `ci/validar_estructura.py` y `ci/validar_metricas.py` | 100% |
 | Módulos `vertex_*.py` del Entregable 5 | 100% |
-| **Total** | **62,2%** |
+| **Total** | **63,3%** |
 
 El contrato y la API superan el 90%. En `model_deploy.py`, lo que falta cubrir es sobre todo
 `main()` y la construcción del artefacto, que corren antes de desplegar; `sanear`, `predecir_lote`
@@ -1117,6 +1118,7 @@ MLOPS_CURSE/
 │       ├── vertex_datos.py               # Entregable 5: tablas para Vertex AI (añadido)
 │       ├── vertex_automl.py              # Entregable 5: lanza AutoML Tabular (añadido)
 │       ├── vertex_evaluacion.py          # Entregable 5: Python, pipeline y AutoML (añadido)
+│       ├── vertex_estabilidad.py         # Entregable 5: bootstrap pareado de la comparación (añadido)
 │       ├── vertex_pasos.py               # Entregable 5: lógica de las etapas del pipeline (añadido)
 │       ├── vertex_pipeline.py            # Entregable 5: pipeline propio en Vertex AI (añadido)
 │       ├── feature_engineering.ipynb     # Narrativa de la Fase 2 (añadido)
@@ -1148,6 +1150,7 @@ MLOPS_CURSE/
 │   │   ├── monitoreo.json                 # Deriva por cohorte y por cosecha
 │   │   ├── comparacion_vertex.json        # Python, pipeline y AutoML, misma medición
 │   │   ├── predicciones_test_comparacion.csv  # Las tres probabilidades sobre el test
+│   │   ├── estabilidad_vertex.json        # Intervalos del bootstrap pareado
 │   │   └── figuras/                       # Gráficos por partición, de monitoreo y de Vertex AI
 │   └── monitoring/
 │       ├── lote_ejemplo.csv               # 50 solicitudes para probar el endpoint
@@ -1161,7 +1164,7 @@ MLOPS_CURSE/
 ├── requirements.txt                  # Dependencias con versiones fijadas
 ├── requirements-api.txt              # Subconjunto que instala la imagen (añadido)
 ├── requirements-vertex.txt           # SDK de Vertex AI, solo para entrenar en la nube (añadido)
-├── tests/                            # Stage 2: 333 tests en 11 archivos (añadido)
+├── tests/                            # Stage 2: 340 tests en 12 archivos (añadido)
 ├── ci/                               # Compuertas que ejecuta Jenkins: estructura y métricas (añadido)
 ├── infra/jenkins/                    # Jenkins local con versión fija (añadido)
 ├── infra/vertex/                     # Pipeline propio compilado, el que se envía a Vertex AI (añadido)
@@ -1390,6 +1393,20 @@ mayor riesgo según cada modelo. El tiempo es solo el del entrenamiento:
   de cuánto rendimiento hay todavía por capturar.
 
 La figura está en `data/models/figuras/vertex/comparacion_modelos.png`.
+
+**¿Es firme la ventaja de AutoML?** Un bootstrap pareado y estratificado, con 1.000 tests
+remuestreados y los mismos créditos para los dos modelos en cada uno, responde que sí en AUC-PR y
+no en ROC-AUC:
+
+| Métrica | Python, IC95 | AutoML, IC95 | Diferencia, IC95 | Gana AutoML |
+|---|---|---|---|---|
+| AUC-PR | [0,099, 0,214] | [0,132, 0,265] | **+0,045 [0,010, 0,084]** | 99,7% de las muestras |
+| ROC-AUC | [0,630, 0,737] | [0,642, 0,743] | +0,008 [−0,017, 0,033] | 73,5% |
+
+Los intervalos de cada modelo se solapan mucho, pero la diferencia pareada queda entera por
+encima de cero en AUC-PR: AutoML ordena mejor los créditos de mayor riesgo en casi cualquier test
+parecido. En ROC-AUC el intervalo incluye el cero, así que en el orden general no se distinguen.
+Se reproduce con `python mlops_pipeline/src/vertex_estabilidad.py`.
 
 ### Volver a una versión anterior
 
