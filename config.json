@@ -19,7 +19,8 @@
       "modelo": "automl-mora-e5",
       "objetivo": "maximize-au-prc",
       "presupuesto_milli_nodo_horas": 1000,
-      "tabla_predicciones": "automl_predicciones_test"
+      "tabla_predicciones": "automl_predicciones_test",
+      "modelo_registrado": "projects/875698717037/locations/us-central1/models/533773862622461952"
     }
   }
 }

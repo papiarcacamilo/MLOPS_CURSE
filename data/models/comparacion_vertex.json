@@ -1,0 +1,81 @@
+{
+  "test": {
+    "creditos": 2153,
+    "moras": 102
+  },
+  "volumen_de_rechazo": 0.209,
+  "python": {
+    "n": 2153,
+    "eventos": 102,
+    "tasa_base": 0.0474,
+    "auc_pr": 0.1479,
+    "lift_vs_azar": 3.12,
+    "ks": 0.2742,
+    "gini": 0.3697,
+    "brier": 0.04337,
+    "umbral": 0.0678,
+    "precision": 0.0889,
+    "recall": 0.3922,
+    "f1": 0.1449,
+    "pct_marcado": 20.9,
+    "k": 0.209,
+    "recall_at_k": 0.3922,
+    "precision_at_k": 0.0889,
+    "lift_at_k": 1.88,
+    "roc_auc": 0.6849,
+    "rmse": 0.2083,
+    "accuracy": 0.7808,
+    "accuracy_trivial": 0.9526,
+    "matriz": {
+      "tp": 40,
+      "fp": 410,
+      "fn": 62,
+      "tn": 1641
+    }
+  },
+  "automl": {
+    "n": 2153,
+    "eventos": 102,
+    "tasa_base": 0.0474,
+    "auc_pr": 0.1952,
+    "lift_vs_azar": 4.12,
+    "ks": 0.3192,
+    "gini": 0.3861,
+    "brier": 0.04256,
+    "umbral": 0.072,
+    "precision": 0.1,
+    "recall": 0.4412,
+    "f1": 0.163,
+    "pct_marcado": 20.9,
+    "k": 0.209,
+    "recall_at_k": 0.4412,
+    "precision_at_k": 0.1,
+    "lift_at_k": 2.11,
+    "roc_auc": 0.6931,
+    "rmse": 0.2063,
+    "accuracy": 0.7854,
+    "accuracy_trivial": 0.9526,
+    "matriz": {
+      "tp": 45,
+      "fp": 405,
+      "fn": 57,
+      "tn": 1646
+    }
+  },
+  "comparacion": {
+    "diferencias": {
+      "auc_pr": 0.0473,
+      "roc_auc": 0.0082,
+      "ks": 0.045,
+      "gini": 0.0164,
+      "brier": -0.0008,
+      "rmse": -0.002,
+      "precision": 0.0111,
+      "recall": 0.049,
+      "f1": 0.0181,
+      "accuracy": 0.0046
+    },
+    "ruido_auc_pr": 0.0159,
+    "veredicto_auc_pr": "gana AutoML"
+  }
+}

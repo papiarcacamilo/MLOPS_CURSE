@@ -920,7 +920,8 @@ dentro de `main()`, de modo que solo corrían si alguien ejecutaba el script ent
 | `tests/test_validadores.py` | 51 | Las compuertas de Jenkins: cada regla debe rechazar por sí sola |
 | `tests/test_vertex_datos.py` | 13 | La tabla para Vertex AI: mismo test que Python y sin columnas de más |
 | `tests/test_vertex_automl.py` | 15 | El plan de AutoML: entradas, tipos, objetivo y presupuesto antes de gastar |
-| **Total** | **277** | **Cerca de 1 minuto en local** |
+| `tests/test_vertex_evaluacion.py` | 14 | La comparación: mismos créditos, mismo volumen de rechazo y veredicto contra el ruido |
+| **Total** | **291** | **Cerca de 1 minuto en local** |
 
 ### Validación de los tests 
 
@@ -962,8 +963,8 @@ desempate que prefiere SMOTE), la suite detectó los 6.
 | `model_evaluation.py` | 33,2% |
 | `model_training.py` | 25,4% |
 | `ci/validar_estructura.py` y `ci/validar_metricas.py` | 100% |
-| `vertex_datos.py` y `vertex_automl.py` | 100% |
-| **Total** | **51,8%** |
+| `vertex_datos.py`, `vertex_automl.py` y `vertex_evaluacion.py` | 100% |
+| **Total** | **54,4%** |
 
 El contrato y la API superan el 90%. En `model_deploy.py`, lo que falta cubrir es sobre todo
 `main()` y la construcción del artefacto, que corren antes de desplegar; `sanear`, `predecir_lote`
@@ -1114,6 +1115,7 @@ MLOPS_CURSE/
 │       ├── app.py                        # Fase 4: API del endpoint (añadido)
 │       ├── vertex_datos.py               # Entregable 5: tabla para Vertex AI (añadido)
 │       ├── vertex_automl.py              # Entregable 5: lanza AutoML Tabular (añadido)
+│       ├── vertex_evaluacion.py          # Entregable 5: AutoML contra Python (añadido)
 │       ├── feature_engineering.ipynb     # Narrativa de la Fase 2 (añadido)
 │       ├── model_evaluation.ipynb        # Narrativa de la evaluación (añadido)
 │       ├── model_monitoring.ipynb        # Narrativa del monitoreo (añadido)
@@ -1141,7 +1143,9 @@ MLOPS_CURSE/
 │   │   ├── scorecard.csv                  # Tabla de puntos publicada
 │   │   ├── linea_base_monitoreo.json      # Referencia congelada de la Fase 5
 │   │   ├── monitoreo.json                 # Deriva por cohorte y por cosecha
-│   │   └── figuras/                       # Gráficos por partición y de monitoreo
+│   │   ├── comparacion_vertex.json        # AutoML contra Python, misma medición
+│   │   ├── predicciones_test_comparacion.csv  # Las dos probabilidades sobre el test
+│   │   └── figuras/                       # Gráficos por partición, de monitoreo y de Vertex AI
 │   └── monitoring/
 │       ├── lote_ejemplo.csv               # 50 solicitudes para probar el endpoint
 │       └── registro_endpoint.csv          # Entradas y pronósticos (no versionado)
@@ -1154,7 +1158,7 @@ MLOPS_CURSE/
 ├── requirements.txt                  # Dependencias con versiones fijadas
 ├── requirements-api.txt              # Subconjunto que instala la imagen (añadido)
 ├── requirements-vertex.txt           # SDK de Vertex AI, solo para entrenar en la nube (añadido)
-├── tests/                            # Stage 2: 277 tests en 9 archivos (añadido)
+├── tests/                            # Stage 2: 291 tests en 10 archivos (añadido)
 ├── ci/                               # Compuertas que ejecuta Jenkins: estructura y métricas (añadido)
 ├── infra/jenkins/                    # Jenkins local con versión fija (añadido)
 ├── Jenkinsfile                       # Pipeline de aprobación después del merge (añadido)
@@ -1354,7 +1358,23 @@ python mlops_pipeline/src/vertex_datos.py --subir
 
 # 2. Ver el plan de AutoML; con --lanzar lo crea y cuesta cerca de USD 21
 python mlops_pipeline/src/vertex_automl.py
+
+# 3. Medir AutoML contra Python; --descargar rehace las predicciones desde BigQuery
+python mlops_pipeline/src/vertex_evaluacion.py
 ```
+
+Resultado sobre el mismo test estratificado, con 2.153 créditos y 102 moras, rechazando el 20,9% de
+mayor riesgo según cada modelo:
+
+| Modelo | AUC-PR | ROC-AUC | KS | Brier | F1 | Moras detectadas |
+|---|---|---|---|---|---|---|
+| Python, logística sobre WoE | 0,1479 | 0,6849 | 0,2742 | 0,04337 | 0,1449 | 40 de 102 |
+| AutoML Tabular | 0,1952 | 0,6931 | 0,3192 | 0,04256 | 0,1630 | 45 de 102 |
+
+AutoML supera a Python en AUC-PR por 0,047, más que la variación entre pliegues de 0,0159. La
+ventaja se concentra en los créditos de mayor riesgo; desde un recall de 0,2, las dos curvas
+precision-recall se superponen y las ROC son casi iguales. La figura está en
+`data/models/figuras/vertex/comparacion_automl_python.png`.
 
 ### Volver a una versión anterior
 
