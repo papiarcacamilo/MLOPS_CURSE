@@ -1380,7 +1380,7 @@ mayor riesgo según cada modelo. El tiempo es solo el del entrenamiento:
 | Modelo | AUC-PR | ROC-AUC | KS | Brier | F1 | Moras detectadas | Entrenamiento | Costo |
 |---|---|---|---|---|---|---|---|---|
 | Python, logística sobre WoE | 0,1479 | 0,6849 | 0,2742 | 0,04337 | 0,1449 | 40 de 102 | 1,2 s en local | USD 0 |
-| Pipeline propio en Vertex AI | 0,1479 | 0,6849 | 0,2742 | 0,04337 | 0,1449 | 40 de 102 | 12 min 53 s | Centavos |
+| Pipeline propio en Vertex AI | 0,1479 | 0,6849 | 0,2742 | 0,04337 | 0,1449 | 40 de 102 | 12 min 53 s | USD 0,07 por dos corridas |
 | AutoML Tabular | 0,1952 | 0,6931 | 0,3192 | 0,04256 | 0,1630 | 45 de 102 | 2 h 10 min | USD 21,25 |
 
 - **El pipeline reproduce a Python:** las mismas métricas, con una diferencia máxima de probabilidad
