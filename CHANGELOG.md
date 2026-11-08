@@ -19,6 +19,10 @@ donde está el detalle y la verificación. El formato se basa en
 - `vertex_datos.py --tabla pipeline`: sube las particiones procesadas para reentrenar el modelo de Python en la nube, con el mismo contrato de test y sin fuga. 8 tests.
 - `vertex_pipeline.py` y `vertex_pasos.py`: pipeline propio en Vertex AI Pipelines. Prepara el código del commit, carga los datos de BigQuery, entrena la misma receta, la evalúa como a AutoML y la registra solo si supera el mínimo de Jenkins. El YAML compilado queda en `infra/vertex/`. 25 tests.
 - `kfp` en `requirements.txt`, para que el CI compile el pipeline en cada push.
+
+### Corregido
+
+- La etapa `preparar_codigo` del pipeline no declaraba `google-cloud-storage`. Kubeflow entra al contenedor con `--no-deps`, así que la primera corrida falló al importarlo. Ahora la librería está fijada y un test exige que cada etapa declare lo que importa de Google.
 - `vertex_evaluacion.py`: mide AutoML y Python con `summarize_classification` sobre los mismos créditos y al mismo volumen de rechazo. AutoML gana en AUC-PR: 0,1952 contra 0,1479. 14 tests.
 
 ### Cambiado

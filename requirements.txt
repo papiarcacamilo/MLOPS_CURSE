@@ -39,6 +39,9 @@ pandas-gbq==0.35.3
 # en el pull request y no en la nube. PyYAML lo usan los tests para leer el YAML.
 kfp==2.18.0
 PyYAML==6.0.3
+# Kubeflow se instala en cada contenedor con --no-deps: lo que una etapa
+# importa de Google tiene que estar fijado aqui y declarado en la etapa.
+google-cloud-storage==3.17.1
 
 # --- Despliegue (Fase 4) ---
 # La imagen NO instala este archivo sino requirements-api.txt, que lleva solo lo

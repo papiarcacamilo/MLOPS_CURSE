@@ -225,6 +225,20 @@ def test_el_pipeline_compila_con_sus_etapas_y_la_condicion(tmp_path):
     assert all(p in comando for p in vpi.PAQUETES)
 
 
+@pytest.mark.parametrize("etapa, paquete", [
+    ("exec-preparar-codigo", "google-cloud-storage=="),
+    ("exec-cargar-datos", "pandas-gbq=="),
+    ("exec-registrar", "google-cloud-aiplatform=="),
+])
+def test_cada_etapa_declara_las_librerias_de_google_que_importa(tmp_path, etapa, paquete):
+    # Kubeflow entra al contenedor con --no-deps: sin declararla, la libreria no
+    # existe alla aunque este instalada en local. Asi fallo la primera corrida.
+    spec = yaml.safe_load(vpi.compilar(tmp_path / "p.yaml").read_text(encoding="utf-8"))
+    comando = " ".join(spec["deploymentSpec"]["executors"][etapa]["container"]["command"])
+    assert "'--no-deps'" in comando
+    assert paquete in comando
+
+
 def test_el_yaml_versionado_esta_al_dia(tmp_path):
     nuevo = vpi.compilar(tmp_path / "p.yaml").read_text(encoding="utf-8")
     assert nuevo == vpi.RUTA_YAML.read_text(encoding="utf-8"), \

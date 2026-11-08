@@ -921,8 +921,8 @@ dentro de `main()`, de modo que solo corrían si alguien ejecutaba el script ent
 | `tests/test_vertex_datos.py` | 21 | Las tablas para Vertex AI: mismo test que Python, sin fuga y sin columnas de más |
 | `tests/test_vertex_automl.py` | 15 | El plan de AutoML: entradas, tipos, objetivo y presupuesto antes de gastar |
 | `tests/test_vertex_evaluacion.py` | 14 | La comparación: mismos créditos, mismo volumen de rechazo y veredicto contra el ruido |
-| `tests/test_vertex_pipeline.py` | 25 | El pipeline propio: reproduce el 0,1479, compila, registra solo sobre el mínimo y se lanza desde un commit publicado |
-| **Total** | **324** | **Cerca de 1 minuto en local** |
+| `tests/test_vertex_pipeline.py` | 28 | El pipeline propio: reproduce el 0,1479, compila, declara sus dependencias, registra solo sobre el mínimo y se lanza desde un commit publicado |
+| **Total** | **327** | **Cerca de 1 minuto en local** |
 
 ### Validación de los tests 
 
@@ -1161,7 +1161,7 @@ MLOPS_CURSE/
 ├── requirements.txt                  # Dependencias con versiones fijadas
 ├── requirements-api.txt              # Subconjunto que instala la imagen (añadido)
 ├── requirements-vertex.txt           # SDK de Vertex AI, solo para entrenar en la nube (añadido)
-├── tests/                            # Stage 2: 324 tests en 11 archivos (añadido)
+├── tests/                            # Stage 2: 327 tests en 11 archivos (añadido)
 ├── ci/                               # Compuertas que ejecuta Jenkins: estructura y métricas (añadido)
 ├── infra/jenkins/                    # Jenkins local con versión fija (añadido)
 ├── infra/vertex/                     # Pipeline propio compilado, el que se envía a Vertex AI (añadido)

@@ -69,6 +69,9 @@ def auc_pr_minimo() -> float:
 PAQUETES = fijadas(["pandas", "numpy", "scipy", "scikit-learn", "joblib",
                     "imbalanced-learn", "sklearn-compat"])
 PAQUETES_BIGQUERY = PAQUETES + fijadas(["pandas-gbq"])
+# Kubeflow se instala en el contenedor sin sus dependencias, asi que la etapa
+# que descarga el codigo declara el cliente de Cloud Storage.
+PAQUETES_STORAGE = fijadas(["google-cloud-storage"])
 PAQUETES_REGISTRO = PAQUETES + fijadas(["google-cloud-aiplatform"])
 
 
@@ -79,7 +82,7 @@ PAQUETES_REGISTRO = PAQUETES + fijadas(["google-cloud-aiplatform"])
 # sus propios imports. Las que usan el repositorio lo agregan al path.
 
 
-@dsl.component(base_image=IMAGEN)
+@dsl.component(base_image=IMAGEN, packages_to_install=PAQUETES_STORAGE)
 def preparar_codigo(codigo_uri: str, codigo: Output[Artifact]):
     """Descarga y extrae el paquete del commit que se lanzo."""
     import io
