@@ -1,0 +1,492 @@
+# PIPELINE DEFINITION
+# Name: mlops-mora-pipeline-e5
+# Description: Reentrena la logistica sobre WoE y la mide como a AutoML.
+# Inputs:
+#    codigo_uri: str
+#    commit: str
+#    nombre_modelo: str [Default: 'python-woe-pipeline-e5']
+#    proyecto: str
+#    region: str
+#    tabla: str
+components:
+  comp-cargar-datos:
+    executorLabel: exec-cargar-datos
+    inputDefinitions:
+      artifacts:
+        codigo:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+      parameters:
+        region:
+          parameterType: STRING
+        tabla:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        test:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+        train:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-condition-1:
+    dag:
+      tasks:
+        registrar:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-registrar
+          inputs:
+            artifacts:
+              codigo:
+                componentInputArtifact: pipelinechannel--preparar-codigo-codigo
+              modelo:
+                componentInputArtifact: pipelinechannel--entrenar-modelo
+            parameters:
+              commit:
+                componentInputParameter: pipelinechannel--commit
+              nombre:
+                componentInputParameter: pipelinechannel--nombre_modelo
+              proyecto:
+                componentInputParameter: pipelinechannel--proyecto
+              region:
+                componentInputParameter: pipelinechannel--region
+          taskInfo:
+            name: Registrar
+    inputDefinitions:
+      artifacts:
+        pipelinechannel--entrenar-modelo:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+        pipelinechannel--preparar-codigo-codigo:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+      parameters:
+        pipelinechannel--commit:
+          parameterType: STRING
+        pipelinechannel--evaluar-auc_pr:
+          parameterType: NUMBER_DOUBLE
+        pipelinechannel--nombre_modelo:
+          parameterType: STRING
+        pipelinechannel--proyecto:
+          parameterType: STRING
+        pipelinechannel--region:
+          parameterType: STRING
+  comp-entrenar:
+    executorLabel: exec-entrenar
+    inputDefinitions:
+      artifacts:
+        codigo:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        train:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      artifacts:
+        modelo:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+  comp-evaluar:
+    executorLabel: exec-evaluar
+    inputDefinitions:
+      artifacts:
+        codigo:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        modelo:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+        test:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      artifacts:
+        metricas:
+          artifactType:
+            schemaTitle: system.Metrics
+            schemaVersion: 0.0.1
+        predicciones:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+      parameters:
+        auc_pr:
+          parameterType: NUMBER_DOUBLE
+  comp-preparar-codigo:
+    executorLabel: exec-preparar-codigo
+    inputDefinitions:
+      parameters:
+        codigo_uri:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        codigo:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+  comp-registrar:
+    executorLabel: exec-registrar
+    inputDefinitions:
+      artifacts:
+        codigo:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        modelo:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+      parameters:
+        commit:
+          parameterType: STRING
+        nombre:
+          parameterType: STRING
+        proyecto:
+          parameterType: STRING
+        region:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-cargar-datos:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - cargar_datos
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'pandas==3.0.5'\
+          \ 'numpy==2.4.6' 'scipy==1.17.1' 'scikit-learn==1.9.0' 'joblib==1.5.3' 'imbalanced-learn==0.14.2'\
+          \ 'sklearn-compat==0.1.6' 'pandas-gbq==0.35.3'  &&  python3 -m pip install\
+          \ --quiet --no-warn-script-location 'kfp==2.18.0' '--no-deps' 'typing-extensions>=3.7.4,<5;\
+          \ python_version<\"3.9\"' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef cargar_datos(codigo: Input[Artifact], tabla: str, region: str,\n\
+          \                 train: Output[Dataset], test: Output[Dataset]):\n    \"\
+          \"\"Separa la tabla de BigQuery en train y test.\"\"\"\n    import sys\n\
+          \    from pathlib import Path\n    sys.dont_write_bytecode = True\n    sys.path.insert(0,\
+          \ str(Path(codigo.path) / \"mlops_pipeline\" / \"src\"))\n    import vertex_pasos\
+          \ as vp\n\n    conteos = vp.cargar_datos(tabla, region, train.path, test.path,\
+          \ raiz=Path(codigo.path))\n    test.metadata.update(conteos)\n\n"
+        image: python:3.11-slim
+    exec-entrenar:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - entrenar
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'pandas==3.0.5'\
+          \ 'numpy==2.4.6' 'scipy==1.17.1' 'scikit-learn==1.9.0' 'joblib==1.5.3' 'imbalanced-learn==0.14.2'\
+          \ 'sklearn-compat==0.1.6'  &&  python3 -m pip install --quiet --no-warn-script-location\
+          \ 'kfp==2.18.0' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"\
+          3.9\"' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef entrenar(codigo: Input[Artifact], train: Input[Dataset], modelo:\
+          \ Output[Model]):\n    \"\"\"Ajusta la receta del modelo final con el train.\"\
+          \"\"\n    import sys\n    from pathlib import Path\n    sys.dont_write_bytecode\
+          \ = True\n    sys.path.insert(0, str(Path(codigo.path) / \"mlops_pipeline\"\
+          \ / \"src\"))\n    import vertex_pasos as vp\n\n    modelo.metadata.update(vp.entrenar(train.path,\
+          \ modelo.path, raiz=Path(codigo.path)))\n    modelo.metadata[\"framework\"\
+          ] = \"scikit-learn\"\n\n"
+        image: python:3.11-slim
+    exec-evaluar:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - evaluar
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'pandas==3.0.5'\
+          \ 'numpy==2.4.6' 'scipy==1.17.1' 'scikit-learn==1.9.0' 'joblib==1.5.3' 'imbalanced-learn==0.14.2'\
+          \ 'sklearn-compat==0.1.6'  &&  python3 -m pip install --quiet --no-warn-script-location\
+          \ 'kfp==2.18.0' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"\
+          3.9\"' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef evaluar(codigo: Input[Artifact], modelo: Input[Model], test:\
+          \ Input[Dataset],\n            metricas: Output[Metrics],\n            predicciones:\
+          \ Output[Dataset]) -> NamedTuple(\"Salida\", [(\"auc_pr\", float)]):\n \
+          \   \"\"\"Mide el modelo sobre el test, rechazando el 20,9% de mayor riesgo.\"\
+          \"\"\n    import sys\n    from collections import namedtuple\n    from pathlib\
+          \ import Path\n    sys.dont_write_bytecode = True\n    sys.path.insert(0,\
+          \ str(Path(codigo.path) / \"mlops_pipeline\" / \"src\"))\n    import vertex_pasos\
+          \ as vp\n\n    m = vp.evaluar(modelo.path, test.path, predicciones.path,\
+          \ raiz=Path(codigo.path))\n    for nombre in (\"auc_pr\", \"roc_auc\", \"\
+          ks\", \"gini\", \"brier\", \"rmse\",\n                   \"precision\",\
+          \ \"recall\", \"f1\", \"accuracy\", \"pct_marcado\"):\n        metricas.log_metric(nombre,\
+          \ float(m[nombre]))\n    return namedtuple(\"Salida\", [\"auc_pr\"])(float(m[\"\
+          auc_pr\"]))\n\n"
+        image: python:3.11-slim
+    exec-preparar-codigo:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - preparar_codigo
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.18.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef preparar_codigo(codigo_uri: str, codigo: Output[Artifact]):\n\
+          \    \"\"\"Descarga y extrae el paquete del commit que se lanzo.\"\"\"\n\
+          \    import io\n    import zipfile\n    from pathlib import Path\n\n   \
+          \ from google.cloud import storage\n\n    bucket, _, nombre = codigo_uri.removeprefix(\"\
+          gs://\").partition(\"/\")\n    datos = storage.Client().bucket(bucket).blob(nombre).download_as_bytes()\n\
+          \    zipfile.ZipFile(io.BytesIO(datos)).extractall(codigo.path)\n    esenciales\
+          \ = [\"config.json\", \"Base_de_datos.csv\", \"mlops_pipeline/src/vertex_pasos.py\"\
+          ,\n                  \"data/models/modelo_seleccionado.joblib\"]\n    faltan\
+          \ = [f for f in esenciales if not (Path(codigo.path) / f).exists()]\n  \
+          \  if faltan:\n        raise FileNotFoundError(f\"el paquete del codigo\
+          \ no trae: {faltan}\")\n    codigo.metadata[\"origen\"] = codigo_uri\n\n"
+        image: python:3.11-slim
+    exec-registrar:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - registrar
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'pandas==3.0.5'\
+          \ 'numpy==2.4.6' 'scipy==1.17.1' 'scikit-learn==1.9.0' 'joblib==1.5.3' 'imbalanced-learn==0.14.2'\
+          \ 'sklearn-compat==0.1.6' 'google-cloud-aiplatform==2.7.0'  &&  python3\
+          \ -m pip install --quiet --no-warn-script-location 'kfp==2.18.0' '--no-deps'\
+          \ 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\
+          \n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef registrar(codigo: Input[Artifact], modelo: Input[Model], proyecto:\
+          \ str, region: str,\n              nombre: str, commit: str) -> str:\n \
+          \   \"\"\"Sube el modelo al Model Registry con la etiqueta del commit.\"\
+          \"\"\n    import sys\n    from pathlib import Path\n    sys.dont_write_bytecode\
+          \ = True\n    sys.path.insert(0, str(Path(codigo.path) / \"mlops_pipeline\"\
+          \ / \"src\"))\n    import vertex_pasos as vp\n\n    etiquetas = {\"entregable\"\
+          : \"e5\", \"dominio\": \"riesgo\", \"uso\": \"comparacion-modelos\",\n \
+          \                \"commit\": commit[:12]}\n    return vp.registrar(modelo.uri,\
+          \ proyecto, region, nombre, etiquetas)\n\n"
+        image: python:3.11-slim
+pipelineInfo:
+  description: Reentrena la logistica sobre WoE y la mide como a AutoML.
+  name: mlops-mora-pipeline-e5
+root:
+  dag:
+    tasks:
+      cargar-datos:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-cargar-datos
+        dependentTasks:
+        - preparar-codigo
+        inputs:
+          artifacts:
+            codigo:
+              taskOutputArtifact:
+                outputArtifactKey: codigo
+                producerTask: preparar-codigo
+          parameters:
+            region:
+              componentInputParameter: region
+            tabla:
+              componentInputParameter: tabla
+        taskInfo:
+          name: Cargar datos
+      condition-1:
+        componentRef:
+          name: comp-condition-1
+        dependentTasks:
+        - entrenar
+        - evaluar
+        - preparar-codigo
+        inputs:
+          artifacts:
+            pipelinechannel--entrenar-modelo:
+              taskOutputArtifact:
+                outputArtifactKey: modelo
+                producerTask: entrenar
+            pipelinechannel--preparar-codigo-codigo:
+              taskOutputArtifact:
+                outputArtifactKey: codigo
+                producerTask: preparar-codigo
+          parameters:
+            pipelinechannel--commit:
+              componentInputParameter: commit
+            pipelinechannel--evaluar-auc_pr:
+              taskOutputParameter:
+                outputParameterKey: auc_pr
+                producerTask: evaluar
+            pipelinechannel--nombre_modelo:
+              componentInputParameter: nombre_modelo
+            pipelinechannel--proyecto:
+              componentInputParameter: proyecto
+            pipelinechannel--region:
+              componentInputParameter: region
+        taskInfo:
+          name: supera-el-minimo
+        triggerPolicy:
+          condition: inputs.parameter_values['pipelinechannel--evaluar-auc_pr'] >=
+            0.132
+      entrenar:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-entrenar
+        dependentTasks:
+        - cargar-datos
+        - preparar-codigo
+        inputs:
+          artifacts:
+            codigo:
+              taskOutputArtifact:
+                outputArtifactKey: codigo
+                producerTask: preparar-codigo
+            train:
+              taskOutputArtifact:
+                outputArtifactKey: train
+                producerTask: cargar-datos
+        taskInfo:
+          name: Entrenar
+      evaluar:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-evaluar
+        dependentTasks:
+        - cargar-datos
+        - entrenar
+        - preparar-codigo
+        inputs:
+          artifacts:
+            codigo:
+              taskOutputArtifact:
+                outputArtifactKey: codigo
+                producerTask: preparar-codigo
+            modelo:
+              taskOutputArtifact:
+                outputArtifactKey: modelo
+                producerTask: entrenar
+            test:
+              taskOutputArtifact:
+                outputArtifactKey: test
+                producerTask: cargar-datos
+        taskInfo:
+          name: Evaluar
+      preparar-codigo:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-preparar-codigo
+        inputs:
+          parameters:
+            codigo_uri:
+              componentInputParameter: codigo_uri
+        taskInfo:
+          name: Preparar codigo
+  inputDefinitions:
+    parameters:
+      codigo_uri:
+        parameterType: STRING
+      commit:
+        parameterType: STRING
+      nombre_modelo:
+        defaultValue: python-woe-pipeline-e5
+        isOptional: true
+        parameterType: STRING
+      proyecto:
+        parameterType: STRING
+      region:
+        parameterType: STRING
+      tabla:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.18.0

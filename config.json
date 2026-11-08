@@ -22,6 +22,11 @@
       "presupuesto_milli_nodo_horas": 1000,
       "tabla_predicciones": "automl_predicciones_test",
       "modelo_registrado": "projects/875698717037/locations/us-central1/models/533773862622461952"
+    },
+    "pipeline": {
+      "bucket": "nb-rsk-scoring-dev-vertex",
+      "cuenta_servicio": "sa-entrenamiento@nb-rsk-scoring-dev.iam.gserviceaccount.com",
+      "modelo": "python-woe-pipeline-e5"
     }
   }
 }

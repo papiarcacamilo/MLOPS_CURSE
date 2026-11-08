@@ -17,6 +17,8 @@ donde está el detalle y la verificación. El formato se basa en
 - `vertex_automl.py`: lanza AutoML Tabular con el plan de la comparación y lo revisa antes de gastar. Sin `--lanzar` solo muestra el plan, y si el dataset de Vertex AI ya existe lo reutiliza. 15 tests.
 - `requirements-vertex.txt`: el SDK de Vertex AI, aparte para que el CI y Jenkins no lo instalen.
 - `vertex_datos.py --tabla pipeline`: sube las particiones procesadas para reentrenar el modelo de Python en la nube, con el mismo contrato de test y sin fuga. 8 tests.
+- `vertex_pipeline.py` y `vertex_pasos.py`: pipeline propio en Vertex AI Pipelines. Prepara el código del commit, carga los datos de BigQuery, entrena la misma receta, la evalúa como a AutoML y la registra solo si supera el mínimo de Jenkins. El YAML compilado queda en `infra/vertex/`. 25 tests.
+- `kfp` en `requirements.txt`, para que el CI compile el pipeline en cada push.
 - `vertex_evaluacion.py`: mide AutoML y Python con `summarize_classification` sobre los mismos créditos y al mismo volumen de rechazo. AutoML gana en AUC-PR: 0,1952 contra 0,1479. 14 tests.
 
 ### Cambiado

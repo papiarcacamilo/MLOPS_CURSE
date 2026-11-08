@@ -921,7 +921,8 @@ dentro de `main()`, de modo que solo corrían si alguien ejecutaba el script ent
 | `tests/test_vertex_datos.py` | 21 | Las tablas para Vertex AI: mismo test que Python, sin fuga y sin columnas de más |
 | `tests/test_vertex_automl.py` | 15 | El plan de AutoML: entradas, tipos, objetivo y presupuesto antes de gastar |
 | `tests/test_vertex_evaluacion.py` | 14 | La comparación: mismos créditos, mismo volumen de rechazo y veredicto contra el ruido |
-| **Total** | **299** | **Cerca de 1 minuto en local** |
+| `tests/test_vertex_pipeline.py` | 25 | El pipeline propio: reproduce el 0,1479, compila, registra solo sobre el mínimo y se lanza desde un commit publicado |
+| **Total** | **324** | **Cerca de 1 minuto en local** |
 
 ### Validación de los tests 
 
@@ -963,8 +964,8 @@ desempate que prefiere SMOTE), la suite detectó los 6.
 | `model_evaluation.py` | 33,2% |
 | `model_training.py` | 25,4% |
 | `ci/validar_estructura.py` y `ci/validar_metricas.py` | 100% |
-| `vertex_datos.py`, `vertex_automl.py` y `vertex_evaluacion.py` | 100% |
-| **Total** | **55,2%** |
+| Módulos `vertex_*.py` del Entregable 5 | 100% |
+| **Total** | **61,8%** |
 
 El contrato y la API superan el 90%. En `model_deploy.py`, lo que falta cubrir es sobre todo
 `main()` y la construcción del artefacto, que corren antes de desplegar; `sanear`, `predecir_lote`
@@ -1116,6 +1117,8 @@ MLOPS_CURSE/
 │       ├── vertex_datos.py               # Entregable 5: tablas para Vertex AI (añadido)
 │       ├── vertex_automl.py              # Entregable 5: lanza AutoML Tabular (añadido)
 │       ├── vertex_evaluacion.py          # Entregable 5: AutoML contra Python (añadido)
+│       ├── vertex_pasos.py               # Entregable 5: lógica de las etapas del pipeline (añadido)
+│       ├── vertex_pipeline.py            # Entregable 5: pipeline propio en Vertex AI (añadido)
 │       ├── feature_engineering.ipynb     # Narrativa de la Fase 2 (añadido)
 │       ├── model_evaluation.ipynb        # Narrativa de la evaluación (añadido)
 │       ├── model_monitoring.ipynb        # Narrativa del monitoreo (añadido)
@@ -1158,9 +1161,10 @@ MLOPS_CURSE/
 ├── requirements.txt                  # Dependencias con versiones fijadas
 ├── requirements-api.txt              # Subconjunto que instala la imagen (añadido)
 ├── requirements-vertex.txt           # SDK de Vertex AI, solo para entrenar en la nube (añadido)
-├── tests/                            # Stage 2: 299 tests en 10 archivos (añadido)
+├── tests/                            # Stage 2: 324 tests en 11 archivos (añadido)
 ├── ci/                               # Compuertas que ejecuta Jenkins: estructura y métricas (añadido)
 ├── infra/jenkins/                    # Jenkins local con versión fija (añadido)
+├── infra/vertex/                     # Pipeline propio compilado, el que se envía a Vertex AI (añadido)
 ├── Jenkinsfile                       # Pipeline de aprobación después del merge (añadido)
 ├── .github/workflows/ci.yml          # Stage 2: tests y SonarCloud en cada push (añadido)
 ├── pytest.ini                        # Stage 2: configuración de pytest (añadido)
@@ -1362,6 +1366,9 @@ python mlops_pipeline/src/vertex_automl.py
 
 # 3. Medir AutoML contra Python; --descargar rehace las predicciones desde BigQuery
 python mlops_pipeline/src/vertex_evaluacion.py
+
+# 4. Compilar el pipeline propio; con --lanzar sube el código del commit y crea la corrida
+python mlops_pipeline/src/vertex_pipeline.py
 ```
 
 Resultado sobre el mismo test estratificado, con 2.153 créditos y 102 moras, rechazando el 20,9% de
