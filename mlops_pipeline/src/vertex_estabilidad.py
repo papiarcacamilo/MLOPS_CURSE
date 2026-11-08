@@ -2,9 +2,10 @@
 Entregable 5, Fase 2 - Estabilidad de la comparacion entre Python y AutoML
 ================================================================================
 Proyecto : Modelo de riesgo crediticio (MLOPS_CURSE)
-Entrada  : data/models/predicciones_test_comparacion.csv
+Entrada  : data/models/predicciones_test_comparacion.csv y las particiones procesadas
 Salida   : data/models/estabilidad_vertex.json
            data/models/figuras/vertex/estabilidad_bootstrap.png
+           data/models/figuras/vertex/estabilidad_semillas.png
 
 Bootstrap pareado: se arman muchos tests nuevos sacando creditos del test real
 con reposicion, y en cada uno se miden los dos modelos sobre LOS MISMOS
@@ -18,8 +19,15 @@ sin fijarla una parte de la variacion seria solo cambio de tasa.
 Lectura: si el intervalo del 95% de la diferencia queda entero por encima de
 cero, la ventaja de AutoML es firme; si incluye el cero, puede ser azar del test.
 
+Varias particiones: el bootstrap varia el test con el modelo fijo. Aqui se
+separan los 10.763 creditos 20 veces, con otras semillas, y en cada una se
+reentrena la misma receta. Mide cuanto depende el AUC-PR de Python de como se
+separaron los datos. A AutoML no se le hace lo mismo: cada corrida cuesta
+USD 21,25.
+
 Uso:
-    python mlops_pipeline/src/vertex_estabilidad.py
+    python mlops_pipeline/src/vertex_estabilidad.py                       los dos analisis
+    python mlops_pipeline/src/vertex_estabilidad.py --analisis semillas   solo uno
 ================================================================================
 """
 
@@ -31,15 +39,21 @@ import sys
 from pathlib import Path
 from typing import Sequence
 
+import joblib
 import numpy as np
 import pandas as pd
+from sklearn.base import clone
 from sklearn.metrics import average_precision_score, roc_auc_score
+from sklearn.model_selection import train_test_split
 
 import vertex_datos as vd
 import vertex_evaluacion as ve
 
 NOMBRE_JSON = "estabilidad_vertex.json"
 NOMBRE_FIGURA = Path("figuras") / "vertex" / "estabilidad_bootstrap.png"
+NOMBRE_FIGURA_SEMILLAS = Path("figuras") / "vertex" / "estabilidad_semillas.png"
+# La 42 es la de la particion original; aqui se prueban otras 20.
+SEMILLAS = tuple(range(1, 21))
 REMUESTREOS = 1000
 SEMILLA = 42
 METRICAS = {"auc_pr": average_precision_score, "roc_auc": roc_auc_score}
@@ -125,31 +139,126 @@ def graficar(valores: dict[str, np.ndarray], resumen: dict, ruta: Path) -> None:
     plt.close(fig)
 
 
+# ==============================================================================
+# 5.2 | VARIAS PARTICIONES
+# ==============================================================================
+
+
+def datos_procesados(config: dict) -> pd.DataFrame:
+    """Los 10.763 creditos procesados: el train y el test de la particion original."""
+    return pd.concat([vd.leer_particion("estratificado_train", config),
+                      vd.leer_particion("estratificado_test", config)], ignore_index=True)
+
+
+def proporcion_test(carpeta: Path = vd.RUTA_PROCESADOS) -> float:
+    with open(carpeta / "split_metadata.json", encoding="utf-8") as f:
+        return float(json.load(f)["proporcion_test"])
+
+
+def medir_particion(datos: pd.DataFrame, semilla: int, objetivo: str,
+                    proporcion: float) -> dict:
+    """Separa con otra semilla, reentrena la misma receta y la mide en su test."""
+    train, test = train_test_split(datos, test_size=proporcion, stratify=datos[objetivo],
+                                   random_state=semilla)
+    receta = clone(joblib.load(ve.RUTA_MODELOS / "modelo_seleccionado.joblib"))
+    receta.fit(train.drop(columns=[objetivo]), (1 - train[objetivo]).to_numpy())
+    y = (1 - test[objetivo]).to_numpy()
+    p = receta.predict_proba(test.drop(columns=[objetivo]))[:, 1]
+    return {"semilla": semilla, "moras_test": int(y.sum()),
+            "auc_pr": round(float(average_precision_score(y, p)), 4),
+            "roc_auc": round(float(roc_auc_score(y, p)), 4)}
+
+
+def resumir_semillas(filas: list[dict], referencia: float, automl: float) -> dict:
+    """Variacion del AUC-PR de Python entre particiones y donde caen los dos resultados."""
+    auc = np.array([f["auc_pr"] for f in filas])
+    return {
+        "particiones": len(auc),
+        "auc_pr": {"media": round(float(auc.mean()), 4),
+                   "desviacion": round(float(auc.std(ddof=1)), 4),
+                   "minimo": round(float(auc.min()), 4),
+                   "maximo": round(float(auc.max()), 4)},
+        "referencia_semilla_42": referencia,
+        "pct_particiones_bajo_la_referencia": round(float((auc < referencia).mean()) * 100, 1),
+        "automl_semilla_42": automl,
+        "automl_supera_todas": bool(automl > auc.max()),
+        "detalle": filas,
+    }
+
+
+def graficar_semillas(resumen: dict, ruta: Path) -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    auc = [f["auc_pr"] for f in resumen["detalle"]]
+    fig, eje = plt.subplots(figsize=(9, 4.5))
+    eje.scatter(range(1, len(auc) + 1), auc, color="#1f6fb4", zorder=3,
+                label=f"Python en {len(auc)} particiones distintas")
+    media = resumen["auc_pr"]["media"]
+    eje.axhline(media, color="#1f6fb4", linestyle="--", label=f"Media de Python ({media})")
+    eje.axhline(resumen["referencia_semilla_42"], color="black", linestyle=":",
+                label=f"Python, particion original ({resumen['referencia_semilla_42']})")
+    eje.axhline(resumen["automl_semilla_42"], color="#d1641b",
+                label=f"AutoML, particion original ({resumen['automl_semilla_42']})")
+    eje.set(title="AUC-PR de la misma receta al cambiar la particion",
+            xlabel="Semilla de la particion", ylabel="AUC-PR en su test",
+            xticks=range(1, len(auc) + 1))
+    eje.legend(fontsize=8)
+    eje.grid(alpha=0.3)
+    fig.tight_layout()
+    ruta.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(ruta, dpi=150)
+    plt.close(fig)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[1])
+    parser.add_argument("--analisis", choices=("todos", "bootstrap", "semillas"),
+                        default="todos", help="que analisis correr; por defecto los dos")
     parser.add_argument("--salida", type=Path, default=ve.RUTA_MODELOS,
                         help="carpeta de salida; por defecto data/models")
     args = parser.parse_args(argv)
 
+    args.salida.mkdir(parents=True, exist_ok=True)
+    ruta_json = args.salida / NOMBRE_JSON
+    resultado = (json.loads(ruta_json.read_text(encoding="utf-8"))
+                 if ruta_json.exists() else {})
     predicciones = pd.read_csv(ve.RUTA_MODELOS / ve.NOMBRE_CSV)
     y = predicciones[vd.OBJETIVO].to_numpy()
-    valores = bootstrap_pareado(y, predicciones["p_python"], predicciones["p_automl"])
-    resultado = {
-        "metodo": {"remuestreos": REMUESTREOS, "semilla": SEMILLA,
-                   "estratificado": True, "pareado": True},
-        "bootstrap": resumir(valores),
-    }
-    args.salida.mkdir(parents=True, exist_ok=True)
-    with open(args.salida / NOMBRE_JSON, "w", encoding="utf-8") as f:
-        json.dump(resultado, f, indent=2, ensure_ascii=False)
-    graficar(valores, resultado["bootstrap"], args.salida / NOMBRE_FIGURA)
 
-    for m, r in resultado["bootstrap"].items():
-        print(f"{m}: Python {r['python']['ic95']} | AutoML {r['automl']['ic95']} | "
-              f"diferencia {r['diferencia']['media']} {r['diferencia']['ic95']} | "
-              f"gana AutoML en {r['pct_gana_automl']}% | firme: {r['ventaja_firme']}")
-    print(f"La diferencia de AUC-PR supera el ruido en "
-          f"{resultado['bootstrap']['auc_pr']['pct_supera_el_ruido']}% de las muestras.")
+    if args.analisis in ("todos", "bootstrap"):
+        valores = bootstrap_pareado(y, predicciones["p_python"], predicciones["p_automl"])
+        resultado["metodo"] = {"remuestreos": REMUESTREOS, "semilla": SEMILLA,
+                               "estratificado": True, "pareado": True}
+        resultado["bootstrap"] = resumir(valores)
+        graficar(valores, resultado["bootstrap"], args.salida / NOMBRE_FIGURA)
+        for m, r in resultado["bootstrap"].items():
+            print(f"{m}: Python {r['python']['ic95']} | AutoML {r['automl']['ic95']} | "
+                  f"diferencia {r['diferencia']['media']} {r['diferencia']['ic95']} | "
+                  f"gana AutoML en {r['pct_gana_automl']}% | firme: {r['ventaja_firme']}")
+        print(f"La diferencia de AUC-PR supera el ruido en "
+              f"{resultado['bootstrap']['auc_pr']['pct_supera_el_ruido']}% de las muestras.")
+
+    if args.analisis in ("todos", "semillas"):
+        config = vd.cargar_config()
+        datos = datos_procesados(config)
+        filas = [medir_particion(datos, s, config["target_variable"], proporcion_test())
+                 for s in SEMILLAS]
+        referencia = round(float(average_precision_score(y, predicciones["p_python"])), 4)
+        automl = round(float(average_precision_score(y, predicciones["p_automl"])), 4)
+        resultado["semillas"] = resumir_semillas(filas, referencia, automl)
+        graficar_semillas(resultado["semillas"], args.salida / NOMBRE_FIGURA_SEMILLAS)
+        r = resultado["semillas"]
+        print(f"AUC-PR de Python en {r['particiones']} particiones: media {r['auc_pr']['media']}, "
+              f"desviacion {r['auc_pr']['desviacion']}, rango [{r['auc_pr']['minimo']}, "
+              f"{r['auc_pr']['maximo']}]")
+        print(f"La particion original ({referencia}) supera al "
+              f"{r['pct_particiones_bajo_la_referencia']}% de las otras; AutoML ({automl}) "
+              f"supera a todas: {r['automl_supera_todas']}")
+
+    with open(ruta_json, "w", encoding="utf-8") as f:
+        json.dump(resultado, f, indent=2, ensure_ascii=False)
     return 0
 
 

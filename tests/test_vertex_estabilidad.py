@@ -75,12 +75,60 @@ def test_main_mide_el_test_versionado_y_escribe_sus_salidas(tmp_path, monkeypatc
     original = es.bootstrap_pareado
     monkeypatch.setattr(es, "bootstrap_pareado",
                         lambda y, a, b: original(y, a, b, remuestreos=40))
-    assert es.main(["--salida", str(tmp_path)]) == 0
+    assert es.main(["--analisis", "bootstrap", "--salida", str(tmp_path)]) == 0
     resultado = json.loads((tmp_path / es.NOMBRE_JSON).read_text(encoding="utf-8"))
     assert resultado["metodo"]["pareado"] is True
     assert set(resultado["bootstrap"]) == {"auc_pr", "roc_auc"}
+    assert "semillas" not in resultado
     assert (tmp_path / es.NOMBRE_FIGURA).exists()
     assert "gana AutoML en" in capsys.readouterr().out
+
+
+# --- 5.2 Varias particiones --------------------------------------------------------
+
+
+def test_los_datos_procesados_son_los_10763_creditos():
+    datos = es.datos_procesados(vd.cargar_config())
+    assert len(datos) == 10763
+    assert int((1 - datos["Pago_atiempo"]).sum()) == 511
+    assert es.proporcion_test() == 0.2
+
+
+def test_cada_particion_conserva_el_tamanio_y_las_moras_del_test():
+    datos = es.datos_procesados(vd.cargar_config())
+    fila = es.medir_particion(datos, semilla=3, objetivo="Pago_atiempo", proporcion=0.2)
+    assert fila["moras_test"] == 102
+    assert 0.05 < fila["auc_pr"] < 0.4 and 0.5 < fila["roc_auc"] < 0.9
+    assert es.medir_particion(datos, 3, "Pago_atiempo", 0.2) == fila
+
+
+def test_resumir_semillas_ubica_la_referencia_y_a_automl():
+    filas = [{"semilla": s, "auc_pr": a} for s, a in enumerate([0.10, 0.14, 0.16, 0.20], 1)]
+    resumen = es.resumir_semillas(filas, referencia=0.15, automl=0.18)
+    assert resumen["auc_pr"]["media"] == 0.15 and resumen["auc_pr"]["maximo"] == 0.20
+    assert resumen["pct_particiones_bajo_la_referencia"] == 50.0
+    assert resumen["automl_supera_todas"] is False
+    assert es.resumir_semillas(filas, 0.15, 0.25)["automl_supera_todas"] is True
+
+
+def test_semillas_agrega_su_analisis_sin_borrar_el_bootstrap(tmp_path, monkeypatch, capsys):
+    (tmp_path / es.NOMBRE_JSON).write_text(json.dumps({"bootstrap": {"previo": True}}))
+    monkeypatch.setattr(es, "SEMILLAS", (1, 2))
+    assert es.main(["--analisis", "semillas", "--salida", str(tmp_path)]) == 0
+    resultado = json.loads((tmp_path / es.NOMBRE_JSON).read_text(encoding="utf-8"))
+    assert resultado["bootstrap"] == {"previo": True}
+    assert resultado["semillas"]["particiones"] == 2
+    assert resultado["semillas"]["referencia_semilla_42"] == 0.1479
+    assert (tmp_path / es.NOMBRE_FIGURA_SEMILLAS).exists()
+    assert "particiones" in capsys.readouterr().out
+
+
+def test_el_resultado_versionado_de_las_particiones():
+    r = json.loads((ve.RUTA_MODELOS / es.NOMBRE_JSON).read_text(encoding="utf-8"))["semillas"]
+    assert r["particiones"] == 20 and len(r["detalle"]) == 20
+    assert all(f["moras_test"] == 102 for f in r["detalle"])
+    assert r["referencia_semilla_42"] == 0.1479 and r["automl_semilla_42"] == 0.1952
+    assert r["auc_pr"]["minimo"] < r["referencia_semilla_42"] < r["auc_pr"]["maximo"]
 
 
 def test_el_resultado_versionado_dice_que_la_ventaja_en_auc_pr_es_firme():

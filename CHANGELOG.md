@@ -21,6 +21,7 @@ donde está el detalle y la verificación. El formato se basa en
 - `kfp` en `requirements.txt`, para que el CI compile el pipeline en cada push.
 - `vertex_evaluacion.py` compara los tres enfoques: suma las predicciones de la corrida del pipeline y comprueba que reproduce a Python, con una diferencia máxima de probabilidad menor que 1e-15. La figura pasa a `comparacion_modelos.png`. 6 tests.
 - `vertex_estabilidad.py`: bootstrap pareado y estratificado de la comparación. La ventaja de AutoML en AUC-PR es firme, con +0,045 [0,010, 0,084]; en ROC-AUC no se distinguen. 7 tests.
+- `vertex_estabilidad.py --analisis semillas`: 20 particiones con otras semillas. El AUC-PR de Python va de 0,108 a 0,224, con media 0,150; la partición original es típica. 5 tests.
 
 ### Corregido
 
