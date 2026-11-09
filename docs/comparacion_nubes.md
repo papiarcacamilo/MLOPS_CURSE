@@ -186,3 +186,35 @@ la factura del proyecto en GCP.
 - **El pipeline propio es barato en cualquier nube:** paga pocos minutos de una máquina pequeña.
 - **Un endpoint cobra aunque nadie lo use:** encendido todo el mes, son 730 horas de máquina. Por eso el
   proyecto sirve el modelo con su propia imagen de FastAPI.
+
+---
+
+## 5. Matriz de los 14 criterios
+
+**Esta es la tabla principal: responde la Fase 3 del enunciado.** GCP se evalúa con lo vivido en el
+proyecto, y AWS y Azure con su documentación oficial.
+
+| # | Criterio | GCP, lo vivido | AWS | Azure | Ventaja |
+|---|---|---|---|---|---|
+| 1 | Facilidad de configuración | 2 proyectos, 1 API y 8 permisos | Exige un dominio de SageMaker | El área de trabajo crea varios recursos | GCP |
+| 2 | Interfaz gráfica | Completa, con menús dispersos | AutoML sin código en Canvas, con costo | AutoML sin código incluido | GCP y Azure |
+| 3 | Curva de aprendizaje | Exigió proyectos, permisos y Kubeflow | Sin experiencia propia | Sin experiencia propia | Sin evidencia |
+| 4 | Tiempo de implementación | AutoML ~1 h 40 min; pipeline ~2 h 20 min | No medido | No medido | Sin evidencia |
+| 5 | Costos de entrenamiento y despliegue | AutoML USD 21,25; pipeline ~USD 0,035 | Cómputo × horas | Cómputo × horas | Depende del uso |
+| 6 | Uso de CPU y GPU | `e2-standard-4` sin GPU; AutoML no la muestra | Se paga la instancia usada | Uno elige el clúster de AutoML | Azure |
+| 7 | Tiempo de ejecución | AutoML 2 h 10 min; pipeline 12 min 53 s | No medido | No medido | Sin evidencia |
+| 8 | Costos de almacenamiento y ejecución | Sin cargo visible | Mínimo | Mínimo | Empate |
+| 9 | Precios de servicios equivalentes | Tarifa propia de AutoML | Solo cómputo; Canvas cobra la sesión | Solo cómputo | Azure |
+| 10 | Integración con CI/CD | Pipeline compilado en el CI | CodePipeline y GitHub Actions | Azure DevOps y GitHub Actions | Empate |
+| 11 | Monitoreo, versionado y gobernanza | Registro y monitoreo nativo | Model Monitor cerrado a clientes nuevos | Registro y monitoreo nativo | GCP y Azure |
+| 12 | Automatización y despliegue continuo | Registro condicionado a un mínimo | Pipelines y despliegue azul-verde | Pipelines y despliegue azul-verde | Empate |
+| 13 | Acceso, auditoría y cumplimiento | Mínimo privilegio | IAM, CloudTrail, ISO 27001, SOC 2 y PCI DSS | RBAC, registro de actividad y las mismas normas | Empate |
+| 14 | Entornos con múltiples roles | Proyectos separados por área | Roles por persona | Roles de ML predefinidos | Empate |
+
+**Conclusión:**
+
+- **Para este proyecto, GCP fue la elección correcta:** los datos ya estaban en BigQuery, AutoML tuvo un
+  precio predecible y el pipeline se reprodujo exacto.
+- **Azure destaca en control de costos y AWS queda atrás en monitoreo.**
+- **En acceso, auditoría y cumplimiento, lo que más pesa en un banco, las tres empatan:** decidiría la
+  nube que ya use la organización.
