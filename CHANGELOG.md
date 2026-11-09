@@ -5,7 +5,10 @@ donde está el detalle y la verificación. El formato se basa en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y las versiones siguen
 [versionado semántico](https://semver.org/lang/es/).
 
-## [Sin publicar]
+## [3.0.0] - 2026-11-09
+
+Entregable 5: pipeline de aprobación en Jenkins, entrenamiento en Vertex AI y comparación
+de AWS, Azure y GCP. El modelo servido no cambia: sigue siendo `0b9cf390cc9a`, con umbral 0,0661.
 
 ### Añadido
 
@@ -97,6 +100,7 @@ Integra las PR #1 y #2.
 - Piso heurístico sobre `puntaje_datacredito` (AUC-PR 0,0753) y modelo seleccionado entre 9
   configuraciones: regresión logística sobre WoE, sin tratamiento del desbalance.
 
+[3.0.0]: https://github.com/papiarcacamilo/MLOPS_CURSE/compare/v2.0.1...v3.0.0
 [2.0.1]: https://github.com/papiarcacamilo/MLOPS_CURSE/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/papiarcacamilo/MLOPS_CURSE/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/papiarcacamilo/MLOPS_CURSE/releases/tag/v1.0.0
