@@ -136,3 +136,34 @@ pero sin interpretabilidad.
 
 **Fuentes,** consultadas el 8 de noviembre de 2026: documentación oficial de SageMaker AI, Azure Machine
 Learning y Gemini Enterprise Agent Platform.
+
+---
+
+## 3. Precios y capacidades documentados
+
+### 3.1 Cómo cobra cada nube
+
+| Concepto | GCP | AWS | Azure |
+|---|---|---|---|
+| AutoML | USD 21,25 por nodo-hora | Sin tarifa propia: se paga el cómputo que use Autopilot | Sin cargo adicional: se paga el cómputo |
+| Interfaz sin código | Incluida en la consola | SageMaker Canvas: USD 1,90 por hora de sesión | Incluida en el studio |
+| Pipelines | USD 0,07 por las dos corridas del proyecto, con su cómputo | Sin tarifa propia: se paga el cómputo de cada paso | Sin cargo adicional: se paga el cómputo |
+
+**Lectura:** en GCP, AutoML tiene un precio fijo y predecible. En AWS y Azure depende de cuántas
+máquinas y horas use la búsqueda, así que se controla limitando el tiempo y el tamaño del cómputo.
+
+### 3.2 Capacidades para operar y gobernar
+
+| Capacidad | GCP | AWS | Azure |
+|---|---|---|---|
+| CI/CD | Cloud Build; acción oficial para GitHub Actions | CodePipeline; acción oficial para GitHub Actions | Azure DevOps; acción oficial para GitHub Actions |
+| Versionado de modelos | Model Registry | SageMaker Model Registry | Registro de Azure ML |
+| Monitoreo de modelos | Model Monitoring | Model Monitor cerrado a clientes nuevos; se arma con herramientas open source y CloudWatch | Model monitoring |
+| Despliegue gradual | Reparto de tráfico entre versiones | Despliegues azul-verde y canario | Despliegues azul-verde con reparto de tráfico |
+| Auditoría | Cloud Audit Logs | CloudTrail | Registro de actividad |
+| Red privada y claves propias | VPC Service Controls; CMEK | PrivateLink; KMS | Private Link; Key Vault |
+| Cumplimiento | ISO 27001, SOC 2 y PCI DSS | ISO 27001, SOC 2 y PCI DSS | ISO 27001, SOC 2 y PCI DSS |
+| Roles predefinidos de ML | Administrador, usuario y lector de Vertex AI | Role Manager: científico de datos, MLOps y cómputo | AzureML Data Scientist y AzureML Compute Operator |
+
+**Fuentes:** páginas oficiales de precios y documentación de SageMaker AI y Azure Machine Learning, y
+la factura del proyecto en GCP.
