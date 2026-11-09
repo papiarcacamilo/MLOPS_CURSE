@@ -167,3 +167,22 @@ máquinas y horas use la búsqueda, así que se controla limitando el tiempo y e
 
 **Fuentes:** páginas oficiales de precios y documentación de SageMaker AI y Azure Machine Learning, y
 la factura del proyecto en GCP.
+
+---
+
+## 4. Costo del mismo trabajo en las tres nubes
+
+| Pieza del trabajo | GCP, medido | AWS | Azure |
+|---|---|---|---|
+| Una corrida de AutoML | USD 21,25: 1 nodo-hora | Máquinas usadas por Autopilot × horas | Máquinas usadas por AutoML × horas |
+| Una corrida del pipeline propio | Cerca de USD 0,035 | Máquinas de cada paso × minutos | Máquinas de cada paso × minutos |
+| Almacenamiento del proyecto | Sin cargo visible: unos pocos MB | Unos pocos MB en S3 | Unos pocos MB en Blob Storage |
+| Despliegue con endpoint | No se usó | Máquina del endpoint × 730 horas al mes | Máquina del endpoint × 730 horas al mes |
+
+**Lectura:**
+
+- **El costo lo decide AutoML.** En GCP fue el 99,7% del gasto de la Fase 2. En AWS y Azure podría salir
+  más barato o más caro, según cuántas máquinas y horas use la búsqueda.
+- **El pipeline propio es barato en cualquier nube:** paga pocos minutos de una máquina pequeña.
+- **Un endpoint cobra aunque nadie lo use:** encendido todo el mes, son 730 horas de máquina. Por eso el
+  proyecto sirve el modelo con su propia imagen de FastAPI.
