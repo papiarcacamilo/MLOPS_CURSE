@@ -23,6 +23,7 @@ donde está el detalle y la verificación. El formato se basa en
 - `vertex_estabilidad.py`: bootstrap pareado y estratificado de la comparación. La ventaja de AutoML en AUC-PR es firme, con +0,045 [0,010, 0,084]; en ROC-AUC no se distinguen. 7 tests.
 - `vertex_estabilidad.py --analisis semillas`: 20 particiones con otras semillas. El AUC-PR de Python va de 0,108 a 0,224, con media 0,150; la partición original es típica. 5 tests.
 - `vertex_estabilidad.py --analisis tiempo`: consistencia en el tiempo. La caída en la partición temporal se explica en buena parte porque el 53% de su test no había vencido; con ventanas móviles el lift se sostiene entre 3,1 y 4,4. 4 tests.
+- `docs/comparacion_nubes.md`: comparación de AWS, Azure y GCP en los 14 criterios del enunciado. Incluye el mapa de servicios equivalentes, los precios, el costo del mismo trabajo y la matriz de criterios.
 
 ### Corregido
 

@@ -1168,6 +1168,7 @@ MLOPS_CURSE/
 ├── ci/                               # Compuertas que ejecuta Jenkins: estructura y métricas (añadido)
 ├── infra/jenkins/                    # Jenkins local con versión fija (añadido)
 ├── infra/vertex/                     # Pipeline propio compilado, el que se envía a Vertex AI (añadido)
+├── docs/                             # Entregable 5: comparación de AWS, Azure y GCP (añadido)
 ├── Jenkinsfile                       # Pipeline de aprobación después del merge (añadido)
 ├── .github/workflows/ci.yml          # Stage 2: tests y SonarCloud en cada push (añadido)
 ├── pytest.ini                        # Stage 2: configuración de pytest (añadido)
@@ -1432,6 +1433,10 @@ sin reentrenar y evaluarlo con créditos que aún no maduran. Las ventanas tiene
 que sus cifras son ruidosas.
 
 Los tres análisis se reproducen con `python mlops_pipeline/src/vertex_estabilidad.py`.
+
+**Comparación de nubes.** `docs/comparacion_nubes.md` compara AWS, Azure y GCP en los 14 criterios
+del enunciado: GCP con lo vivido en este proyecto, y AWS y Azure con su documentación oficial. Su
+sección 5, la matriz de los 14 criterios, es la tabla principal.
 
 ### Volver a una versión anterior
 
