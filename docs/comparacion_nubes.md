@@ -105,3 +105,34 @@ pero sin interpretabilidad.
 - **Registros de auditoría:** Cloud Logging se usó para depurar, pero no se revisaron los registros de
   auditoría de permisos.
 - **AWS y Azure:** no se usaron. Todo lo suyo será documentado o estimado.
+
+---
+
+## 2. Mapa de servicios equivalentes
+
+| Función | GCP | AWS | Azure | ¿Se usó? |
+|---|---|---|---|---|
+| Plataforma de ML | Vertex AI | SageMaker AI | Azure Machine Learning | Sí |
+| AutoML tabular | AutoML Tabular | SageMaker Autopilot | Automated ML | Sí |
+| Pipelines | Vertex AI Pipelines | SageMaker Pipelines | Pipelines de Azure ML | Sí |
+| Registro de modelos | Model Registry | SageMaker Model Registry | Registro de Azure ML | Sí |
+| Predicción en línea | Endpoints | Endpoints de SageMaker | Managed online endpoints | No |
+| Predicción por lote | Batch prediction | Batch Transform | Batch endpoints | No |
+| Monitoreo de modelos | Model Monitoring | Model Monitor | Model monitoring | No |
+| Almacenamiento | Cloud Storage | Amazon S3 | Blob Storage | Sí |
+| Almacén de datos | BigQuery | Redshift o Athena | Synapse o Fabric | Sí |
+| Identidad de los trabajos | Cuenta de servicio | Rol de IAM | Identidad administrada | Sí |
+| Permisos | IAM | IAM | Azure RBAC con Entra ID | Sí |
+| Auditoría | Cloud Audit Logs | CloudTrail | Registro de actividad | No |
+| CI/CD nativo | Cloud Build | CodePipeline | Azure DevOps | No |
+| Control de gasto | Presupuestos | AWS Budgets | Cost Management | Sí |
+| Organización | Proyecto | Cuenta | Suscripción | Sí |
+
+**Diferencias que importan:**
+
+- **Organización:** GCP agrupa los recursos en proyectos, AWS en cuentas y Azure en suscripciones. Esa unidad define permisos y facturación.
+- **Monitoreo en AWS:** SageMaker Model Monitor ya no acepta clientes nuevos; AWS recomienda armarlo con herramientas open source, CloudWatch y QuickSight.
+- **Nombres que cambian:** Vertex AI pasó a Gemini Enterprise Agent Platform en abril de 2026 y SageMaker a SageMaker AI a finales de 2024. Azure Machine Learning convive con Microsoft Foundry, enfocado en IA generativa.
+
+**Fuentes,** consultadas el 8 de noviembre de 2026: documentación oficial de SageMaker AI, Azure Machine
+Learning y Gemini Enterprise Agent Platform.
