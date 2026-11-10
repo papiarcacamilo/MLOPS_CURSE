@@ -8,5 +8,26 @@
     "encoding": "utf-8-sig"
   },
   "target_variable": "Pago_atiempo",
-  "random_state": 42
+  "random_state": 42,
+  "vertex": {
+    "proyecto": "nb-rsk-scoring-dev",
+    "region": "us-central1",
+    "dataset": "modelado",
+    "tabla": "creditos_comparacion",
+    "tabla_pipeline": "creditos_pipeline",
+    "proporcion_validacion": 0.1,
+    "automl": {
+      "modelo": "automl-mora-e5",
+      "objetivo": "maximize-au-prc",
+      "presupuesto_milli_nodo_horas": 1000,
+      "tabla_predicciones": "automl_predicciones_test",
+      "modelo_registrado": "projects/875698717037/locations/us-central1/models/533773862622461952"
+    },
+    "pipeline": {
+      "bucket": "nb-rsk-scoring-dev-vertex",
+      "cuenta_servicio": "sa-entrenamiento@nb-rsk-scoring-dev.iam.gserviceaccount.com",
+      "modelo": "python-woe-pipeline-e5",
+      "corrida": "projects/875698717037/locations/us-central1/pipelineJobs/mlops-mora-pipeline-e5-20261107212012"
+    }
+  }
 }

@@ -1,0 +1,220 @@
+# Comparación de nubes: AWS, Azure y GCP
+
+Entregable 5, Fase 3. Compara las tres nubes en los 14 criterios del enunciado, a partir de lo que
+se construyó en las Fases 1 y 2: entrenar con AutoML, entrenar con un pipeline propio y operar el
+ciclo con CI/CD.
+
+**Método.** GCP es la nube que se utilizó en el proyecto. AWS y Azure se comparan a través de su
+documentación oficial.
+
+---
+
+## 1. Experiencia medida en GCP
+
+Todo ocurrió en la cuenta propia, en `us-central1`.
+
+### 1.1 Qué hubo que configurar
+
+| Paso | Para qué | Detalle |
+|---|---|---|
+| Dos proyectos | Separar datos y entrenamiento | `nb-ret-datos-dev` para Retail, dueño del dato; `nb-rsk-scoring-dev` para Riesgo, que entrena |
+| Activar Vertex AI | Usar AutoML, pipelines y registro | Una API en el proyecto de Riesgo |
+| Datos en BigQuery | Fuente de los entrenamientos | Tabla original en Retail; tablas de modelado en el dataset `modelado` de Riesgo |
+| Bucket | Paquetes de código y artefactos de los pipelines | `gs://nb-rsk-scoring-dev-vertex`, sin acceso público |
+| Cuenta de servicio | Correr el pipeline con permisos mínimos | `sa-entrenamiento`, sin llaves descargadas |
+| Permisos | Dar a cada identidad solo lo necesario | 8 asignaciones: 5 para la cuenta de servicio y 3 para el agente de Vertex AI |
+| Presupuesto | Vigilar el gasto | USD 25 con alertas al 50, 80 y 100% |
+
+### 1.2 Dificultades
+
+| Problema | Causa | Cómo se resolvió |
+|---|---|---|
+| El agente de servicio de Vertex AI no tenía ningún rol en el proyecto | El proyecto no tenía roles para ningún agente de servicio; la causa no se investigó | Se le asignó `aiplatform.serviceAgent` antes de lanzar AutoML |
+| AutoML podía descartar filas con nulos | Las columnas numéricas no admiten valores inválidos por defecto | Se declararon con `invalidValuesAllowed` |
+| La consola mostraba AUC-PR 0,967 | Promedia las dos clases, y domina la que paga | Se midió la clase mora con nuestra propia función: 0,1952 |
+| La primera corrida del pipeline falló | Kubeflow entra al contenedor sin sus dependencias y faltaba `google-cloud-storage` | Se fijó la librería y se agregó un test |
+| El ejecutor local de Kubeflow no funciona en Windows | Necesita `sh` | Se probó cada etapa en entornos limpios con lo mismo que instala el YAML |
+| El costo no se pudo leer por API | La API de facturación no estaba activa | Se consultó en la consola |
+
+### 1.3 Interfaz gráfica
+
+| Pantalla | Para qué se usó | Observación |
+|---|---|---|
+| Canalizaciones de entrenamiento | Ver la corrida de AutoML | Muestra estado, duración y configuración |
+| Registro de modelos, pestaña Evaluar | Métricas, matriz de confusión e importancia de variables | El valor destacado promedia las clases; el de la mora aparece al elegir la etiqueta `1` |
+| Canalizaciones, ejecuciones | Ver el pipeline propio como un diagrama | Cada etapa cambia de color al terminar |
+| Facturación, Informes y Créditos | Costo real y saldo | El cargo puede tardar hasta un día en aparecer |
+
+### 1.4 Tiempos medidos
+
+| Actividad | Tiempo | Cómo se midió |
+|---|---|---|
+| Implementar AutoML: tabla, script, permisos y lanzamiento | Cerca de 1 h 40 min | Desde el commit anterior hasta el lanzamiento; incluye documentación |
+| Cola de AutoML hasta empezar | 3 min | Estado `PENDING` a `RUNNING` |
+| Entrenamiento de AutoML | 2 h 9 min 56 s | Inicio y fin de la corrida |
+| Implementar el pipeline propio, con la falla y su corrección | Cerca de 2 h 20 min | Desde el commit anterior hasta el fin de la corrida exitosa; incluye documentación |
+| Corrida completa del pipeline | 12 min 53 s | Inicio y fin de la corrida |
+| Cómputo real dentro del pipeline | 4 min 52 s | Suma de los 5 trabajos: 18 s, 50 s, 40 s, 70 s y 114 s |
+| Entrenar la misma receta en local | 1,2 s | Promedio de tres repeticiones |
+| CI en cada push | Cerca de 2 min | GitHub Actions: tests y SonarCloud |
+
+**Lectura:** en un pipeline administrado, preparar las máquinas pesa más que el cómputo. De los
+12 min 53 s, solo 4 min 52 s fueron trabajo real; el resto fue aprovisionar e instalar paquetes.
+
+### 1.5 Uso de recursos
+
+| Trabajo | Máquina | GPU |
+|---|---|---|
+| AutoML | No se ve: Google la elige; se controla y se cobra en nodo-horas | No visible |
+| Cada etapa del pipeline | `e2-standard-4`, la máquina por defecto | Ninguna |
+| Entrenamiento local | El portátil del autor | Ninguna |
+
+Ningún trabajo necesitó GPU: son 10.763 filas tabulares y un modelo lineal.
+
+### 1.6 Costos medidos
+
+| Concepto | Costo | Evidencia |
+|---|---|---|
+| AutoML, 1 nodo-hora | USD 21,25 | Facturación, noviembre |
+| Pipeline propio, dos corridas, incluida la fallida | USD 0,07 | Facturación, 7 de noviembre |
+| BigQuery y Cloud Storage | Sin cargo visible | Dentro del nivel gratuito |
+| Endpoints | Ninguno creado | Comprobado en Vertex AI |
+| **Total de la fase en GCP** | **USD 21,32** | Cubierto por el crédito educativo, que quedó en USD 7,42 de USD 50 |
+
+**Lectura:** AutoML costó unas 300 veces más que el pipeline propio, por un modelo mejor en AUC-PR
+pero sin interpretabilidad.
+
+### 1.7 CI/CD, versionado y gobernanza que se usaron
+
+| Capacidad | Cómo se resolvió |
+|---|---|
+| Integración continua | GitHub Actions y SonarCloud en cada push; Jenkins después del merge |
+| Pipeline como código | Kubeflow en Python, compilado en el CI en cada push |
+| Trazabilidad | La corrida del pipeline y su modelo llevan el commit en las etiquetas, y el código viaja como artefacto |
+| Versionado de modelos | Model Registry: `automl-mora-e5` y `python-woe-pipeline-e5`, con etiquetas |
+| Compuerta de calidad | El pipeline solo registra si el AUC-PR supera el mínimo de Jenkins |
+| Control de acceso | Cuenta de servicio con mínimo privilegio y permisos por dataset |
+| Control de gasto | Presupuesto con alertas y un tope de nodo-horas en AutoML |
+
+### 1.8 Lo que no se midió
+
+- **Despliegue en la nube:** no se creó un endpoint, porque cobra por hora. El modelo se sirve con la
+  imagen de FastAPI del proyecto.
+- **Monitoreo administrado de Vertex AI:** el monitoreo de deriva del proyecto es propio, del
+  Entregable 3.
+- **Registros de auditoría:** Cloud Logging se usó para depurar, pero no se revisaron los registros de
+  auditoría de permisos.
+- **AWS y Azure:** no se usaron. Todo lo suyo será documentado o estimado.
+
+---
+
+## 2. Mapa de servicios equivalentes
+
+| Función | GCP | AWS | Azure | ¿Se usó? |
+|---|---|---|---|---|
+| Plataforma de ML | Vertex AI | SageMaker AI | Azure Machine Learning | Sí |
+| AutoML tabular | AutoML Tabular | SageMaker Autopilot | Automated ML | Sí |
+| Pipelines | Vertex AI Pipelines | SageMaker Pipelines | Pipelines de Azure ML | Sí |
+| Registro de modelos | Model Registry | SageMaker Model Registry | Registro de Azure ML | Sí |
+| Predicción en línea | Endpoints | Endpoints de SageMaker | Managed online endpoints | No |
+| Predicción por lote | Batch prediction | Batch Transform | Batch endpoints | No |
+| Monitoreo de modelos | Model Monitoring | Model Monitor | Model monitoring | No |
+| Almacenamiento | Cloud Storage | Amazon S3 | Blob Storage | Sí |
+| Almacén de datos | BigQuery | Redshift o Athena | Synapse o Fabric | Sí |
+| Identidad de los trabajos | Cuenta de servicio | Rol de IAM | Identidad administrada | Sí |
+| Permisos | IAM | IAM | Azure RBAC con Entra ID | Sí |
+| Auditoría | Cloud Audit Logs | CloudTrail | Registro de actividad | No |
+| CI/CD nativo | Cloud Build | CodePipeline | Azure DevOps | No |
+| Control de gasto | Presupuestos | AWS Budgets | Cost Management | Sí |
+| Organización | Proyecto | Cuenta | Suscripción | Sí |
+
+**Diferencias que importan:**
+
+- **Organización:** GCP agrupa los recursos en proyectos, AWS en cuentas y Azure en suscripciones. Esa unidad define permisos y facturación.
+- **Monitoreo en AWS:** SageMaker Model Monitor ya no acepta clientes nuevos; AWS recomienda armarlo con herramientas open source, CloudWatch y QuickSight.
+- **Nombres que cambian:** Vertex AI pasó a Gemini Enterprise Agent Platform en abril de 2026 y SageMaker a SageMaker AI a finales de 2024. Azure Machine Learning convive con Microsoft Foundry, enfocado en IA generativa.
+
+**Fuentes,** consultadas el 8 de noviembre de 2026: documentación oficial de SageMaker AI, Azure Machine
+Learning y Gemini Enterprise Agent Platform.
+
+---
+
+## 3. Precios y capacidades documentados
+
+### 3.1 Cómo cobra cada nube
+
+| Concepto | GCP | AWS | Azure |
+|---|---|---|---|
+| AutoML | USD 21,25 por nodo-hora | Sin tarifa propia: se paga el cómputo que use Autopilot | Sin cargo adicional: se paga el cómputo |
+| Interfaz sin código | Incluida en la consola | SageMaker Canvas: USD 1,90 por hora de sesión | Incluida en el studio |
+| Pipelines | USD 0,07 por las dos corridas del proyecto, con su cómputo | Sin tarifa propia: se paga el cómputo de cada paso | Sin cargo adicional: se paga el cómputo |
+
+**Lectura:** en GCP, AutoML tiene un precio fijo y predecible. En AWS y Azure depende de cuántas
+máquinas y horas use la búsqueda, así que se controla limitando el tiempo y el tamaño del cómputo.
+
+### 3.2 Capacidades para operar y gobernar
+
+| Capacidad | GCP | AWS | Azure |
+|---|---|---|---|
+| CI/CD | Cloud Build; acción oficial para GitHub Actions | CodePipeline; acción oficial para GitHub Actions | Azure DevOps; acción oficial para GitHub Actions |
+| Versionado de modelos | Model Registry | SageMaker Model Registry | Registro de Azure ML |
+| Monitoreo de modelos | Model Monitoring | Model Monitor cerrado a clientes nuevos; se arma con herramientas open source y CloudWatch | Model monitoring |
+| Despliegue gradual | Reparto de tráfico entre versiones | Despliegues azul-verde y canario | Despliegues azul-verde con reparto de tráfico |
+| Auditoría | Cloud Audit Logs | CloudTrail | Registro de actividad |
+| Red privada y claves propias | VPC Service Controls; CMEK | PrivateLink; KMS | Private Link; Key Vault |
+| Cumplimiento | ISO 27001, SOC 2 y PCI DSS | ISO 27001, SOC 2 y PCI DSS | ISO 27001, SOC 2 y PCI DSS |
+| Roles predefinidos de ML | Administrador, usuario y lector de Vertex AI | Role Manager: científico de datos, MLOps y cómputo | AzureML Data Scientist y AzureML Compute Operator |
+
+**Fuentes:** páginas oficiales de precios y documentación de SageMaker AI y Azure Machine Learning, y
+la factura del proyecto en GCP.
+
+---
+
+## 4. Costo del mismo trabajo en las tres nubes
+
+| Pieza del trabajo | GCP, medido | AWS | Azure |
+|---|---|---|---|
+| Una corrida de AutoML | USD 21,25: 1 nodo-hora | Máquinas usadas por Autopilot × horas | Máquinas usadas por AutoML × horas |
+| Una corrida del pipeline propio | Cerca de USD 0,035 | Máquinas de cada paso × minutos | Máquinas de cada paso × minutos |
+| Almacenamiento del proyecto | Sin cargo visible: unos pocos MB | Unos pocos MB en S3 | Unos pocos MB en Blob Storage |
+| Despliegue con endpoint | No se usó | Máquina del endpoint × 730 horas al mes | Máquina del endpoint × 730 horas al mes |
+
+**Lectura:**
+
+- **El costo lo decide AutoML.** En GCP fue el 99,7% del gasto de la Fase 2. En AWS y Azure podría salir
+  más barato o más caro, según cuántas máquinas y horas use la búsqueda.
+- **El pipeline propio es barato en cualquier nube:** paga pocos minutos de una máquina pequeña.
+- **Un endpoint cobra aunque nadie lo use:** encendido todo el mes, son 730 horas de máquina. Por eso el
+  proyecto sirve el modelo con su propia imagen de FastAPI.
+
+---
+
+## 5. Matriz de los 14 criterios
+
+**Esta es la tabla principal: responde la Fase 3 del enunciado.** GCP se evalúa con lo vivido en el
+proyecto, y AWS y Azure con su documentación oficial.
+
+| # | Criterio | GCP, lo vivido | AWS | Azure | Ventaja |
+|---|---|---|---|---|---|
+| 1 | Facilidad de configuración | 2 proyectos, 1 API y 8 permisos | Exige un dominio de SageMaker | El área de trabajo crea varios recursos | GCP |
+| 2 | Interfaz gráfica | Completa, con menús dispersos | AutoML sin código en Canvas, con costo | AutoML sin código incluido | GCP y Azure |
+| 3 | Curva de aprendizaje | Exigió proyectos, permisos y Kubeflow | Sin experiencia propia | Sin experiencia propia | Sin evidencia |
+| 4 | Tiempo de implementación | AutoML ~1 h 40 min; pipeline ~2 h 20 min | No medido | No medido | Sin evidencia |
+| 5 | Costos de entrenamiento y despliegue | AutoML USD 21,25; pipeline ~USD 0,035 | Cómputo × horas | Cómputo × horas | Depende del uso |
+| 6 | Uso de CPU y GPU | `e2-standard-4` sin GPU; AutoML no la muestra | Se paga la instancia usada | Uno elige el clúster de AutoML | Azure |
+| 7 | Tiempo de ejecución | AutoML 2 h 10 min; pipeline 12 min 53 s | No medido | No medido | Sin evidencia |
+| 8 | Costos de almacenamiento y ejecución | Sin cargo visible | Mínimo | Mínimo | Empate |
+| 9 | Precios de servicios equivalentes | Tarifa propia de AutoML | Solo cómputo; Canvas cobra la sesión | Solo cómputo | Azure |
+| 10 | Integración con CI/CD | Pipeline compilado en el CI | CodePipeline y GitHub Actions | Azure DevOps y GitHub Actions | Empate |
+| 11 | Monitoreo, versionado y gobernanza | Registro y monitoreo nativo | Model Monitor cerrado a clientes nuevos | Registro y monitoreo nativo | GCP y Azure |
+| 12 | Automatización y despliegue continuo | Registro condicionado a un mínimo | Pipelines y despliegue azul-verde | Pipelines y despliegue azul-verde | Empate |
+| 13 | Acceso, auditoría y cumplimiento | Mínimo privilegio | IAM, CloudTrail, ISO 27001, SOC 2 y PCI DSS | RBAC, registro de actividad y las mismas normas | Empate |
+| 14 | Entornos con múltiples roles | Proyectos separados por área | Roles por persona | Roles de ML predefinidos | Empate |
+
+**Conclusión:**
+
+- **Para este proyecto, GCP fue la elección correcta:** los datos ya estaban en BigQuery, AutoML tuvo un
+  precio predecible y el pipeline se reprodujo exacto.
+- **Azure destaca en control de costos y AWS queda atrás en monitoreo.**
+- **En acceso, auditoría y cumplimiento, lo que más pesa en un banco, las tres empatan:** decidiría la
+  nube que ya use la organización.

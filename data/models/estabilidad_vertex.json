@@ -1,0 +1,271 @@
+{
+  "metodo": {
+    "remuestreos": 1000,
+    "semilla": 42,
+    "estratificado": true,
+    "pareado": true
+  },
+  "bootstrap": {
+    "auc_pr": {
+      "python": {
+        "media": 0.1519,
+        "ic95": [
+          0.0989,
+          0.2136
+        ]
+      },
+      "automl": {
+        "media": 0.1966,
+        "ic95": [
+          0.1322,
+          0.2646
+        ]
+      },
+      "diferencia": {
+        "media": 0.0447,
+        "ic95": [
+          0.0097,
+          0.0837
+        ]
+      },
+      "pct_gana_automl": 99.7,
+      "ventaja_firme": true,
+      "pct_supera_el_ruido": 93.6
+    },
+    "roc_auc": {
+      "python": {
+        "media": 0.6845,
+        "ic95": [
+          0.6304,
+          0.737
+        ]
+      },
+      "automl": {
+        "media": 0.6926,
+        "ic95": [
+          0.6421,
+          0.7434
+        ]
+      },
+      "diferencia": {
+        "media": 0.0081,
+        "ic95": [
+          -0.0173,
+          0.0326
+        ]
+      },
+      "pct_gana_automl": 73.5,
+      "ventaja_firme": false
+    }
+  },
+  "semillas": {
+    "particiones": 20,
+    "auc_pr": {
+      "media": 0.1501,
+      "desviacion": 0.027,
+      "minimo": 0.1077,
+      "maximo": 0.224
+    },
+    "referencia_semilla_42": 0.1479,
+    "pct_particiones_bajo_la_referencia": 50.0,
+    "automl_semilla_42": 0.1952,
+    "automl_supera_todas": false,
+    "detalle": [
+      {
+        "semilla": 1,
+        "moras_test": 102,
+        "auc_pr": 0.1349,
+        "roc_auc": 0.7079
+      },
+      {
+        "semilla": 2,
+        "moras_test": 102,
+        "auc_pr": 0.1591,
+        "roc_auc": 0.6862
+      },
+      {
+        "semilla": 3,
+        "moras_test": 102,
+        "auc_pr": 0.1323,
+        "roc_auc": 0.6812
+      },
+      {
+        "semilla": 4,
+        "moras_test": 102,
+        "auc_pr": 0.1417,
+        "roc_auc": 0.6966
+      },
+      {
+        "semilla": 5,
+        "moras_test": 102,
+        "auc_pr": 0.1272,
+        "roc_auc": 0.6981
+      },
+      {
+        "semilla": 6,
+        "moras_test": 102,
+        "auc_pr": 0.1599,
+        "roc_auc": 0.671
+      },
+      {
+        "semilla": 7,
+        "moras_test": 102,
+        "auc_pr": 0.1498,
+        "roc_auc": 0.6776
+      },
+      {
+        "semilla": 8,
+        "moras_test": 102,
+        "auc_pr": 0.1352,
+        "roc_auc": 0.6665
+      },
+      {
+        "semilla": 9,
+        "moras_test": 102,
+        "auc_pr": 0.1077,
+        "roc_auc": 0.6717
+      },
+      {
+        "semilla": 10,
+        "moras_test": 102,
+        "auc_pr": 0.1474,
+        "roc_auc": 0.6508
+      },
+      {
+        "semilla": 11,
+        "moras_test": 102,
+        "auc_pr": 0.1338,
+        "roc_auc": 0.651
+      },
+      {
+        "semilla": 12,
+        "moras_test": 102,
+        "auc_pr": 0.156,
+        "roc_auc": 0.6808
+      },
+      {
+        "semilla": 13,
+        "moras_test": 102,
+        "auc_pr": 0.143,
+        "roc_auc": 0.6648
+      },
+      {
+        "semilla": 14,
+        "moras_test": 102,
+        "auc_pr": 0.1975,
+        "roc_auc": 0.721
+      },
+      {
+        "semilla": 15,
+        "moras_test": 102,
+        "auc_pr": 0.224,
+        "roc_auc": 0.7425
+      },
+      {
+        "semilla": 16,
+        "moras_test": 102,
+        "auc_pr": 0.1089,
+        "roc_auc": 0.6422
+      },
+      {
+        "semilla": 17,
+        "moras_test": 102,
+        "auc_pr": 0.1676,
+        "roc_auc": 0.6815
+      },
+      {
+        "semilla": 18,
+        "moras_test": 102,
+        "auc_pr": 0.1553,
+        "roc_auc": 0.6878
+      },
+      {
+        "semilla": 19,
+        "moras_test": 102,
+        "auc_pr": 0.1495,
+        "roc_auc": 0.6757
+      },
+      {
+        "semilla": 20,
+        "moras_test": 102,
+        "auc_pr": 0.1708,
+        "roc_auc": 0.6508
+      }
+    ]
+  },
+  "tiempo": {
+    "estratificado": {
+      "creditos": 2153,
+      "moras": 102,
+      "tasa": 0.0474,
+      "auc_pr": 0.1479,
+      "lift": 3.12,
+      "roc_auc": 0.6848,
+      "ks": 0.2742,
+      "ventaja_sobre_el_piso": 1.78,
+      "pct_sin_vencer": 20.2,
+      "solo_vencidos": {
+        "creditos": 1718,
+        "moras": 75,
+        "tasa": 0.0437,
+        "auc_pr": 0.0957,
+        "lift": 2.19,
+        "ks": 0.2557
+      }
+    },
+    "temporal": {
+      "creditos": 2154,
+      "moras": 69,
+      "tasa": 0.032,
+      "auc_pr": 0.0647,
+      "lift": 2.02,
+      "roc_auc": 0.6208,
+      "ks": 0.2026,
+      "ventaja_sobre_el_piso": 1.45,
+      "pct_sin_vencer": 53.4,
+      "solo_vencidos": {
+        "creditos": 1003,
+        "moras": 21,
+        "tasa": 0.0209,
+        "auc_pr": 0.0358,
+        "lift": 1.71,
+        "ks": 0.3243
+      }
+    },
+    "ventanas": [
+      {
+        "ventana": "2025-03-01 a 2025-05-01",
+        "creditos_train": 4413,
+        "creditos": 2217,
+        "moras": 126,
+        "tasa": 0.0568,
+        "auc_pr": 0.1761,
+        "lift": 3.1,
+        "roc_auc": 0.7161,
+        "pct_sin_vencer": 9.9
+      },
+      {
+        "ventana": "2025-05-01 a 2025-07-01",
+        "creditos_train": 6630,
+        "creditos": 1748,
+        "moras": 72,
+        "tasa": 0.0412,
+        "auc_pr": 0.1811,
+        "lift": 4.4,
+        "roc_auc": 0.7393,
+        "pct_sin_vencer": 17.7
+      },
+      {
+        "ventana": "2025-07-01 a 2025-09-01",
+        "creditos_train": 8378,
+        "creditos": 1199,
+        "moras": 40,
+        "tasa": 0.0334,
+        "auc_pr": 0.1372,
+        "lift": 4.11,
+        "roc_auc": 0.7417,
+        "pct_sin_vencer": 30.7
+      }
+    ]
+  }
+}
