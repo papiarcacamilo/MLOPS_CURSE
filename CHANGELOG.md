@@ -5,13 +5,33 @@ donde está el detalle y la verificación. El formato se basa en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y las versiones siguen
 [versionado semántico](https://semver.org/lang/es/).
 
-## [Sin publicar]
+## [3.0.0] - 2026-11-09
+
+Entregable 5: pipeline de aprobación en Jenkins, entrenamiento en Vertex AI y comparación
+de AWS, Azure y GCP. El modelo servido no cambia: sigue siendo `0b9cf390cc9a`, con umbral 0,0661.
 
 ### Añadido
 
 - `infra/jenkins/`: Jenkins local con versión fija, en Docker.
 - `ci/validar_estructura.py` y `ci/validar_metricas.py`: compuertas que Jenkins ejecutará para aprobar o rechazar una corrida.
 - `Jenkinsfile`: pipeline de aprobación que clona, valida, en `master` pide la aprobación de una persona y notifica por correo.
+- Sección del readme sobre cómo levantar Jenkins, crear sus jobs y configurar el correo.
+- `vertex_datos.py`: arma la tabla de BigQuery para comparar con AutoML, con el mismo test que el modelo de Python. 13 tests.
+- `vertex_automl.py`: lanza AutoML Tabular con el plan de la comparación y lo revisa antes de gastar. Sin `--lanzar` solo muestra el plan, y si el dataset de Vertex AI ya existe lo reutiliza. 15 tests.
+- `requirements-vertex.txt`: el SDK de Vertex AI, aparte para que el CI y Jenkins no lo instalen.
+- `vertex_datos.py --tabla pipeline`: sube las particiones procesadas para reentrenar el modelo de Python en la nube, con el mismo contrato de test y sin fuga. 8 tests.
+- `vertex_pipeline.py` y `vertex_pasos.py`: pipeline propio en Vertex AI Pipelines. Prepara el código del commit, carga los datos de BigQuery, entrena la misma receta, la evalúa como a AutoML y la registra solo si supera el mínimo de Jenkins. El YAML compilado queda en `infra/vertex/`. 25 tests.
+- `kfp` en `requirements.txt`, para que el CI compile el pipeline en cada push.
+- `vertex_evaluacion.py` compara los tres enfoques: suma las predicciones de la corrida del pipeline y comprueba que reproduce a Python, con una diferencia máxima de probabilidad menor que 1e-15. La figura pasa a `comparacion_modelos.png`. 6 tests.
+- `vertex_estabilidad.py`: bootstrap pareado y estratificado de la comparación. La ventaja de AutoML en AUC-PR es firme, con +0,045 [0,010, 0,084]; en ROC-AUC no se distinguen. 7 tests.
+- `vertex_estabilidad.py --analisis semillas`: 20 particiones con otras semillas. El AUC-PR de Python va de 0,108 a 0,224, con media 0,150; la partición original es típica. 5 tests.
+- `vertex_estabilidad.py --analisis tiempo`: consistencia en el tiempo. La caída en la partición temporal se explica en buena parte porque el 53% de su test no había vencido; con ventanas móviles el lift se sostiene entre 3,1 y 4,4. 4 tests.
+- `docs/comparacion_nubes.md`: comparación de AWS, Azure y GCP en los 14 criterios del enunciado. Incluye el mapa de servicios equivalentes, los precios, el costo del mismo trabajo y la matriz de criterios.
+
+### Corregido
+
+- La etapa `preparar_codigo` del pipeline no declaraba `google-cloud-storage`. Kubeflow entra al contenedor con `--no-deps`, así que la primera corrida falló al importarlo. Ahora la librería está fijada y un test exige que cada etapa declare lo que importa de Google.
+- `vertex_evaluacion.py`: mide AutoML y Python con `summarize_classification` sobre los mismos créditos y al mismo volumen de rechazo. AutoML gana en AUC-PR: 0,1952 contra 0,1479. 14 tests.
 
 ### Cambiado
 
@@ -80,6 +100,7 @@ Integra las PR #1 y #2.
 - Piso heurístico sobre `puntaje_datacredito` (AUC-PR 0,0753) y modelo seleccionado entre 9
   configuraciones: regresión logística sobre WoE, sin tratamiento del desbalance.
 
+[3.0.0]: https://github.com/papiarcacamilo/MLOPS_CURSE/compare/v2.0.1...v3.0.0
 [2.0.1]: https://github.com/papiarcacamilo/MLOPS_CURSE/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/papiarcacamilo/MLOPS_CURSE/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/papiarcacamilo/MLOPS_CURSE/releases/tag/v1.0.0

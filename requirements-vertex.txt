@@ -1,0 +1,10 @@
+# MLOPS_CURSE - Dependencias para entrenar en Vertex AI (Entregable 5)
+#
+# Van aparte de requirements.txt porque solo las usa quien lanza el
+# entrenamiento en Google Cloud. El CI y Jenkins no las instalan: los tests
+# reemplazan Vertex AI por un modulo falso y no llaman a la nube.
+#
+#   pip install -r requirements.txt -r requirements-vertex.txt
+#   gcloud auth application-default login
+
+google-cloud-aiplatform==2.7.0

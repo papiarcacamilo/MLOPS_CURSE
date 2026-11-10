@@ -918,7 +918,12 @@ dentro de `main()`, de modo que solo corrían si alguien ejecutaba el script ent
 | `tests/test_features.py` | 22 | WoE, atributos derivados, escalado y piso heurístico |
 | `tests/test_evaluacion.py` | 13 | Métrica, selección del modelo, calibración y umbral |
 | `tests/test_validadores.py` | 51 | Las compuertas de Jenkins: cada regla debe rechazar por sí sola |
-| **Total** | **249** | **Cerca de 1 minuto en local** |
+| `tests/test_vertex_datos.py` | 21 | Las tablas para Vertex AI: mismo test que Python, sin fuga y sin columnas de más |
+| `tests/test_vertex_automl.py` | 15 | El plan de AutoML: entradas, tipos, objetivo y presupuesto antes de gastar |
+| `tests/test_vertex_evaluacion.py` | 20 | La comparación de los tres: mismos créditos, mismo volumen de rechazo, veredicto contra el ruido y reproducibilidad del pipeline |
+| `tests/test_vertex_estabilidad.py` | 16 | Bootstrap, particiones y tiempo: pareado, con la tasa de mora fija, sin mirar el futuro y bien leído |
+| `tests/test_vertex_pipeline.py` | 28 | El pipeline propio: reproduce el 0,1479, compila, declara sus dependencias, registra solo sobre el mínimo y se lanza desde un commit publicado |
+| **Total** | **349** | **Cerca de 1 minuto en local** |
 
 ### Validación de los tests 
 
@@ -960,7 +965,8 @@ desempate que prefiere SMOTE), la suite detectó los 6.
 | `model_evaluation.py` | 33,2% |
 | `model_training.py` | 25,4% |
 | `ci/validar_estructura.py` y `ci/validar_metricas.py` | 100% |
-| **Total** | **48,2%** |
+| Módulos `vertex_*.py` del Entregable 5 | 100% |
+| **Total** | **64,8%** |
 
 El contrato y la API superan el 90%. En `model_deploy.py`, lo que falta cubrir es sobre todo
 `main()` y la construcción del artefacto, que corren antes de desplegar; `sanear`, `predecir_lote`
@@ -988,6 +994,9 @@ primero.
 
 La cobertura tiene un mínimo: si el total baja de 40%, pytest falla y el CI queda en rojo. Sin él,
 la suite seguiría en verde aunque alguien borrara la mitad de los tests.
+
+Después del merge actúa Jenkins, descrito en
+[Pipeline de aprobación en Jenkins](#pipeline-de-aprobación-en-jenkins).
 
 ### Ejecución 
 
@@ -1106,6 +1115,12 @@ MLOPS_CURSE/
 │       ├── model_monitoring.py           # Fase 5: monitoreo y data drift (COMPLETADO)
 │       ├── reglas_negocio.py             # Contrato derivado del EDA (añadido)
 │       ├── app.py                        # Fase 4: API del endpoint (añadido)
+│       ├── vertex_datos.py               # Entregable 5: tablas para Vertex AI (añadido)
+│       ├── vertex_automl.py              # Entregable 5: lanza AutoML Tabular (añadido)
+│       ├── vertex_evaluacion.py          # Entregable 5: Python, pipeline y AutoML (añadido)
+│       ├── vertex_estabilidad.py         # Entregable 5: bootstrap, particiones y tiempo (añadido)
+│       ├── vertex_pasos.py               # Entregable 5: lógica de las etapas del pipeline (añadido)
+│       ├── vertex_pipeline.py            # Entregable 5: pipeline propio en Vertex AI (añadido)
 │       ├── feature_engineering.ipynb     # Narrativa de la Fase 2 (añadido)
 │       ├── model_evaluation.ipynb        # Narrativa de la evaluación (añadido)
 │       ├── model_monitoring.ipynb        # Narrativa del monitoreo (añadido)
@@ -1133,21 +1148,27 @@ MLOPS_CURSE/
 │   │   ├── scorecard.csv                  # Tabla de puntos publicada
 │   │   ├── linea_base_monitoreo.json      # Referencia congelada de la Fase 5
 │   │   ├── monitoreo.json                 # Deriva por cohorte y por cosecha
-│   │   └── figuras/                       # Gráficos por partición y de monitoreo
+│   │   ├── comparacion_vertex.json        # Python, pipeline y AutoML, misma medición
+│   │   ├── predicciones_test_comparacion.csv  # Las tres probabilidades sobre el test
+│   │   ├── estabilidad_vertex.json        # Bootstrap, particiones y consistencia en el tiempo
+│   │   └── figuras/                       # Gráficos por partición, de monitoreo y de Vertex AI
 │   └── monitoring/
 │       ├── lote_ejemplo.csv               # 50 solicitudes para probar el endpoint
 │       └── registro_endpoint.csv          # Entradas y pronósticos (no versionado)
 ├── Base_de_datos.csv                 # Datos crudos originales (no modificar)
 ├── Base_de_datos_limpia.csv          # Salida de la Fase 1, entrada de la Fase 2
-├── config.json                       # Separador, codificación, semilla y target
+├── config.json                       # Separador, codificación, semilla, target y destino en Vertex AI
 ├── Dockerfile                        # Fase 4: imagen del endpoint (añadido)
 ├── docker-compose.yml                # Fase 4: levantar con volumen (añadido)
 ├── .dockerignore                     # Fase 4: qué no viaja al build (añadido)
 ├── requirements.txt                  # Dependencias con versiones fijadas
 ├── requirements-api.txt              # Subconjunto que instala la imagen (añadido)
-├── tests/                            # Stage 2: 249 tests en 7 archivos (añadido)
+├── requirements-vertex.txt           # SDK de Vertex AI, solo para entrenar en la nube (añadido)
+├── tests/                            # Stage 2: 349 tests en 12 archivos (añadido)
 ├── ci/                               # Compuertas que ejecuta Jenkins: estructura y métricas (añadido)
 ├── infra/jenkins/                    # Jenkins local con versión fija (añadido)
+├── infra/vertex/                     # Pipeline propio compilado, el que se envía a Vertex AI (añadido)
+├── docs/                             # Entregable 5: comparación de AWS, Azure y GCP (añadido)
 ├── Jenkinsfile                       # Pipeline de aprobación después del merge (añadido)
 ├── .github/workflows/ci.yml          # Stage 2: tests y SonarCloud en cada push (añadido)
 ├── pytest.ini                        # Stage 2: configuración de pytest (añadido)
@@ -1292,6 +1313,130 @@ Lee la línea base congelada y solo la construye si falta; `--reconstruir-base` 
 el modelo. Hace pasar dos cohortes por el endpoint, que se registran solo la primera vez, lee el
 registro y lo muestrea por semana de llegada y por mes de cosecha. Falla de forma explícita si el
 control supera el umbral de PSI, porque una medición que no discrimina no sirve para decidir nada.
+
+### Pipeline de aprobación en Jenkins
+
+GitHub Actions revisa cada pull request. Jenkins actúa después del merge: clona el repositorio,
+valida la estructura y las métricas, corre los tests y, en `master`, espera la aprobación de una
+persona. El resultado llega por correo.
+
+```bash
+cd infra/jenkins
+docker compose up -d --build
+```
+
+Jenkins queda en `http://localhost:8081`. La primera vez pide una clave inicial, que se lee con
+`docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword`. Después se crea el usuario
+administrador. El `Jenkinsfile` solo acepta la aprobación del usuario `camilo`; con otro usuario hay
+que cambiar `submitter`.
+
+Esta configuración no está en el repositorio, porque es local o secreta:
+
+| Qué | Dónde, en Jenkins | Valor |
+|---|---|---|
+| Job de `develop` | New Item, tipo Pipeline | Nombre `mlops-curse-aprobacion`. "Pipeline script from SCM", Git, URL del repositorio, rama `*/develop` y script `Jenkinsfile` |
+| Job de `master` | New Item, "Duplicate an existing item" | Nombre `mlops-curse-aprobacion-master`, copia del anterior con la rama `*/master` |
+| Servidor de correo | Manage Jenkins, System, Extended E-mail Notification | `smtp.gmail.com`, puerto 587 con TLS, credencial con una contraseña de aplicación de Gmail y destinatario en Default Recipients |
+| Remitente | Manage Jenkins, System, Jenkins Location | Dirección del administrador |
+
+Cada job se lanza una vez a mano con "Construir ahora". Desde ahí revisa su rama cada 5 minutos y
+corre solo cuando llega un commit. Un job de Pipeline revisa la rama de su última corrida, así que
+también hace falta lanzarlo a mano después de cambiarle la rama.
+
+Tres cosas a tener en cuenta:
+
+- Jenkins solo detecta cambios mientras está encendido. Al volver a encenderlo, revisa lo pendiente.
+- Si la corrida falla antes de leer el `Jenkinsfile`, por ejemplo porque la rama ya no existe, no
+  envía correo.
+- `docker compose down -v` borra el volumen y, con él, los jobs, el usuario y la credencial del
+  correo.
+
+### Entrenar en Vertex AI (Entregable 5)
+
+La comparación contra AutoML usa la cuenta y los proyectos propios en Google Cloud. Cada paso
+verifica antes de actuar: la tabla no se sube si su test no es el de Python, y AutoML no se lanza
+si el plan se aparta de las reglas de la comparación.
+
+```bash
+pip install -r requirements.txt -r requirements-vertex.txt
+gcloud auth application-default login
+
+# 1. Armar las tablas, verificarlas y subirlas a BigQuery
+python mlops_pipeline/src/vertex_datos.py --subir
+python mlops_pipeline/src/vertex_datos.py --tabla pipeline --subir
+
+# 2. Ver el plan de AutoML; con --lanzar lo crea y cuesta cerca de USD 21
+python mlops_pipeline/src/vertex_automl.py
+
+# 3. Medir Python, el pipeline y AutoML; --descargar rehace las predicciones desde la nube
+python mlops_pipeline/src/vertex_evaluacion.py
+
+# 4. Compilar el pipeline propio; con --lanzar sube el código del commit y crea la corrida
+python mlops_pipeline/src/vertex_pipeline.py
+```
+
+Resultado sobre el mismo test estratificado, con 2.153 créditos y 102 moras, rechazando el 20,9% de
+mayor riesgo según cada modelo. El tiempo es solo el del entrenamiento:
+
+| Modelo | AUC-PR | ROC-AUC | KS | Brier | F1 | Moras detectadas | Entrenamiento | Costo |
+|---|---|---|---|---|---|---|---|---|
+| Python, logística sobre WoE | 0,1479 | 0,6849 | 0,2742 | 0,04337 | 0,1449 | 40 de 102 | 1,2 s en local | USD 0 |
+| Pipeline propio en Vertex AI | 0,1479 | 0,6849 | 0,2742 | 0,04337 | 0,1449 | 40 de 102 | 12 min 53 s | USD 0,07 por dos corridas |
+| AutoML Tabular | 0,1952 | 0,6931 | 0,3192 | 0,04256 | 0,1630 | 45 de 102 | 2 h 10 min | USD 21,25 |
+
+- **El pipeline reproduce a Python:** las mismas métricas, con una diferencia máxima de probabilidad
+  menor que 1e-15. Entrenar en la nube, con los datos de BigQuery, da el mismo modelo.
+- **AutoML supera a Python en AUC-PR por 0,047,** más que la variación entre pliegues de 0,0159. La
+  ventaja se concentra en los créditos de mayor riesgo: desde un recall de 0,2 las curvas
+  precision-recall se superponen y las ROC son casi iguales.
+- **El modelo servido sigue siendo la logística.** Es interpretable con su scorecard y da la razón de
+  cada rechazo, se reentrena en segundos y cuesta centavos en la nube. AutoML queda como referencia
+  de cuánto rendimiento hay todavía por capturar.
+
+La figura está en `data/models/figuras/vertex/comparacion_modelos.png`.
+
+**¿Es firme la ventaja de AutoML?** Un bootstrap pareado y estratificado, con 1.000 tests
+remuestreados y los mismos créditos para los dos modelos en cada uno, responde que sí en AUC-PR y
+no en ROC-AUC:
+
+| Métrica | Python, IC95 | AutoML, IC95 | Diferencia, IC95 | Gana AutoML |
+|---|---|---|---|---|
+| AUC-PR | [0,099, 0,214] | [0,132, 0,265] | **+0,045 [0,010, 0,084]** | 99,7% de las muestras |
+| ROC-AUC | [0,630, 0,737] | [0,642, 0,743] | +0,008 [−0,017, 0,033] | 73,5% |
+
+Los intervalos de cada modelo se solapan mucho, pero la diferencia pareada queda entera por
+encima de cero en AUC-PR: AutoML ordena mejor los créditos de mayor riesgo en casi cualquier test
+parecido. En ROC-AUC el intervalo incluye el cero, así que en el orden general no se distinguen.
+
+**¿Cuánto depende el resultado de la partición?** Separando los 10.763 créditos con otras 20
+semillas y reentrenando la misma receta, el AUC-PR de Python va de 0,108 a 0,224, con media 0,150
+y desviación 0,027. La partición original, con 0,148, es típica: queda en la mitad. Esa variación
+es mayor que el ruido entre pliegues y del orden de la ventaja de AutoML, y en 2 de las 20
+particiones Python supera el 0,195 de AutoML. Por eso la comparación válida es la pareada, sobre el
+mismo test: comparar AUC-PR medidos en tests distintos llevaría a conclusiones falsas. A AutoML no
+se le repitió en otras particiones porque cada corrida cuesta USD 21,25.
+
+**¿Aguanta el modelo el paso del tiempo?** En la partición temporal el AUC-PR cae de 0,148 a 0,065,
+pero buena parte de esa caída no es del modelo. El 53% de ese test todavía no había vencido, y un
+crédito que no vence no puede estar en mora: la tasa baja a 3,2% y el AUC-PR baja con ella. Con
+ventanas móviles, entrenando con todo lo anterior y probando en los dos meses siguientes, el
+desempeño se sostiene:
+
+| Ventana de prueba | Moras | Lift sobre el azar | ROC-AUC | Sin vencer |
+|---|---|---|---|---|
+| Marzo y abril de 2025 | 126 | 3,10 | 0,716 | 9,9% |
+| Mayo y junio de 2025 | 72 | 4,40 | 0,739 | 17,7% |
+| Julio y agosto de 2025 | 40 | 4,11 | 0,742 | 30,7% |
+
+Reentrenado con datos recientes, el modelo es consistente; lo que se degrada es usarlo diez meses
+sin reentrenar y evaluarlo con créditos que aún no maduran. Las ventanas tienen pocas moras, así
+que sus cifras son ruidosas.
+
+Los tres análisis se reproducen con `python mlops_pipeline/src/vertex_estabilidad.py`.
+
+**Comparación de nubes.** `docs/comparacion_nubes.md` compara AWS, Azure y GCP en los 14 criterios
+del enunciado: GCP con lo vivido en este proyecto, y AWS y Azure con su documentación oficial. Su
+sección 5, la matriz de los 14 criterios, es la tabla principal.
 
 ### Volver a una versión anterior
 
